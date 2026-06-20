@@ -1,0 +1,28 @@
+# Godot import cache
+.import/
+
+# Godot 4 imported assets
+.godot/
+
+# Export templates and build output
+export_presets.cfg
+builds/
+exports/
+
+# Mono / C# projects
+.mono/
+data_*/
+*.csproj
+*.sln
+*.user
+*.dotCover
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
