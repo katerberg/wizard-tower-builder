@@ -135,7 +135,6 @@ export type PlacementReason =
   | 'overlap'
   | 'no_support'
   | 'overhang_too_far'
-  | 'needs_stabilizer'
   | 'disconnected';
 
 export type PlacementResult = { ok: boolean; reason: PlacementReason };

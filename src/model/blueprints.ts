@@ -11,22 +11,22 @@ export const BLUEPRINTS: Blueprint[] = [
     baseHp: 20,
   },
   {
-    id: 'hall',
-    name: 'Stabilizer Hall',
-    glyph: 'H',
-    color: '#6b5a8c',
-    size: { w: 3, h: 1 },
-    cost: 8,
-    baseHp: 45,
-  },
-  {
-    id: 'buttress',
-    name: 'Buttress',
+    id: 'buttress2',
+    name: 'Buttress (2)',
     glyph: 'B',
     color: '#8c6b5a',
     size: { w: 2, h: 1 },
     cost: 6,
     baseHp: 35,
+  },
+  {
+    id: 'buttress3',
+    name: 'Buttress (3)',
+    glyph: 'B',
+    color: '#7a5a4a',
+    size: { w: 3, h: 1 },
+    cost: 8,
+    baseHp: 45,
   },
 ];
 
@@ -34,4 +34,8 @@ export const STARTING_BLUEPRINT_IDS = BLUEPRINTS.map((b) => b.id);
 
 export function getBlueprint(id: string): Blueprint | undefined {
   return BLUEPRINTS.find((b) => b.id === id);
+}
+
+export function isButtressBlueprint(blueprint: Blueprint): boolean {
+  return blueprint.size.w >= 2;
 }

@@ -11,11 +11,10 @@ const profile = ENEMY_TEMPLATES.goblin.movement;
 function buildTShapedTower(): Tower {
   let tower = createTower();
   const stem = getBlueprint('stem')!;
-  const hall = getBlueprint('hall')!;
+  const wide = getBlueprint('buttress3')!;
   tower = placeRoom(tower, createRoom('a', stem, { col: 5, row: 0 }));
-  tower = placeRoom(tower, createRoom('b', stem, { col: 5, row: 1 }));
-  // Wide hall overhangs the stem on both sides.
-  tower = placeRoom(tower, createRoom('c', hall, { col: 4, row: 2 }));
+  // 3-wide buttress overhangs the stem on both sides.
+  tower = placeRoom(tower, createRoom('c', wide, { col: 4, row: 1 }));
   return tower;
 }
 

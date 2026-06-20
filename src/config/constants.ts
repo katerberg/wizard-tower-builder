@@ -8,7 +8,8 @@ export const GRID_ROWS = 12;
 export const STARTING_CURRENCY = 48;
 
 export const MAX_OVERHANG_STEP = 1;
-export const MIN_STABILIZER_WIDTH = 2;
+/** Minimum width for a buttress room (spire blocks are always 1-wide). */
+export const MIN_BUTTRESS_WIDTH = 2;
 
 // Gameplay tuning (attack phase).
 export const SPAWN_INTERVAL = 0.8;

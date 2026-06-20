@@ -1,4 +1,4 @@
-import { GRID_COLS, MAX_OVERHANG_STEP, MIN_STABILIZER_WIDTH } from '@/config/constants';
+import { GRID_COLS, MAX_OVERHANG_STEP } from '@/config/constants';
 import { cellKey, inBounds, parseKey, roomCells } from '../calculations/grid';
 import type { Blueprint, Cell, ExteriorNode, PlacementReason, PlacementResult, Room, Tower } from './types';
 
@@ -10,8 +10,106 @@ export function isOccupied(tower: Tower, col: number, row: number): boolean {
   return Object.prototype.hasOwnProperty.call(tower.occupancy, cellKey(col, row));
 }
 
-export function towerHasStabilizer(tower: Tower): boolean {
-  return tower.rooms.some((room) => room.size.w >= MIN_STABILIZER_WIDTH);
+function isSpireRoom(room: Room): boolean {
+  return room.size.w === 1;
+}
+
+/** Orthogonal neighbors among occupied cells. */
+function occupancyComponents(tower: Tower): Set<string>[] {
+  const occupied = new Set(Object.keys(tower.occupancy));
+  if (occupied.size === 0) return [];
+
+  const seen = new Set<string>();
+  const components: Set<string>[] = [];
+
+  for (const start of occupied) {
+    if (seen.has(start)) continue;
+    const component = new Set<string>();
+    const queue = [start];
+    while (queue.length > 0) {
+      const key = queue.pop()!;
+      if (component.has(key)) continue;
+      component.add(key);
+      seen.add(key);
+      const { col, row } = parseKey(key);
+      const neighbors = [
+        cellKey(col + 1, row),
+        cellKey(col - 1, row),
+        cellKey(col, row + 1),
+        cellKey(col, row - 1),
+      ];
+      for (const n of neighbors) {
+        if (occupied.has(n) && !component.has(n)) queue.push(n);
+      }
+    }
+    components.push(component);
+  }
+
+  return components;
+}
+
+export function isTowerConnected(tower: Tower): boolean {
+  return occupancyComponents(tower).length <= 1;
+}
+
+/** Room ids in every component except the main (largest) one. */
+function disconnectedRoomIds(tower: Tower): Set<string> {
+  const components = occupancyComponents(tower);
+  if (components.length <= 1) return new Set();
+
+  const main = components.reduce((best, comp) => {
+    if (comp.size > best.size) return comp;
+    if (comp.size < best.size) return best;
+    const minKey = (set: Set<string>) =>
+      [...set].sort((a, b) => {
+        const pa = parseKey(a);
+        const pb = parseKey(b);
+        return pa.col - pb.col || pa.row - pb.row;
+      })[0];
+    return minKey(comp) < minKey(best) ? comp : best;
+  });
+
+  const bad = new Set<string>();
+  for (const comp of components) {
+    if (comp === main) continue;
+    for (const key of comp) {
+      bad.add(tower.occupancy[key]);
+    }
+  }
+  return bad;
+}
+
+function newCellsTouchTower(tower: Tower, newCells: Cell[]): boolean {
+  if (Object.keys(tower.occupancy).length === 0) return true;
+  const occupied = new Set(Object.keys(tower.occupancy));
+  for (const c of newCells) {
+    const neighbors = [
+      cellKey(c.col + 1, c.row),
+      cellKey(c.col - 1, c.row),
+      cellKey(c.col, c.row + 1),
+      cellKey(c.col, c.row - 1),
+    ];
+    for (const n of neighbors) {
+      if (occupied.has(n)) return true;
+    }
+  }
+  return false;
+}
+
+/** Spire cells above row 0 must have an occupied cell directly below (spire or buttress). */
+function spireViolations(tower: Tower): Room[] {
+  const bad: Room[] = [];
+  for (const room of tower.rooms) {
+    if (!isSpireRoom(room)) continue;
+    for (const c of roomCells(room.origin, room.size)) {
+      if (c.row === 0) continue;
+      if (!isOccupied(tower, c.col, c.row - 1)) {
+        bad.push(room);
+        break;
+      }
+    }
+  }
+  return bad;
 }
 
 export function createRoom(id: string, blueprint: Blueprint, origin: Cell): Room {
@@ -35,9 +133,7 @@ const PLACEMENT_PROBE_ID = '__placement_probe__';
 /**
  * Single authority for placement legality. A placement is legal exactly when it
  * is in-bounds, non-overlapping, and the *resulting* tower passes
- * {@link validateTower}. Defining placement in terms of the same validity
- * predicate used after a removal guarantees the two can never drift: anything
- * you can build, you can keep; anything that becomes invalid is rejected.
+ * {@link validateTower}.
  */
 export function canPlace(tower: Tower, blueprint: Blueprint, origin: Cell): PlacementResult {
   const cells = roomCells(origin, blueprint.size);
@@ -49,7 +145,10 @@ export function canPlace(tower: Tower, blueprint: Blueprint, origin: Cell): Plac
     if (isOccupied(tower, c.col, c.row)) {
       return fail('overlap');
     }
-    
+  }
+
+  if (!newCellsTouchTower(tower, cells)) {
+    return fail('disconnected');
   }
 
   const candidate = placeRoom(tower, createRoom(PLACEMENT_PROBE_ID, blueprint, origin));
@@ -59,11 +158,16 @@ export function canPlace(tower: Tower, blueprint: Blueprint, origin: Cell): Plac
     return { ok: true, reason: 'ok' };
   }
 
-  return fail(classifyNewRoomFailure(candidate, cells, analysis));
+  return fail(classifyNewRoomFailure(candidate, cells, analysis, blueprint));
 }
 
 /** Translate a tower-level invalidity into a placement-specific reason. */
-function classifyNewRoomFailure(candidate: Tower, newCells: Cell[], analysis: SupportAnalysis): PlacementReason {
+function classifyNewRoomFailure(
+  candidate: Tower,
+  newCells: Cell[],
+  analysis: SupportAnalysis,
+  blueprint: Blueprint,
+): PlacementReason {
   const unsupported = newCells
     .filter((c) => !analysis.supported.has(cellKey(c.col, c.row)))
     .sort((a, b) => a.row - b.row);
@@ -82,9 +186,19 @@ function classifyNewRoomFailure(candidate: Tower, newCells: Cell[], analysis: Su
     return 'no_support';
   }
 
-  // Every new cell is supported, so the only remaining way to be invalid is the
-  // cantilever stabilizer gate.
-  return 'needs_stabilizer';
+  if (blueprint.size.w === 1) {
+    for (const c of newCells) {
+      if (c.row > 0 && !isOccupied(candidate, c.col, c.row - 1)) {
+        return 'no_support';
+      }
+    }
+  }
+
+  if (!isTowerConnected(candidate)) {
+    return 'disconnected';
+  }
+
+  return 'no_support';
 }
 
 function supportedColsAt(tower: Tower, analysis: SupportAnalysis, row: number): number[] {
@@ -126,16 +240,12 @@ export function roomAt(tower: Tower, col: number, row: number): Room | undefined
 type SupportAnalysis = {
   /** Keys of every cell that is held up (grounded, direct, or 1-step cantilever). */
   supported: Set<string>;
-  /** Keys of supported cells whose row-below cell is empty (i.e. they overhang). */
-  cantilevered: Set<string>;
 };
 
 /**
- * Bottom-up support propagation over the whole tower. A cell is supported if it
- * is grounded (row 0), sits directly on a supported cell, or cantilevers at most
- * one step from the supported span on the row below. A supported cell with no
- * occupied cell directly beneath it is recorded as cantilevered, which the
- * stabilizer gate keys off of.
+ * Bottom-up support propagation. Buttress rooms may cantilever at most one step
+ * beyond the supported span on the row below. Spire cells must have an occupied
+ * cell directly beneath them — only buttress may overhang empty space.
  */
 export function analyzeSupport(tower: Tower): SupportAnalysis {
   const colsByRow = new Map<number, number[]>();
@@ -148,7 +258,6 @@ export function analyzeSupport(tower: Tower): SupportAnalysis {
   }
 
   const supported = new Set<string>();
-  const cantilevered = new Set<string>();
   for (const col of colsByRow.get(0) ?? []) {
     supported.add(cellKey(col, 0));
   }
@@ -178,18 +287,15 @@ export function analyzeSupport(tower: Tower): SupportAnalysis {
     }
     for (const c of anchored) {
       supported.add(cellKey(c, row));
-      if (!isOccupied(tower, c, row - 1)) {
-        cantilevered.add(cellKey(c, row));
-      }
     }
   }
 
-  return { supported, cantilevered };
+  return { supported };
 }
 
 export type TowerValidity = {
   valid: boolean;
-  /** Rooms that make the tower invalid (floating, or illegally cantilevered). */
+  /** Rooms that make the tower invalid (floating or breaking spire/buttress rules). */
   invalidRoomIds: Set<string>;
   reason: PlacementReason;
 };
@@ -207,20 +313,14 @@ function validityFromAnalysis(tower: Tower, analysis: SupportAnalysis): TowerVal
   }
   let reason: PlacementReason = invalidRoomIds.size > 0 ? 'no_support' : 'ok';
 
-  // Stabilizer gate as a snapshot invariant: if any cell relies on a cantilever,
-  // the tower must contain a width>=2 stabilizer room. This is the same rule the
-  // placement check enforces, so it also catches a tower whose stabilizer was
-  // removed after the fact.
-  if (analysis.cantilevered.size > 0 && !towerHasStabilizer(tower)) {
-    for (const room of tower.rooms) {
-      for (const c of roomCells(room.origin, room.size)) {
-        if (analysis.cantilevered.has(cellKey(c.col, c.row))) {
-          invalidRoomIds.add(room.id);
-          break;
-        }
-      }
-    }
-    if (reason === 'ok') reason = 'needs_stabilizer';
+  for (const room of spireViolations(tower)) {
+    invalidRoomIds.add(room.id);
+    if (reason === 'ok') reason = 'no_support';
+  }
+
+  for (const roomId of disconnectedRoomIds(tower)) {
+    invalidRoomIds.add(roomId);
+    if (reason === 'ok') reason = 'disconnected';
   }
 
   return { valid: invalidRoomIds.size === 0, invalidRoomIds, reason };
@@ -228,14 +328,13 @@ function validityFromAnalysis(tower: Tower, analysis: SupportAnalysis): TowerVal
 
 /**
  * The single "is this build valid?" predicate. Used by {@link canPlace} on the
- * prospective tower and by the store/views after a removal, so placement rules
- * and the stability check can never disagree.
+ * prospective tower and by the store/views after a removal.
  */
 export function validateTower(tower: Tower): TowerValidity {
   return validityFromAnalysis(tower, analyzeSupport(tower));
 }
 
-/** Ids of rooms that make the tower invalid (floating or illegally cantilevered). */
+/** Ids of rooms that make the tower invalid. */
 export function getUnstableRoomIds(tower: Tower): Set<string> {
   return validateTower(tower).invalidRoomIds;
 }
@@ -244,7 +343,7 @@ export function isTowerStable(tower: Tower): boolean {
   return validateTower(tower).valid;
 }
 
-/** Contiguous horizontal runs of columns at the top occupied row. */
+/** Contiguous top-row spans at the highest occupied row. */
 function topRowSpans(tower: Tower, topRow: number): Array<{ min: number; max: number }> {
   const cols = Object.keys(tower.occupancy)
     .map(parseKey)
@@ -272,8 +371,7 @@ function topRowSpans(tower: Tower, topRow: number): Array<{ min: number; max: nu
 
 /**
  * Top-center exterior node, just above the highest occupied row. When several
- * disconnected towers share that row, the wizard stands on the left-most one
- * instead of the gap between them.
+ * disconnected towers share that row, the wizard stands on the left-most one.
  */
 export function getWizardPosition(tower: Tower): ExteriorNode {
   if (tower.rooms.length === 0) {

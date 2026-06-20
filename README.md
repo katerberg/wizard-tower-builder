@@ -18,9 +18,9 @@ Progression is linear and escalating for now (designed so branching roguelike pa
 Placement and post-removal validity share a single authority: `validateTower()`. Anything you can place must remain valid; anything that becomes invalid after a removal is flagged.
 
 - **Ground** — Row 0 is the floor; rooms can be placed directly on it.
-- **Vertical support** — Higher rooms need support from the row below (directly underneath or via cantilever).
-- **Cantilever** — A room may overhang by at most **one cell** beyond the supported span below.
-- **Stabilizer gate** — The first cantilever in a tower requires a **stabilizer room** (width ≥ 2, e.g. Buttress or Stabilizer Hall). A wide room can also self-stabilize its own cantilevered cells.
+- **Spire blocks (1-wide)** — Must sit on the ground or directly on another room (spire or buttress). They cannot overhang empty space.
+- **Buttress (2 or 3 wide)** — Wide platforms; outer cells may cantilever at most **one step** beyond support below. Only buttress may “float” over gaps.
+- **Single tower** — All rooms must form **one connected mass** (4-way adjacency). New placements must touch the existing structure; you cannot start a second tower elsewhere on the grid.
 
 Unstable towers (floating rooms or illegal cantilevers) are highlighted on the board and block starting a wave.
 

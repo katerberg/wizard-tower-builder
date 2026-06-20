@@ -56,7 +56,9 @@ function helpBody(): string {
       <li>Enemies climb the outside toward your wizard at the top.</li>
       <li>The wizard auto-zaps the nearest climber in range.</li>
       <li>A taller, longer approach keeps enemies in range while they climb.</li>
-      <li>Cantilever requires a 2+ wide stabilizer room first.</li>
+      <li>Spire blocks need ground or a room directly below; they cannot overhang.</li>
+      <li>Buttress rooms (2 or 3 wide) can cantilever at most one step.</li>
+      <li>The whole tower must stay one connected structure — no second base elsewhere.</li>
       <li>Clear all 10 waves before the wizard's HP runs out.</li>
     </ul>`;
 }

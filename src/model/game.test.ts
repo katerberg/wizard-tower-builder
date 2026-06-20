@@ -10,10 +10,12 @@ describe('attack-phase simulation', () => {
     const state = createInitialState('integration');
     beginRun(state);
 
-    // A small tower so the wizard sits above the ground and enemies must climb.
+    // Small valid tower: spire → buttress → spire.
     const stem = getBlueprint('stem')!;
+    const buttress = getBlueprint('buttress2')!;
     state.tower = placeRoom(state.tower, createRoom('r0', stem, { col: 8, row: 0 }));
-    state.tower = placeRoom(state.tower, createRoom('r1', stem, { col: 8, row: 1 }));
+    state.tower = placeRoom(state.tower, createRoom('r1', buttress, { col: 8, row: 1 }));
+    state.tower = placeRoom(state.tower, createRoom('r2', stem, { col: 8, row: 2 }));
 
     beginWave(state);
     expect(state.phase).toBe('attack');
@@ -40,7 +42,7 @@ describe('attack-phase simulation', () => {
   it('awards mana and advances the level when a wave is cleared', () => {
     const state = createInitialState('reward');
     beginRun(state);
-    // Tall, defensible spire to keep the wizard alive on level 0.
+    // Tall vertical spire stack.
     const stem = getBlueprint('stem')!;
     for (let row = 0; row < 6; row++) {
       state.tower = placeRoom(state.tower, createRoom(`r${row}`, stem, { col: 8, row }));
