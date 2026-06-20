@@ -133,6 +133,24 @@ describe('getWizardPosition', () => {
     const pos = getWizardPosition(tower);
     expect(pos).toEqual({ col: 5, row: 2, face: 'top' });
   });
+
+  it('stands on the left-most tower when two peaks share the top row', () => {
+    let tower = createTower();
+    tower = place(tower, stem, { col: 2, row: 0 });
+    tower = place(tower, stem, { col: 2, row: 1 });
+    tower = place(tower, stem, { col: 10, row: 0 });
+    tower = place(tower, stem, { col: 10, row: 1 });
+    const pos = getWizardPosition(tower);
+    expect(pos).toEqual({ col: 2, row: 2, face: 'top' });
+  });
+
+  it('centers on a wide room when the top row is one contiguous span', () => {
+    let tower = createTower();
+    tower = place(tower, stem, { col: 5, row: 0 });
+    tower = place(tower, wide3, { col: 4, row: 1 });
+    const pos = getWizardPosition(tower);
+    expect(pos).toEqual({ col: 5, row: 2, face: 'top' });
+  });
 });
 
 describe('removeRoom', () => {

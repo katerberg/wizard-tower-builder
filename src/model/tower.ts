@@ -244,21 +244,51 @@ export function isTowerStable(tower: Tower): boolean {
   return validateTower(tower).valid;
 }
 
-/** Top-center exterior node, just above the highest occupied row. */
+/** Contiguous horizontal runs of columns at the top occupied row. */
+function topRowSpans(tower: Tower, topRow: number): Array<{ min: number; max: number }> {
+  const cols = Object.keys(tower.occupancy)
+    .map(parseKey)
+    .filter(({ row }) => row === topRow)
+    .map(({ col }) => col)
+    .sort((a, b) => a - b);
+
+  if (cols.length === 0) return [];
+
+  const spans: Array<{ min: number; max: number }> = [];
+  let runMin = cols[0];
+  let runMax = cols[0];
+  for (let i = 1; i < cols.length; i++) {
+    if (cols[i] === runMax + 1) {
+      runMax = cols[i];
+    } else {
+      spans.push({ min: runMin, max: runMax });
+      runMin = cols[i];
+      runMax = cols[i];
+    }
+  }
+  spans.push({ min: runMin, max: runMax });
+  return spans;
+}
+
+/**
+ * Top-center exterior node, just above the highest occupied row. When several
+ * disconnected towers share that row, the wizard stands on the left-most one
+ * instead of the gap between them.
+ */
 export function getWizardPosition(tower: Tower): ExteriorNode {
   if (tower.rooms.length === 0) {
     return { col: Math.floor(GRID_COLS / 2), row: 0, face: 'top' };
   }
+
   let topRow = 0;
   for (const key of Object.keys(tower.occupancy)) {
     const { row } = parseKey(key);
     if (row > topRow) topRow = row;
   }
-  const colsAtTop: number[] = [];
-  for (const key of Object.keys(tower.occupancy)) {
-    const { col, row } = parseKey(key);
-    if (row === topRow) colsAtTop.push(col);
-  }
-  const centerCol = Math.round((Math.min(...colsAtTop) + Math.max(...colsAtTop)) / 2);
+
+  const spans = topRowSpans(tower, topRow);
+  const span = spans[0] ?? { min: Math.floor(GRID_COLS / 2), max: Math.floor(GRID_COLS / 2) };
+  const centerCol = Math.round((span.min + span.max) / 2);
+
   return { col: centerCol, row: topRow + 1, face: 'top' };
 }
