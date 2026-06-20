@@ -1,21 +1,13 @@
-# Godot import cache
-.import/
+# Dependencies
+node_modules/
 
-# Godot 4 imported assets
-.godot/
+# Build output
+dist/
+dist-ssr/
 
-# Export templates and build output
-export_presets.cfg
-builds/
-exports/
-
-# Mono / C# projects
-.mono/
-data_*/
-*.csproj
-*.sln
-*.user
-*.dotCover
+# Vite / test caches
+.vite/
+coverage/
 
 # IDE files
 .vscode/
@@ -26,3 +18,4 @@ Thumbs.db
 
 # Logs
 *.log
+npm-debug.log*

@@ -1,0 +1,62 @@
+import { describe, expect, it } from 'vitest';
+import { FIXED_DT } from '@/config/constants';
+import { beginRun, createInitialState, step } from './game';
+import { beginWave } from './phases';
+import { getBlueprint } from './blueprints';
+import { createRoom, placeRoom } from './tower';
+
+describe('attack-phase simulation', () => {
+  it('spawns a wave, resolves it, and reaches a terminal state', () => {
+    const state = createInitialState('integration');
+    beginRun(state);
+
+    // A small tower so the wizard sits above the ground and enemies must climb.
+    const stem = getBlueprint('stem')!;
+    state.tower = placeRoom(state.tower, createRoom('r0', stem, { col: 8, row: 0 }));
+    state.tower = placeRoom(state.tower, createRoom('r1', stem, { col: 8, row: 1 }));
+
+    beginWave(state);
+    expect(state.phase).toBe('attack');
+    expect(state.spawnQueue.length).toBeGreaterThan(0);
+
+    let sawEnemy = false;
+    let steps = 0;
+    const maxSteps = 60 * 60; // 60 simulated seconds
+    while (steps < maxSteps) {
+      step(state, FIXED_DT);
+      steps += 1;
+      if (state.enemies.length > 0) sawEnemy = true;
+      if (state.phase === 'build' || state.scene !== 'run') break;
+    }
+
+    expect(sawEnemy).toBe(true);
+    // Terminal: either the wave cleared (back to build) or the wizard fell.
+    const cleared = state.phase === 'build' && state.scene === 'run';
+    const lost = state.scene === 'gameOver';
+    expect(cleared || lost).toBe(true);
+    expect(steps).toBeLessThan(maxSteps);
+  });
+
+  it('awards mana and advances the level when a wave is cleared', () => {
+    const state = createInitialState('reward');
+    beginRun(state);
+    // Tall, defensible spire to keep the wizard alive on level 0.
+    const stem = getBlueprint('stem')!;
+    for (let row = 0; row < 6; row++) {
+      state.tower = placeRoom(state.tower, createRoom(`r${row}`, stem, { col: 8, row }));
+    }
+    const startCurrency = state.player.currency;
+    beginWave(state);
+
+    let steps = 0;
+    while (steps < 60 * 90 && state.scene === 'run' && state.phase === 'attack') {
+      step(state, FIXED_DT);
+      steps += 1;
+    }
+
+    if (state.scene === 'run' && state.phase === 'build') {
+      expect(state.levelIndex).toBe(1);
+      expect(state.player.currency).toBeGreaterThan(startCurrency);
+    }
+  });
+});
