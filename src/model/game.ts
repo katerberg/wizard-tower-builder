@@ -174,7 +174,7 @@ export function step(state: GameState, dt: number): void {
       const template = getEnemyTemplate(enemy.templateId);
       if (template) {
         state.player.currency += template.currencyReward;
-        addMessage(state, `${enemy.name} the ${template.type} destroyed. +${template.currencyReward} mana.`, 'economy');
+        addMessage(state, `${enemy.name} the ${template.type} destroyed. +${template.currencyReward} gold.`, 'economy');
       }
     } else {
       survivors.push(enemy);

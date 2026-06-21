@@ -122,7 +122,7 @@ export class Store {
       case 'devAddCurrency':
         if (game.devMode) {
           reward(game, 50);
-          addMessage(game, 'Dev: +50 mana.', 'economy');
+          addMessage(game, 'Dev: +50 gold.', 'economy');
         }
         break;
 
@@ -150,13 +150,13 @@ export class Store {
       return;
     }
     if (!canAfford(game, blueprint.cost)) {
-      addMessage(game, `Not enough mana for ${blueprint.name} (${blueprint.cost}).`, 'economy');
+      addMessage(game, `Not enough gold for ${blueprint.name} (${blueprint.cost}).`, 'economy');
       return;
     }
     spend(game, blueprint.cost);
     const room = createRoom(`room-${this.roomCounter++}`, blueprint, cell);
     game.tower = placeRoom(game.tower, room);
-    addMessage(game, `Built ${blueprint.name} for ${blueprint.cost} mana.`, 'economy');
+    addMessage(game, `Built ${blueprint.name} for ${blueprint.cost} gold.`, 'economy');
   }
 
   private removeAt(cell: { col: number; row: number }): void {
@@ -169,7 +169,7 @@ export class Store {
     if (blueprint) {
       const refund = Math.floor(blueprint.cost / 2);
       reward(game, refund);
-      addMessage(game, `Removed ${blueprint.name}. Refunded ${refund} mana.`, 'economy');
+      addMessage(game, `Removed ${blueprint.name}. Refunded ${refund} gold.`, 'economy');
     }
   }
 }

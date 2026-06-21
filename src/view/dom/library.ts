@@ -19,7 +19,7 @@ export function createLibrary(root: HTMLElement, store: Store): () => void {
         <button class="blueprint ${selected} ${poor}" data-blueprint="${b.id}">
           <span class="bp-glyph">${b.glyph}</span>
           <span class="bp-name">${b.name}</span>
-          <span class="bp-meta">${b.size.w}x${b.size.h} · ${b.cost} mana · ${b.baseHp} hp</span>
+          <span class="bp-meta">${b.size.w}x${b.size.h} · ${b.cost} gold · ${b.baseHp} hp</span>
         </button>`;
     }).join('');
 

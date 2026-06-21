@@ -32,7 +32,7 @@ export function createHud(root: HTMLElement, store: Store): () => void {
 
     const devControls = game.devMode
       ? `<div class="dev-row">
-           <button data-action="devAddCurrency">+50 mana</button>
+           <button data-action="devAddCurrency">+50 gold</button>
            <button data-action="devSkipWave">Skip wave</button>
          </div>`
       : '';
@@ -41,7 +41,7 @@ export function createHud(root: HTMLElement, store: Store): () => void {
       <h1>Wizard Tower</h1>
       <div class="stat"><span>Phase</span><strong>${labelPhase(game.scene, game.phase)}</strong></div>
       <div class="stat"><span>Level</span><strong>${level}</strong></div>
-      <div class="stat"><span>Mana</span><strong>${player.currency}</strong></div>
+      <div class="stat"><span>Gold</span><strong>${player.currency}</strong></div>
       <div class="stat"><span>Wizard HP</span><strong>${player.wizard.hp} / ${player.wizard.maxHp}</strong></div>
       ${attackInfo}
       ${phaseControls}

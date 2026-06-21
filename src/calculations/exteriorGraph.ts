@@ -18,13 +18,13 @@ export type SurfaceContact =
   | 'leftWall' // a room sits to the left of this cell
   | 'rightWall' // a room sits to the right
   | 'underCeiling' // a room sits directly above (overhang tunnel)
-  | 'onTop' // a room sits directly below (standing on a roof/ledge)
-  | 'corner'; // a room is diagonally adjacent (needed to turn outer corners)
+  | 'onTop'; // a room sits directly below (standing on a roof/ledge)
 
 /**
- * Which tower surfaces an empty cell touches. A cell with no contacts (other
- * than ground) is open air and not walkable. Diagonal "corner" contact is what
- * lets an orthogonal walker climb from a wall onto the roof above it.
+ * The flat tower surfaces an empty cell touches. Only orthogonal (flat) contact
+ * counts: an enemy must be grabbing a wall, floor, or ceiling. A cell that only
+ * touches a room diagonally is clinging to a bare corner and is NOT a valid
+ * surface — enemies move from flat to flat, they never perch on a corner.
  */
 export function surfaceContacts(tower: Tower, col: number, row: number): Set<SurfaceContact> {
   const contacts = new Set<SurfaceContact>();
@@ -33,14 +33,6 @@ export function surfaceContacts(tower: Tower, col: number, row: number): Set<Sur
   if (isRoom(tower, col + 1, row)) contacts.add('rightWall');
   if (isRoom(tower, col, row + 1)) contacts.add('underCeiling');
   if (isRoom(tower, col, row - 1)) contacts.add('onTop');
-  if (
-    isRoom(tower, col - 1, row - 1) ||
-    isRoom(tower, col + 1, row - 1) ||
-    isRoom(tower, col - 1, row + 1) ||
-    isRoom(tower, col + 1, row + 1)
-  ) {
-    contacts.add('corner');
-  }
   return contacts;
 }
 
@@ -70,13 +62,45 @@ const ORTHOGONAL = [
   { dc: 0, dr: -1 },
 ];
 
-/** Orthogonally adjacent walkable cells. Enemies walk surfaces; they never fly diagonally. */
+const DIAGONAL = [
+  { dc: 1, dr: 1 },
+  { dc: 1, dr: -1 },
+  { dc: -1, dr: 1 },
+  { dc: -1, dr: -1 },
+];
+
+/**
+ * A diagonal step is only allowed to wrap the outer corner of a single solid
+ * block: exactly one of the two cells flanking the diagonal must be a room (the
+ * corner being hugged) and the other must be open. This lets a crawler travel
+ * flat-to-flat around a convex corner (e.g. wall onto roof) without ever
+ * standing on the corner, while forbidding both free-air leaps (no room between)
+ * and squeezing through a diagonal gap (a room on both sides).
+ */
+function isCornerWrap(tower: Tower, col: number, row: number, dc: number, dr: number): boolean {
+  const sideRoom = isRoom(tower, col + dc, row);
+  const aboveBelowRoom = isRoom(tower, col, row + dr);
+  return sideRoom !== aboveBelowRoom;
+}
+
+/**
+ * Walkable cells reachable in one move. Straight orthogonal steps climb flat
+ * surfaces; diagonal steps are permitted only as constrained corner-wraps (see
+ * {@link isCornerWrap}). Enemies never fly through open air.
+ */
 export function neighbors(tower: Tower, col: number, row: number, profile: MovementProfile): ExteriorNode[] {
   const result: ExteriorNode[] = [];
   for (const { dc, dr } of ORTHOGONAL) {
     const nc = col + dc;
     const nr = row + dr;
     if (!isWalkable(tower, nc, nr, profile)) continue;
+    result.push({ col: nc, row: nr, face: faceOf(tower, nc, nr) });
+  }
+  for (const { dc, dr } of DIAGONAL) {
+    const nc = col + dc;
+    const nr = row + dr;
+    if (!isWalkable(tower, nc, nr, profile)) continue;
+    if (!isCornerWrap(tower, col, row, dc, dr)) continue;
     result.push({ col: nc, row: nr, face: faceOf(tower, nc, nr) });
   }
   return result;

@@ -46,9 +46,10 @@ describe('surfaceContacts', () => {
     expect(surfaceContacts(tower, 5, 3).has('onTop')).toBe(true); // room (5,2) below
   });
 
-  it('detects diagonal corner contact for turning onto a roof', () => {
+  it('does not treat diagonal-only contact as a surface', () => {
     const tower = tShape();
-    expect(surfaceContacts(tower, 3, 3).has('corner')).toBe(true); // room (4,2) is diagonal
+    // (3,3) only touches room (4,2) at a corner — no flat wall/floor/ceiling.
+    expect(surfaceContacts(tower, 3, 3).size).toBe(0);
   });
 });
 
@@ -69,19 +70,50 @@ describe('isWalkable', () => {
     expect(isWalkable(tower, 4, 1, underOverhang)).toBe(true);
     expect(isWalkable(tower, 4, 1, surfaceClimb)).toBe(false);
   });
+
+  it('rejects a cell that only touches a room at a corner', () => {
+    const tower = tShape();
+    expect(isWalkable(tower, 3, 3, underOverhang)).toBe(false);
+  });
 });
 
+// A simple vertical wall: rooms stacked at column 5, rows 0..2.
+function verticalWall(): Tower {
+  let tower = createTower();
+  tower = placeRoom(tower, createRoom('a', getBlueprint('stem')!, { col: 5, row: 0 }));
+  tower = placeRoom(tower, createRoom('b', getBlueprint('stem')!, { col: 5, row: 1 }));
+  tower = placeRoom(tower, createRoom('c', getBlueprint('stem')!, { col: 5, row: 2 }));
+  return tower;
+}
+
 describe('neighbors', () => {
-  it('returns only orthogonal walkable cells', () => {
-    const tower = tShape();
-    const result = neighbors(tower, 4, 0, underOverhang);
-    const keys = result.map((n) => `${n.col},${n.row}`).sort();
-    // From ground (4,0): left to (3,0), up to (4,1). (5,0) is a room; diagonals excluded.
-    expect(keys).toEqual(['3,0', '4,1']);
-    for (const n of result) {
-      const orthogonal = Math.abs(n.col - 4) + Math.abs(n.row - 0) === 1;
-      expect(orthogonal).toBe(true);
-    }
+  it('climbs a flat wall with orthogonal moves only (no diagonal leaps)', () => {
+    const tower = verticalWall();
+    // (4,1) hugs the wall (room at (5,1)). Up/down the wall is orthogonal; a
+    // diagonal down to the ground at (3,0) would be a leap and must be excluded.
+    const keys = neighbors(tower, 4, 1, underOverhang)
+      .map((n) => `${n.col},${n.row}`)
+      .sort();
+    expect(keys).toEqual(['4,0', '4,2']);
+  });
+
+  it('wraps a convex corner from a wall onto the roof', () => {
+    const tower = verticalWall();
+    // (4,2) hugs the top room's left wall; the wizard perch (5,3) is its roof.
+    const goesToRoof = neighbors(tower, 4, 2, underOverhang).some((n) => n.col === 5 && n.row === 3);
+    expect(goesToRoof).toBe(true);
+  });
+
+  it('does not squeeze through a diagonal gap between two rooms', () => {
+    // Rooms at (5,1) and (4,2) with (5,2) empty: the step (4,1) -> (5,2) is
+    // flanked by a room on BOTH sides, so it must be rejected as a squeeze.
+    let tower = createTower();
+    tower = placeRoom(tower, createRoom('a', getBlueprint('stem')!, { col: 5, row: 0 }));
+    tower = placeRoom(tower, createRoom('b', getBlueprint('stem')!, { col: 5, row: 1 }));
+    tower = placeRoom(tower, createRoom('c', getBlueprint('stem')!, { col: 4, row: 2 }));
+    expect(isWalkable(tower, 5, 2, underOverhang)).toBe(true); // empty, hugs (4,2)'s wall
+    const squeezes = neighbors(tower, 4, 1, underOverhang).some((n) => n.col === 5 && n.row === 2);
+    expect(squeezes).toBe(false);
   });
 });
 

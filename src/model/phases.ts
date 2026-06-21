@@ -23,7 +23,7 @@ export function beginWave(state: GameState): void {
 export function endWave(state: GameState): void {
   const amount = linearProgression.rewardFor(state.levelIndex);
   reward(state, amount);
-  addMessage(state, `Wave ${state.levelIndex + 1} cleared! +${amount} mana.`, 'economy');
+  addMessage(state, `Wave ${state.levelIndex + 1} cleared! +${amount} gold.`, 'economy');
 
   if (linearProgression.isFinalLevel(state.levelIndex)) {
     winGame(state);

@@ -29,13 +29,16 @@ function buildPyramid(): Tower {
 function assertSurfacePath(tower: Tower, path: ExteriorNode[]): void {
   expect(path.length).toBeGreaterThan(0);
   for (const node of path) {
-    expect(isWalkable(tower, node.col, node.row, profile), `node ${node.col},${node.row} should hug a surface`).toBe(
+    expect(isWalkable(tower, node.col, node.row, profile), `node ${node.col},${node.row} should hug a flat surface`).toBe(
       true,
     );
   }
   for (let i = 1; i < path.length; i++) {
-    const step = Math.abs(path[i].col - path[i - 1].col) + Math.abs(path[i].row - path[i - 1].row);
-    expect(step, 'each step must be a single orthogonal move').toBe(1);
+    const dc = Math.abs(path[i].col - path[i - 1].col);
+    const dr = Math.abs(path[i].row - path[i - 1].row);
+    const orthogonal = dc + dr === 1;
+    const cornerWrap = dc === 1 && dr === 1;
+    expect(orthogonal || cornerWrap, 'each step is an orthogonal move or a single corner-wrap').toBe(true);
   }
 }
 

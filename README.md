@@ -38,9 +38,11 @@ Dev mode toggles are available via intents (`toggleDevMode`, `devAddCurrency`, `
 
 ### Enemy movement
 
-Enemies are surface crawlers, not fliers. Pathfinding (`src/calculations/`) builds a one-cell-thick "shell" of empty cells that hug the tower: the ground (row 0), the left and right walls of rooms, ledges on top of rooms, the pockets beneath overhangs, and the diagonal corner cells needed to climb from a wall onto a roof. Cells out in open air are never walkable, so enemies must follow the structure up to the wizard.
+Enemies are surface crawlers, not fliers. Pathfinding (`src/calculations/`) builds a one-cell-thick "shell" of empty cells that hug the tower on a **flat** surface: the ground (row 0), the left and right walls of rooms, ledges on top of rooms, and the pockets beneath overhangs. A cell that only touches a room diagonally is clinging to a bare corner — it is *not* a surface, so enemies never perch there. Cells out in open air are never walkable, so enemies must follow the structure up to the wizard.
 
-Movement is strictly orthogonal (no diagonal steps), and A* uses a Manhattan metric with a uniform step cost. A `MovementProfile` gates which surfaces a given enemy may use. The only profile implemented today is `under_overhang`, which may pass through the pockets beneath protruding rooms. Other kinds (`surface_climb`, `attack_overhang`, `fly`, `face_transfer`) are defined in the types and partially gated (for example, `surface_climb` cannot enter cells beneath an overhang) but are not yet assigned to any enemy.
+Most steps are orthogonal: enemies climb flat walls and ledges one cell at a time. The single exception is a constrained **corner-wrap** — a diagonal step that wraps the outer corner of one solid block (exactly one of the two cells flanking the diagonal is a room, the other open). This lets a crawler move flat-to-flat *around* a convex corner (e.g. from a wall onto the roof above it) without ever standing on the corner, while still forbidding free-air leaps (no room between the cells) and squeezing through a diagonal gap (a room on both sides). A* uses a Manhattan metric with a uniform step cost.
+
+A `MovementProfile` gates which surfaces a given enemy may use. The only profile implemented today is `under_overhang`, which may pass through the pockets beneath protruding rooms. Other kinds (`surface_climb`, `attack_overhang`, `fly`, `face_transfer`) are defined in the types and partially gated (for example, `surface_climb` cannot enter cells beneath an overhang) but are not yet assigned to any enemy.
 
 ## Getting started
 

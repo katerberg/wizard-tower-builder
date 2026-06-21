@@ -39,7 +39,7 @@ describe('attack-phase simulation', () => {
     expect(steps).toBeLessThan(maxSteps);
   });
 
-  it('awards mana and advances the level when a wave is cleared', () => {
+  it('awards gold and advances the level when a wave is cleared', () => {
     const state = createInitialState('reward');
     beginRun(state);
     // Tall vertical spire stack.

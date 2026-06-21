@@ -23,7 +23,7 @@ export function createTooltip(root: HTMLElement, store: Store, pointer: PointerT
       const blueprint = view.selectedBlueprintId ? getBlueprint(view.selectedBlueprintId) : undefined;
       if (ghost && blueprint) {
         text = ghost.valid
-          ? `${blueprint.name} · ${blueprint.cost} mana`
+          ? `${blueprint.name} · ${blueprint.cost} gold`
           : `Cannot build: ${ghost.reason.replace(/_/g, ' ')}`;
       }
     }
