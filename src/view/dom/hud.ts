@@ -4,11 +4,26 @@ import type { Intent } from '@/store/intents';
 import type { Store } from '@/store/store';
 
 export function createHud(root: HTMLElement, store: Store): () => void {
-  root.addEventListener('click', (e) => {
-    const target = (e.target as HTMLElement).closest('[data-action]') as HTMLElement | null;
+  function dispatchFromTarget(eventTarget: EventTarget | null): void {
+    const target = (eventTarget as HTMLElement | null)?.closest('[data-action]') as HTMLElement | null;
     if (!target || (target as HTMLButtonElement).disabled) return;
     const action = target.dataset.action as Intent['type'];
     store.dispatch({ type: action } as Intent);
+  }
+
+  // Use pointerdown, not click: during the attack phase the HUD re-renders every
+  // frame, so a button is replaced between a click's mousedown and mouseup and
+  // the click never fires. pointerdown runs on press, before the next re-render.
+  root.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return;
+    dispatchFromTarget(e.target);
+  });
+
+  // Keep keyboard activation working for focused buttons.
+  root.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    e.preventDefault();
+    dispatchFromTarget(e.target);
   });
 
   return function render(): void {
