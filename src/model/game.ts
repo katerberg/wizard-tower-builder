@@ -156,7 +156,10 @@ export function step(state: GameState, dt: number): void {
       const result = computeDamage(wizard, defender, state.rngState);
       state.rngState = result.rngState;
       if (!result.dodged) {
+        addMessage(state, `The wizard hits ${target.name} the ${template.type} for ${result.damage}.`, 'combat');
         target.currentHp -= result.damage;
+      } else {
+        addMessage(state, `${target.name} the ${template.type} dodges the wizard's attack.`, 'combat');
       }
       wizard.attackCooldown = WIZARD_DEFAULTS.attackCooldown;
     } else {

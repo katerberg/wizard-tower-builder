@@ -20,7 +20,7 @@ export const WIZARD_DEFAULTS = {
   attack: 6,
   defense: 0,
   dexterity: 3,
-  range: 4,
+  range: 1,
   attackCooldown: 0.6,
 } as const;
 
