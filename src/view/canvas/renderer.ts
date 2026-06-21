@@ -113,7 +113,12 @@ export class Renderer {
     const { ctx } = this;
     for (const enemy of snapshot.game.enemies) {
       const template = getEnemyTemplate(enemy.templateId);
-      const { x, y } = cellCenter(enemy.pos.col, enemy.pos.row);
+      const center = cellCenter(enemy.pos.col, enemy.pos.row);
+      // Nudge toward the surface the enemy clings to so it reads as crawling on
+      // the tower rather than floating in the cell center.
+      const faceOffset = enemy.pos.face === 'left' ? -CELL_SIZE * 0.25 : enemy.pos.face === 'right' ? CELL_SIZE * 0.25 : 0;
+      const x = center.x + faceOffset;
+      const y = center.y;
       const r = CELL_SIZE * 0.32;
 
       ctx.beginPath();

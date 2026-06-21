@@ -2,15 +2,14 @@ import { cellKey } from './grid';
 import { isWalkable, neighbors } from './exteriorGraph';
 import type { ExteriorNode, MovementProfile, Tower } from '../model/types';
 
+// Manhattan distance: enemies move one orthogonal step at a time along surfaces.
 function heuristic(ac: number, ar: number, bc: number, br: number): number {
-  const dx = ac - bc;
-  const dy = ar - br;
-  return Math.sqrt(dx * dx + dy * dy);
+  return Math.abs(ac - bc) + Math.abs(ar - br);
 }
 
 /**
- * A* over the exterior (empty-cell) graph from `start` to `goal`. Returns the
- * full node path including both endpoints, or [] when unreachable. Pure: no
+ * A* over the exterior surface graph from `start` to `goal`. Returns the full
+ * node path including both endpoints, or [] when unreachable. Pure: no
  * dependency on rng, DOM, or the store.
  */
 export function findPath(
@@ -19,7 +18,7 @@ export function findPath(
   goal: ExteriorNode,
   profile: MovementProfile,
 ): ExteriorNode[] {
-  if (!isWalkable(tower, goal.col, goal.row) || !isWalkable(tower, start.col, start.row)) {
+  if (!isWalkable(tower, goal.col, goal.row, profile) || !isWalkable(tower, start.col, start.row, profile)) {
     return [];
   }
 
@@ -54,8 +53,7 @@ export function findPath(
 
     for (const n of neighbors(tower, node.col, node.row, profile)) {
       const nKey = cellKey(n.col, n.row);
-      const stepCost = n.col !== node.col && n.row !== node.row ? Math.SQRT2 : 1;
-      const tentative = currentG + stepCost;
+      const tentative = currentG + 1;
       if (tentative < (gScore.get(nKey) ?? Infinity)) {
         cameFrom.set(nKey, node);
         nodeByKey.set(nKey, n);

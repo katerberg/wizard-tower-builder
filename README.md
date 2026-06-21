@@ -36,6 +36,12 @@ Unstable towers (floating rooms or illegal cantilevers) are highlighted on the b
 
 Dev mode toggles are available via intents (`toggleDevMode`, `devAddCurrency`, `devSkipWave`) for local testing.
 
+### Enemy movement
+
+Enemies are surface crawlers, not fliers. Pathfinding (`src/calculations/`) builds a one-cell-thick "shell" of empty cells that hug the tower: the ground (row 0), the left and right walls of rooms, ledges on top of rooms, the pockets beneath overhangs, and the diagonal corner cells needed to climb from a wall onto a roof. Cells out in open air are never walkable, so enemies must follow the structure up to the wizard.
+
+Movement is strictly orthogonal (no diagonal steps), and A* uses a Manhattan metric with a uniform step cost. A `MovementProfile` gates which surfaces a given enemy may use. The only profile implemented today is `under_overhang`, which may pass through the pockets beneath protruding rooms. Other kinds (`surface_climb`, `attack_overhang`, `fly`, `face_transfer`) are defined in the types and partially gated (for example, `surface_climb` cannot enter cells beneath an overhang) but are not yet assigned to any enemy.
+
 ## Getting started
 
 ```bash

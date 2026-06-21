@@ -59,7 +59,7 @@ export type ExteriorFace = 'left' | 'right' | 'top';
 
 export type ExteriorNode = { col: number; row: number; face: ExteriorFace };
 
-export type MovementKind = 'under_overhang' | 'attack_overhang' | 'fly' | 'face_transfer';
+export type MovementKind = 'under_overhang' | 'surface_climb' | 'attack_overhang' | 'fly' | 'face_transfer';
 
 export type MovementProfile = {
   kind: MovementKind;
