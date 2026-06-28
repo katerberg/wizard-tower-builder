@@ -7,6 +7,9 @@ export type Intent =
   | { type: 'placeSelectedAt'; cell: Cell }
   | { type: 'removeRoomAt'; cell: Cell }
   | { type: 'inspectRoomAt'; cell: Cell }
+  | { type: 'addModification'; roomId: string; modId: string }
+  | { type: 'upgradeModification'; roomId: string; modId: string }
+  | { type: 'sellRoom'; roomId: string }
   | { type: 'closeModal' }
   | { type: 'startWave' }
   | { type: 'restart' }

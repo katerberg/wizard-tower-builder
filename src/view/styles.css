@@ -255,6 +255,81 @@ button:disabled:hover {
   line-height: 1.5;
 }
 
+.modal-panel h4 {
+  margin: 16px 0 8px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.mod-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mod-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--panel-2);
+}
+
+.mod-glyph {
+  font-family: monospace;
+  font-size: 18px;
+  width: 18px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.mod-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  font-size: 13px;
+}
+
+.mod-level {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.mod-desc {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.mod-btn {
+  font-size: 12px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.mod-max {
+  font-size: 12px;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+button.danger {
+  background: #5b2330;
+  border-color: #c53030;
+  width: 100%;
+  margin-top: 12px;
+}
+
+.disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.disabled:hover {
+  border-color: #2d3748;
+}
+
 #tooltip-root {
   position: fixed;
   display: none;

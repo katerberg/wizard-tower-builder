@@ -5,6 +5,7 @@ import { spawnNode } from '../calculations/exteriorGraph';
 import { getEnemyTemplate } from './enemies';
 import { addMessage } from './messages';
 import { findPath } from '../calculations/pathfinding';
+import { runEnemyStepEffects, runRoomEffects } from './modifications/effects';
 import { endWave, loseGame, startRun } from './phases';
 import { seedFrom } from '../calculations/rng';
 import { createTower, getWizardPosition } from './tower';
@@ -14,6 +15,7 @@ import type { Enemy, EnemyTemplate, ExteriorNode, GameState } from './types';
 let enemyCounter = 0;
 
 export function createInitialState(seed: string | number = 'wizard'): GameState {
+  enemyCounter = 0;
   return {
     scene: 'run',
     phase: 'build',
@@ -35,6 +37,7 @@ export function createInitialState(seed: string | number = 'wizard'): GameState 
     messages: [],
     rngState: seedFrom(seed),
     devMode: false,
+    roomEffectTimers: {},
   };
 }
 
@@ -48,18 +51,18 @@ const namePools: Record<string, readonly string[]> = {
   wisp: wispNames,
 };
 
-function pickName(state: GameState, templateId: string): string {
+function pickName(templateId: string, spawnIndex: number): string {
   const pool = namePools[templateId] ?? ['Foe'];
-  const idx = state.tick % pool.length;
-  return pool[idx];
+  return pool[spawnIndex % pool.length];
 }
 
 function spawnEnemy(state: GameState, template: EnemyTemplate, side: 'left' | 'right'): void {
   const pos = spawnNode(state.tower, side);
+  const spawnIndex = enemyCounter;
   const enemy: Enemy = {
     id: `enemy-${enemyCounter++}`,
     templateId: template.id,
-    name: pickName(state, template.id),
+    name: pickName(template.id, spawnIndex),
     pos,
     path: [],
     pathIndex: 0,
@@ -106,10 +109,21 @@ export function step(state: GameState, dt: number): void {
   }
 
   for (const enemy of state.enemies) {
+    if (enemy.currentHp <= 0) continue;
     const template = getEnemyTemplate(enemy.templateId);
     if (!template) continue;
 
     if (enemy.path.length === 0) {
+      enemy.path = findPath(state.tower, enemy.pos, wizardPos, template.movement);
+      enemy.pathIndex = 0;
+    }
+
+    // Stale or partial path: keep climbing toward the wizard instead of freezing.
+    if (
+      enemy.path.length > 0 &&
+      enemy.pathIndex >= enemy.path.length - 1 &&
+      !reached(enemy.pos, wizardPos)
+    ) {
       enemy.path = findPath(state.tower, enemy.pos, wizardPos, template.movement);
       enemy.pathIndex = 0;
     }
@@ -135,6 +149,7 @@ export function step(state: GameState, dt: number): void {
       enemy.pathIndex += 1;
       enemy.pos = enemy.path[enemy.pathIndex];
       enemy.moveCooldown = 1 / template.speed;
+      runEnemyStepEffects(state, enemy);
     }
   }
 
@@ -144,6 +159,7 @@ export function step(state: GameState, dt: number): void {
     let target: Enemy | null = null;
     let bestDist = Infinity;
     for (const enemy of state.enemies) {
+      if (enemy.currentHp <= 0) continue;
       const d = distance(enemy.pos, wizardPos);
       if (d <= wizard.range && d < bestDist) {
         bestDist = d;
@@ -166,6 +182,9 @@ export function step(state: GameState, dt: number): void {
       wizard.attackCooldown = 0; // ready to fire the instant a target enters range
     }
   }
+
+  // Room modifications (turrets, spikes, ...) act on enemies this tick.
+  runRoomEffects(state, dt);
 
   // Reap dead enemies and award currency.
   const survivors: Enemy[] = [];

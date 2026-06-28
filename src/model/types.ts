@@ -12,27 +12,16 @@ export type Blueprint = {
   baseHp: number;
 };
 
-export type ItemKind = 'module' | 'consumable';
-
-export type Effect = { id: string; value: number };
-
-export type Item = {
-  id: string;
-  kind: ItemKind;
-  name: string;
-  glyph: string;
-  modifiers: Modifier;
-  effects: Effect[];
-};
+/** A modification instance attached to a room (one per type, leveled in place). */
+export type RoomModification = { id: string; level: number };
 
 export type Room = {
   id: string;
   blueprintId: string;
   origin: Cell;
   size: { w: number; h: number };
-  contents: Item[];
+  modifications: RoomModification[];
   hp: number;
-  level: number;
 };
 
 export type RoomStats = { maxHp: number; attack: number; defense: number };
@@ -127,6 +116,7 @@ export type GameState = {
   messages: GameMessage[];
   rngState: number;
   devMode: boolean;
+  roomEffectTimers: Record<string, number>;
 };
 
 export type PlacementReason =

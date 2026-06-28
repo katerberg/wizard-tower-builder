@@ -118,9 +118,8 @@ export function createRoom(id: string, blueprint: Blueprint, origin: Cell): Room
     blueprintId: blueprint.id,
     origin,
     size: { ...blueprint.size },
-    contents: [],
+    modifications: [],
     hp: blueprint.baseHp,
-    level: 1,
   };
 }
 

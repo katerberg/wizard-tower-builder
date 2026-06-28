@@ -1,4 +1,5 @@
 import { nextRandom } from './rng';
+import { aggregateModifierStats } from '../model/modifications';
 import type { Blueprint, Room, RoomStats } from '../model/types';
 
 export type Combatant = { attack: number; defense: number; dexterity: number };
@@ -20,7 +21,12 @@ export function computeDamage(attacker: Combatant, defender: Combatant, rngState
   return { damage, dodged: false, rngState: state };
 }
 
-// v1: stats come from the blueprint only (room contents deferred to v2+).
-export function computeRoomStats(_room: Room, blueprint: Blueprint): RoomStats {
-  return { maxHp: blueprint.baseHp, attack: 0, defense: 0 };
+// Base stats come from the blueprint; modifications add passive bonuses on top.
+export function computeRoomStats(room: Room, blueprint: Blueprint): RoomStats {
+  const bonus = aggregateModifierStats(room.modifications);
+  return {
+    maxHp: blueprint.baseHp + (bonus.maxHp ?? 0),
+    attack: bonus.attack ?? 0,
+    defense: bonus.defense ?? 0,
+  };
 }

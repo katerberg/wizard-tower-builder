@@ -1,6 +1,8 @@
 export const CELL_SIZE = 48;
 export const FIXED_DT = 1 / 60;
 export const MAX_FRAME_TIME = 0.25;
+/** Keep visuals and log in 1:1 with simulation during attack (no catch-up bursts). */
+export const MAX_STEPS_PER_FRAME = 1;
 
 export const GRID_COLS = 16;
 export const GRID_ROWS = 12;

@@ -1,6 +1,7 @@
 import { CELL_SIZE, GRID_COLS, GRID_ROWS, colors } from '@/config/constants';
 import { getBlueprint } from '@/model/blueprints';
 import { getEnemyTemplate } from '@/model/enemies';
+import { getModification } from '@/model/modifications';
 import { computeRoomStats } from '@/calculations/combat';
 import { getUnstableRoomIds } from '@/model/tower';
 import { selectGhostPlacement, selectWizardPosition } from '@/store/selectors';
@@ -29,8 +30,10 @@ export class Renderer {
     this.drawRooms(snapshot);
     this.drawGhost(snapshot);
     if (snapshot.game.devMode) this.drawPaths(snapshot);
-    this.drawEnemies(snapshot);
+    const wizardPos = selectWizardPosition(snapshot);
+    this.drawEnemies(snapshot, wizardPos, 'climbers');
     this.drawWizard(snapshot);
+    this.drawEnemies(snapshot, wizardPos, 'atWizard');
   }
 
   private drawGrid(): void {
@@ -93,6 +96,27 @@ export class Renderer {
           this.drawHpBar(x + 4, y + 4, w - 8, room.hp / stats.maxHp);
         }
       }
+
+      if (room.modifications.length > 0) {
+        this.drawModIndicators(room.modifications, x, y + h);
+      }
+    }
+  }
+
+  private drawModIndicators(modifications: { id: string; level: number }[], left: number, bottom: number): void {
+    const { ctx } = this;
+    const size = Math.floor(CELL_SIZE * 0.28);
+    ctx.font = `${size}px monospace`;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'bottom';
+    let cursorX = left + 5;
+    for (const mod of modifications) {
+      const def = getModification(mod.id);
+      if (!def) continue;
+      const label = mod.level > 1 ? `${def.glyph}${mod.level}` : def.glyph;
+      ctx.fillStyle = def.color;
+      ctx.fillText(label, cursorX, bottom - 4);
+      cursorX += ctx.measureText(label).width + size * 0.4;
     }
   }
 
@@ -109,14 +133,29 @@ export class Renderer {
     ctx.globalAlpha = 1;
   }
 
-  private drawEnemies(snapshot: Snapshot): void {
+  private drawEnemies(
+    snapshot: Snapshot,
+    wizardPos: { col: number; row: number },
+    layer: 'climbers' | 'atWizard',
+  ): void {
     const { ctx } = this;
     for (const enemy of snapshot.game.enemies) {
+      const atWizard = enemy.pos.col === wizardPos.col && enemy.pos.row === wizardPos.row;
+      if (layer === 'climbers' ? atWizard : !atWizard) continue;
+
       const template = getEnemyTemplate(enemy.templateId);
-      const center = cellCenter(enemy.pos.col, enemy.pos.row);
+      const pos = this.interpolatedEnemyPos(enemy, snapshot);
+      const center = cellCenter(pos.col, pos.row);
       // Nudge toward the surface the enemy clings to so it reads as crawling on
       // the tower rather than floating in the cell center.
-      const faceOffset = enemy.pos.face === 'left' ? -CELL_SIZE * 0.25 : enemy.pos.face === 'right' ? CELL_SIZE * 0.25 : 0;
+      let faceOffset =
+        pos.face === 'left' ? -CELL_SIZE * 0.25 : pos.face === 'right' ? CELL_SIZE * 0.25 : 0;
+      // Enemies at the wizard share the wizard's cell — offset so they stay visible
+      // on top of the wizard glyph while attacking (matches combat log timing).
+      if (atWizard) {
+        const stagger = enemy.id.charCodeAt(enemy.id.length - 1) % 2 === 0 ? 1 : -1;
+        faceOffset = stagger * CELL_SIZE * 0.42;
+      }
       const x = center.x + faceOffset;
       const y = center.y;
       const r = CELL_SIZE * 0.32;
@@ -136,6 +175,20 @@ export class Renderer {
         this.drawHpBar(x - r, y - r - 8, r * 2, enemy.currentHp / template.stats.maxHp);
       }
     }
+  }
+
+  private interpolatedEnemyPos(
+    enemy: { id: string; pos: { col: number; row: number; face: 'left' | 'right' | 'top' } },
+    snapshot: Snapshot,
+  ): { col: number; row: number; face: 'left' | 'right' | 'top' } {
+    const prev = snapshot.previousEnemyPositions.get(enemy.id);
+    const t = snapshot.renderAlpha;
+    if (!prev || t >= 1) return enemy.pos;
+    return {
+      col: prev.col + (enemy.pos.col - prev.col) * t,
+      row: prev.row + (enemy.pos.row - prev.row) * t,
+      face: enemy.pos.face,
+    };
   }
 
   private drawWizard(snapshot: Snapshot): void {

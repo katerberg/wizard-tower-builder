@@ -23,6 +23,6 @@ export function createLibrary(root: HTMLElement, store: Store): () => void {
         </button>`;
     }).join('');
 
-    root.innerHTML = `<h2>Blueprints</h2>${items}<p class="hint">Click to build · right-click to remove · click a room to inspect.</p>`;
+    root.innerHTML = `<h2>Blueprints</h2>${items}<p class="hint">Click to build · right-click to sell · click a room to modify or sell.</p>`;
   };
 }

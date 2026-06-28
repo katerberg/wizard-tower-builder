@@ -1,5 +1,6 @@
 import { addMessage } from './messages';
 import { reward } from '../calculations/economy';
+import { runWaveClearedEffects } from './modifications/effects';
 import { linearProgression } from './waves';
 import { buildSpawnQueue } from './waves';
 import type { GameState } from './types';
@@ -17,6 +18,7 @@ export function beginWave(state: GameState): void {
   state.spawnQueue = buildSpawnQueue(wave);
   state.spawnTimer = 0;
   state.waveTimer = 0;
+  state.roomEffectTimers = {};
   addMessage(state, `Wave ${state.levelIndex + 1} incoming: ${state.spawnQueue.length} foes.`, 'combat');
 }
 
@@ -24,6 +26,7 @@ export function endWave(state: GameState): void {
   const amount = linearProgression.rewardFor(state.levelIndex);
   reward(state, amount);
   addMessage(state, `Wave ${state.levelIndex + 1} cleared! +${amount} gold.`, 'economy');
+  runWaveClearedEffects(state);
 
   if (linearProgression.isFinalLevel(state.levelIndex)) {
     winGame(state);
