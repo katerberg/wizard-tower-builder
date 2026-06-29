@@ -1,4 +1,5 @@
 import { Renderer } from './view/canvas/renderer';
+import { snapViewportHeight } from './view/canvas/camera';
 import { attachInput, type PointerTracker } from './view/input';
 import { createHud } from './view/dom/hud';
 import { createLibrary } from './view/dom/library';
@@ -16,11 +17,19 @@ function requireEl(id: string): HTMLElement {
 }
 
 const canvas = requireEl('board') as HTMLCanvasElement;
+const stage = requireEl('stage');
 const store = new Store();
 const pointer: PointerTracker = { x: 0, y: 0 };
 
 const renderer = new Renderer(canvas);
-attachInput(canvas, store, pointer);
+attachInput(canvas, stage, store, pointer);
+
+function syncViewportHeight(): void {
+  store.dispatch({ type: 'setViewportHeight', height: snapViewportHeight(stage.clientHeight) });
+}
+
+syncViewportHeight();
+new ResizeObserver(() => syncViewportHeight()).observe(stage);
 
 const domViews = [
   createHud(requireEl('hud'), store),

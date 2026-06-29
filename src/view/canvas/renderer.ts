@@ -1,4 +1,4 @@
-import { CELL_SIZE, GRID_COLS, GRID_ROWS, colors } from '@/config/constants';
+import { CELL_SIZE, GRID_COLS, colors } from '@/config/constants';
 import { getBlueprint } from '@/model/blueprints';
 import { getEnemyTemplate } from '@/model/enemies';
 import { getModification } from '@/model/modifications';
@@ -6,69 +6,93 @@ import { computeRoomStats } from '@/calculations/combat';
 import { getUnstableRoomIds } from '@/model/tower';
 import { selectGhostPlacement, selectWizardPosition } from '@/store/selectors';
 import type { Snapshot } from '@/store/store';
-import { BOARD_HEIGHT, BOARD_WIDTH, cellCenter, cellTopLeft } from './camera';
+import { BOARD_WIDTH, cellCenter, cellTopLeft, visibleRowRange } from './camera';
 
 export class Renderer {
+  private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
+  private lastHeight = 0;
 
   constructor(canvas: HTMLCanvasElement) {
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error('2d canvas context unavailable');
+    this.canvas = canvas;
     this.ctx = ctx;
     canvas.width = BOARD_WIDTH;
-    canvas.height = BOARD_HEIGHT;
   }
 
   draw(snapshot: Snapshot): void {
-    const { ctx } = this;
-    ctx.clearRect(0, 0, BOARD_WIDTH, BOARD_HEIGHT);
-    ctx.fillStyle = colors.background;
-    ctx.fillRect(0, 0, BOARD_WIDTH, BOARD_HEIGHT);
+    const { ctx, canvas } = this;
+    const scrollY = snapshot.view.cameraScrollY;
+    const viewportHeight = snapshot.view.viewportHeight;
 
-    this.drawGrid();
-    this.drawGround();
-    this.drawRooms(snapshot);
-    this.drawGhost(snapshot);
-    if (snapshot.game.devMode) this.drawPaths(snapshot);
+    if (viewportHeight !== this.lastHeight) {
+      canvas.height = viewportHeight;
+      this.lastHeight = viewportHeight;
+    }
+
+    ctx.clearRect(0, 0, BOARD_WIDTH, viewportHeight);
+    ctx.fillStyle = colors.background;
+    ctx.fillRect(0, 0, BOARD_WIDTH, viewportHeight);
+
+    this.drawGrid(scrollY, viewportHeight);
+    this.drawGround(scrollY, viewportHeight);
+    this.drawRooms(snapshot, scrollY, viewportHeight);
+    this.drawGhost(snapshot, scrollY, viewportHeight);
+    if (snapshot.game.devMode) this.drawPaths(snapshot, scrollY, viewportHeight);
     const wizardPos = selectWizardPosition(snapshot);
-    this.drawEnemies(snapshot, wizardPos, 'climbers');
-    this.drawWizard(snapshot);
-    this.drawEnemies(snapshot, wizardPos, 'atWizard');
+    this.drawEnemies(snapshot, wizardPos, scrollY, viewportHeight, 'climbers');
+    this.drawWizard(snapshot, scrollY, viewportHeight);
+    this.drawEnemies(snapshot, wizardPos, scrollY, viewportHeight, 'atWizard');
   }
 
-  private drawGrid(): void {
+  private drawGrid(scrollY: number, viewportHeight: number): void {
     const { ctx } = this;
+    const { minRow, maxRow } = visibleRowRange(scrollY, viewportHeight);
     ctx.strokeStyle = colors.grid;
     ctx.lineWidth = 1;
     for (let c = 0; c <= GRID_COLS; c++) {
       ctx.beginPath();
       ctx.moveTo(c * CELL_SIZE, 0);
-      ctx.lineTo(c * CELL_SIZE, BOARD_HEIGHT);
+      ctx.lineTo(c * CELL_SIZE, viewportHeight);
       ctx.stroke();
     }
-    for (let r = 0; r <= GRID_ROWS + 1; r++) {
+    for (let row = minRow; row <= maxRow; row++) {
+      const y = cellTopLeft(0, row, scrollY, viewportHeight).y;
+      if (y < -CELL_SIZE || y > viewportHeight + CELL_SIZE) continue;
       ctx.beginPath();
-      ctx.moveTo(0, r * CELL_SIZE);
-      ctx.lineTo(BOARD_WIDTH, r * CELL_SIZE);
+      ctx.moveTo(0, y);
+      ctx.lineTo(BOARD_WIDTH, y);
+      ctx.stroke();
+      const yBottom = y + CELL_SIZE;
+      ctx.beginPath();
+      ctx.moveTo(0, yBottom);
+      ctx.lineTo(BOARD_WIDTH, yBottom);
       ctx.stroke();
     }
   }
 
-  private drawGround(): void {
+  private drawGround(scrollY: number, viewportHeight: number): void {
     const { ctx } = this;
-    const groundTop = (GRID_ROWS + 1) * CELL_SIZE - 4;
+    const { y } = cellTopLeft(0, 0, scrollY, viewportHeight);
+    if (y > viewportHeight || y + CELL_SIZE < 0) return;
     ctx.fillStyle = colors.ground;
-    ctx.fillRect(0, groundTop, BOARD_WIDTH, 4);
+    ctx.fillRect(0, y + CELL_SIZE - 4, BOARD_WIDTH, 4);
   }
 
-  private drawRooms(snapshot: Snapshot): void {
+  private drawRooms(snapshot: Snapshot, scrollY: number, viewportHeight: number): void {
     const { ctx } = this;
+    const { minRow, maxRow } = visibleRowRange(scrollY, viewportHeight);
     const unstable = getUnstableRoomIds(snapshot.game.tower);
     for (const room of snapshot.game.tower.rooms) {
+      const roomMinRow = room.origin.row;
+      const roomMaxRow = room.origin.row + room.size.h - 1;
+      if (roomMaxRow < minRow || roomMinRow > maxRow) continue;
+
       const blueprint = getBlueprint(room.blueprintId);
       const isUnstable = unstable.has(room.id);
-      const topRow = room.origin.row + room.size.h - 1;
-      const { x, y } = cellTopLeft(room.origin.col, topRow);
+      const topRow = roomMaxRow;
+      const { x, y } = cellTopLeft(room.origin.col, topRow, scrollY, viewportHeight);
       const w = room.size.w * CELL_SIZE;
       const h = room.size.h * CELL_SIZE;
 
@@ -120,14 +144,14 @@ export class Renderer {
     }
   }
 
-  private drawGhost(snapshot: Snapshot): void {
+  private drawGhost(snapshot: Snapshot, scrollY: number, viewportHeight: number): void {
     const ghost = selectGhostPlacement(snapshot);
     if (!ghost) return;
     const { ctx } = this;
     ctx.globalAlpha = 0.45;
     ctx.fillStyle = ghost.valid ? colors.ghostValid : colors.ghostInvalid;
     for (const cell of ghost.cells) {
-      const { x, y } = cellTopLeft(cell.col, cell.row);
+      const { x, y } = cellTopLeft(cell.col, cell.row, scrollY, viewportHeight);
       ctx.fillRect(x + 2, y + 2, CELL_SIZE - 4, CELL_SIZE - 4);
     }
     ctx.globalAlpha = 1;
@@ -136,6 +160,8 @@ export class Renderer {
   private drawEnemies(
     snapshot: Snapshot,
     wizardPos: { col: number; row: number },
+    scrollY: number,
+    viewportHeight: number,
     layer: 'climbers' | 'atWizard',
   ): void {
     const { ctx } = this;
@@ -145,13 +171,9 @@ export class Renderer {
 
       const template = getEnemyTemplate(enemy.templateId);
       const pos = this.interpolatedEnemyPos(enemy, snapshot);
-      const center = cellCenter(pos.col, pos.row);
-      // Nudge toward the surface the enemy clings to so it reads as crawling on
-      // the tower rather than floating in the cell center.
+      const center = cellCenter(pos.col, pos.row, scrollY, viewportHeight);
       let faceOffset =
         pos.face === 'left' ? -CELL_SIZE * 0.25 : pos.face === 'right' ? CELL_SIZE * 0.25 : 0;
-      // Enemies at the wizard share the wizard's cell — offset so they stay visible
-      // on top of the wizard glyph while attacking (matches combat log timing).
       if (atWizard) {
         const stagger = enemy.id.charCodeAt(enemy.id.length - 1) % 2 === 0 ? 1 : -1;
         faceOffset = stagger * CELL_SIZE * 0.42;
@@ -159,6 +181,8 @@ export class Renderer {
       const x = center.x + faceOffset;
       const y = center.y;
       const r = CELL_SIZE * 0.32;
+
+      if (y + r < 0 || y - r > viewportHeight) continue;
 
       ctx.beginPath();
       ctx.arc(x, y, r, 0, Math.PI * 2);
@@ -191,12 +215,14 @@ export class Renderer {
     };
   }
 
-  private drawWizard(snapshot: Snapshot): void {
+  private drawWizard(snapshot: Snapshot, scrollY: number, viewportHeight: number): void {
     if (snapshot.game.scene === 'menu') return;
     const { ctx } = this;
     const pos = selectWizardPosition(snapshot);
-    const { x, y } = cellCenter(pos.col, pos.row);
+    const { x, y } = cellCenter(pos.col, pos.row, scrollY, viewportHeight);
     const wizard = snapshot.game.player.wizard;
+
+    if (y + CELL_SIZE * 0.36 < 0 || y - CELL_SIZE * 0.36 > viewportHeight) return;
 
     ctx.beginPath();
     ctx.arc(x, y, CELL_SIZE * 0.36, 0, Math.PI * 2);
@@ -212,7 +238,7 @@ export class Renderer {
     this.drawHpBar(x - CELL_SIZE * 0.4, y - CELL_SIZE * 0.5, CELL_SIZE * 0.8, wizard.hp / wizard.maxHp);
   }
 
-  private drawPaths(snapshot: Snapshot): void {
+  private drawPaths(snapshot: Snapshot, scrollY: number, viewportHeight: number): void {
     const { ctx } = this;
     ctx.strokeStyle = colors.pathDebug;
     ctx.lineWidth = 1;
@@ -220,7 +246,7 @@ export class Renderer {
       if (enemy.path.length < 2) continue;
       ctx.beginPath();
       for (let i = enemy.pathIndex; i < enemy.path.length; i++) {
-        const { x, y } = cellCenter(enemy.path[i].col, enemy.path[i].row);
+        const { x, y } = cellCenter(enemy.path[i].col, enemy.path[i].row, scrollY, viewportHeight);
         if (i === enemy.pathIndex) ctx.moveTo(x, y);
         else ctx.lineTo(x, y);
       }

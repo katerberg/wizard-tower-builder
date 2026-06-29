@@ -368,6 +368,26 @@ function topRowSpans(tower: Tower, topRow: number): Array<{ min: number; max: nu
   return spans;
 }
 
+export type TowerExtents = {
+  /** Highest occupied row, or -1 when the tower is empty. */
+  maxOccupiedRow: number;
+  /** Exterior row of the wizard perch (topRow + 1). */
+  wizardRow: number;
+};
+
+/** Vertical span of the tower in grid rows — used by air bounds and camera clamping. */
+export function towerExtents(tower: Tower): TowerExtents {
+  if (tower.rooms.length === 0) {
+    return { maxOccupiedRow: -1, wizardRow: 0 };
+  }
+  let maxOccupiedRow = 0;
+  for (const key of Object.keys(tower.occupancy)) {
+    const { row } = parseKey(key);
+    if (row > maxOccupiedRow) maxOccupiedRow = row;
+  }
+  return { maxOccupiedRow, wizardRow: maxOccupiedRow + 1 };
+}
+
 /**
  * Top-center exterior node, just above the highest occupied row. When several
  * disconnected towers share that row, the wizard stands on the left-most one.

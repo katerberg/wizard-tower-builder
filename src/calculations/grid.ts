@@ -1,4 +1,4 @@
-import { GRID_COLS, GRID_ROWS } from '@/config/constants';
+import { GRID_COLS } from '@/config/constants';
 import type { Cell } from '../model/types';
 
 export function cellKey(col: number, row: number): string {
@@ -10,8 +10,9 @@ export function parseKey(key: string): Cell {
   return { col, row };
 }
 
+/** Room placement bounds: fixed width, unbounded height upward from ground. */
 export function inBounds(col: number, row: number): boolean {
-  return col >= 0 && col < GRID_COLS && row >= 0 && row < GRID_ROWS;
+  return col >= 0 && col < GRID_COLS && row >= 0;
 }
 
 // Cells occupied by a room whose bottom-left cell is `origin`. Rows increase upward.

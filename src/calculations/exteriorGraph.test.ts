@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { getBlueprint } from '../model/blueprints';
 import { createRoom, createTower, placeRoom } from '../model/tower';
 import type { MovementProfile, Tower } from '../model/types';
-import { isWalkable, neighbors, spawnNode, surfaceContacts } from './exteriorGraph';
+import { isWalkable, neighbors, spawnNode, surfaceContacts, inAirBounds } from './exteriorGraph';
 
 const underOverhang: MovementProfile = {
   kind: 'under_overhang',
@@ -122,5 +122,16 @@ describe('spawnNode', () => {
     const tower = tShape();
     expect(spawnNode(tower, 'left')).toMatchObject({ col: 0, row: 0 });
     expect(spawnNode(tower, 'right')).toMatchObject({ col: 15, row: 0 });
+  });
+});
+
+describe('inAirBounds', () => {
+  it('extends to the wizard row on a tall tower', () => {
+    let tower = createTower();
+    for (let row = 0; row <= 20; row++) {
+      tower = placeRoom(tower, createRoom(`r${row}`, getBlueprint('stem')!, { col: 8, row }));
+    }
+    expect(inAirBounds(tower, 8, 21)).toBe(true);
+    expect(inAirBounds(tower, 8, 22)).toBe(false);
   });
 });

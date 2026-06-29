@@ -11,6 +11,7 @@ import {
   modificationRefund,
 } from '@/model/modifications';
 import { canPlace, createRoom, isTowerStable, placeRoom, removeRoom, roomAt } from '@/model/tower';
+import { clampScrollY, MIN_VIEWPORT_HEIGHT } from '@/view/canvas/camera';
 import type { GameState, ExteriorNode } from '@/model/types';
 import type { Intent, ViewState } from './intents';
 
@@ -39,6 +40,8 @@ export class Store {
       selectedBlueprintId: this.game.player.unlockedBlueprints[0] ?? null,
       hoveredCell: null,
       modal: null,
+      cameraScrollY: 0,
+      viewportHeight: MIN_VIEWPORT_HEIGHT,
     };
   }
 
@@ -155,6 +158,8 @@ export class Store {
           selectedBlueprintId: this.game.player.unlockedBlueprints[0] ?? null,
           hoveredCell: null,
           modal: null,
+          cameraScrollY: 0,
+          viewportHeight: this.view.viewportHeight,
         };
         break;
 
@@ -176,6 +181,21 @@ export class Store {
           game.spawnQueue = [];
           addMessage(game, 'Dev: wave skipped.', 'info');
         }
+        break;
+
+      case 'scrollCamera':
+        // Negate deltaY so wheel-down shows lower rows (standard browser scroll).
+        this.view.cameraScrollY = clampScrollY(
+          this.view.cameraScrollY - intent.deltaY,
+          game.tower,
+          this.view.viewportHeight,
+        );
+        break;
+
+      case 'setViewportHeight':
+        if (intent.height === this.view.viewportHeight) break;
+        this.view.viewportHeight = intent.height;
+        this.view.cameraScrollY = clampScrollY(this.view.cameraScrollY, game.tower, intent.height);
         break;
     }
   }

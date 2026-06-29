@@ -4,12 +4,23 @@ import { screenToCell } from './canvas/camera';
 
 export type PointerTracker = { x: number; y: number };
 
-export function attachInput(canvas: HTMLCanvasElement, store: Store, pointer: PointerTracker): void {
+export function attachInput(
+  canvas: HTMLCanvasElement,
+  stage: HTMLElement,
+  store: Store,
+  pointer: PointerTracker,
+): void {
   function cellFromEvent(e: MouseEvent): { col: number; row: number } {
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
-    return screenToCell((e.clientX - rect.left) * scaleX, (e.clientY - rect.top) * scaleY);
+    const { cameraScrollY, viewportHeight } = store.getSnapshot().view;
+    return screenToCell(
+      (e.clientX - rect.left) * scaleX,
+      (e.clientY - rect.top) * scaleY,
+      cameraScrollY,
+      viewportHeight,
+    );
   }
 
   canvas.addEventListener('mousemove', (e) => {
@@ -37,4 +48,13 @@ export function attachInput(canvas: HTMLCanvasElement, store: Store, pointer: Po
     e.preventDefault();
     store.dispatch({ type: 'removeRoomAt', cell: cellFromEvent(e) });
   });
+
+  stage.addEventListener(
+    'wheel',
+    (e) => {
+      e.preventDefault();
+      store.dispatch({ type: 'scrollCamera', deltaY: e.deltaY });
+    },
+    { passive: false },
+  );
 }

@@ -5,7 +5,10 @@ export const MAX_FRAME_TIME = 0.25;
 export const MAX_STEPS_PER_FRAME = 1;
 
 export const GRID_COLS = 16;
-export const GRID_ROWS = 12;
+/** Minimum visible rows when the stage is very short (does not cap tower height). */
+export const MIN_VIEWPORT_ROWS = 3;
+/** Empty rows visible above the highest block when scrolled to the top. */
+export const VIEWPORT_AIR_ROWS = 8;
 
 export const STARTING_CURRENCY = 48;
 

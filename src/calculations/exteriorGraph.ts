@@ -1,4 +1,5 @@
-import { GRID_COLS, GRID_ROWS } from '@/config/constants';
+import { GRID_COLS } from '@/config/constants';
+import { towerExtents } from '../model/tower';
 import { cellKey } from './grid';
 import type { ExteriorFace, ExteriorNode, MovementProfile, Tower } from '../model/types';
 
@@ -6,11 +7,10 @@ function isRoom(tower: Tower, col: number, row: number): boolean {
   return Object.prototype.hasOwnProperty.call(tower.occupancy, cellKey(col, row));
 }
 
-// Enemies move through empty cells, but only those that hug a surface. One extra
-// row above the grid lets them stand on top of (and reach the wizard above) the
-// highest room.
-export function inAirBounds(col: number, row: number): boolean {
-  return col >= 0 && col < GRID_COLS && row >= 0 && row <= GRID_ROWS;
+/** Empty exterior cells enemies may occupy — up to the wizard perch row. */
+export function inAirBounds(tower: Tower, col: number, row: number): boolean {
+  if (col < 0 || col >= GRID_COLS || row < 0) return false;
+  return row <= towerExtents(tower).wizardRow;
 }
 
 export type SurfaceContact =
@@ -42,7 +42,7 @@ export function surfaceContacts(tower: Tower, col: number, row: number): Set<Sur
  * pass beneath protruding rooms; others (e.g. a future `surface_climb`) cannot.
  */
 export function isWalkable(tower: Tower, col: number, row: number, profile: MovementProfile): boolean {
-  if (!inAirBounds(col, row)) return false;
+  if (!inAirBounds(tower, col, row)) return false;
   if (isRoom(tower, col, row)) return false;
 
   const contacts = surfaceContacts(tower, col, row);

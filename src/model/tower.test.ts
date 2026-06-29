@@ -11,6 +11,7 @@ import {
   isTowerStable,
   placeRoom,
   removeRoom,
+  towerExtents,
 } from './tower';
 
 const stem = getBlueprint('stem')!;
@@ -289,5 +290,27 @@ describe('tower stability', () => {
     const lowerButtress = tower.rooms.find((r) => r.origin.row === 1)!;
     tower = removeRoom(tower, lowerButtress.id);
     expect(isTowerStable(tower)).toBe(false);
+  });
+});
+
+describe('unbounded height', () => {
+  it('allows placement well above the old fixed grid cap', () => {
+    let tower = createTower();
+    tower = place(tower, 'stem', { col: 8, row: 0 });
+    for (let row = 1; row <= 15; row++) {
+      tower = place(tower, 'stem', { col: 8, row });
+    }
+    expect(tower.rooms).toHaveLength(16);
+    expect(getWizardPosition(tower).row).toBe(16);
+  });
+
+  it('reports towerExtents for a tall stack', () => {
+    let tower = createTower();
+    tower = place(tower, 'stem', { col: 4, row: 0 });
+    for (let row = 1; row <= 25; row++) {
+      tower = place(tower, 'stem', { col: 4, row });
+    }
+    expect(towerExtents(tower).maxOccupiedRow).toBe(25);
+    expect(towerExtents(tower).wizardRow).toBe(26);
   });
 });

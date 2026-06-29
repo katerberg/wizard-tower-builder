@@ -15,7 +15,9 @@ export type Intent =
   | { type: 'restart' }
   | { type: 'toggleDevMode' }
   | { type: 'devAddCurrency' }
-  | { type: 'devSkipWave' };
+  | { type: 'devSkipWave' }
+  | { type: 'scrollCamera'; deltaY: number }
+  | { type: 'setViewportHeight'; height: number };
 
 export type ModalData = { kind: 'room'; roomId: string } | { kind: 'help' };
 
@@ -23,4 +25,8 @@ export type ViewState = {
   selectedBlueprintId: string | null;
   hoveredCell: Cell | null;
   modal: ModalData | null;
+  /** Pixels scrolled upward from ground (viewport camera). */
+  cameraScrollY: number;
+  /** Canvas height in pixels (snapped to whole cell rows). */
+  viewportHeight: number;
 };
