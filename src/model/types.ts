@@ -31,6 +31,9 @@ export type Tower = {
   occupancy: Record<string, string>;
 };
 
+/** Snapshot of tower + gold at the start of a build phase (planning baseline). */
+export type BuildBaseline = { tower: Tower; currency: number };
+
 export type Wizard = {
   hp: number;
   maxHp: number;
@@ -117,6 +120,8 @@ export type GameState = {
   rngState: number;
   devMode: boolean;
   roomEffectTimers: Record<string, number>;
+  /** Tower + gold at build-phase start; edits commit on wave start. */
+  buildBaseline: BuildBaseline | null;
 };
 
 export type PlacementReason =

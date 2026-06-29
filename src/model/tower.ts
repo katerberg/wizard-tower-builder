@@ -130,9 +130,11 @@ function fail(reason: PlacementReason): PlacementResult {
 const PLACEMENT_PROBE_ID = '__placement_probe__';
 
 /**
- * Single authority for placement legality. A placement is legal exactly when it
- * is in-bounds, non-overlapping, and the *resulting* tower passes
- * {@link validateTower}.
+ * Single authority for placement legality during build planning. A placement is
+ * legal when in-bounds, non-overlapping, orthogonally adjacent to existing
+ * structure, and the new cells satisfy support rules. The full tower need not
+ * be stable yet — disconnected or floating existing rooms can be repaired
+ * incrementally; {@link isTowerStable} gates wave start.
  */
 export function canPlace(tower: Tower, blueprint: Blueprint, origin: Cell): PlacementResult {
   const cells = roomCells(origin, blueprint.size);
@@ -152,21 +154,21 @@ export function canPlace(tower: Tower, blueprint: Blueprint, origin: Cell): Plac
 
   const candidate = placeRoom(tower, createRoom(PLACEMENT_PROBE_ID, blueprint, origin));
   const analysis = analyzeSupport(candidate);
-  const validity = validityFromAnalysis(candidate, analysis);
-  if (validity.valid) {
+  const newPlacement = validateNewPlacement(candidate, cells, analysis, blueprint);
+  if (newPlacement === 'ok') {
     return { ok: true, reason: 'ok' };
   }
 
-  return fail(classifyNewRoomFailure(candidate, cells, analysis, blueprint));
+  return fail(newPlacement);
 }
 
-/** Translate a tower-level invalidity into a placement-specific reason. */
-function classifyNewRoomFailure(
+/** Support and spire rules for the cells being placed — not whole-tower validity. */
+function validateNewPlacement(
   candidate: Tower,
   newCells: Cell[],
   analysis: SupportAnalysis,
   blueprint: Blueprint,
-): PlacementReason {
+): PlacementReason | 'ok' {
   const unsupported = newCells
     .filter((c) => !analysis.supported.has(cellKey(c.col, c.row)))
     .sort((a, b) => a.row - b.row);
@@ -193,11 +195,7 @@ function classifyNewRoomFailure(
     }
   }
 
-  if (!isTowerConnected(candidate)) {
-    return 'disconnected';
-  }
-
-  return 'no_support';
+  return 'ok';
 }
 
 function supportedColsAt(tower: Tower, analysis: SupportAnalysis, row: number): number[] {

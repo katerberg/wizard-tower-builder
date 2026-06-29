@@ -1,5 +1,6 @@
 import { getBlueprint } from '@/model/blueprints';
-import { canAfford, spend, reward } from '@/calculations/economy';
+import { canAffordBuild, netBuildCost } from '@/calculations/buildCost';
+import { reward } from '@/calculations/economy';
 import { beginRun, createInitialState, step } from '@/model/game';
 import { addMessage } from '@/model/messages';
 import { beginWave } from '@/model/phases';
@@ -8,7 +9,6 @@ import {
   canUpgradeModification,
   getModification,
   modificationCost,
-  modificationRefund,
 } from '@/model/modifications';
 import { canPlace, createRoom, isTowerStable, placeRoom, removeRoom, roomAt } from '@/model/tower';
 import { clampScrollY, MIN_VIEWPORT_HEIGHT } from '@/view/canvas/camera';
@@ -147,6 +147,10 @@ export class Store {
             addMessage(game, 'The tower is unstable. Remove or support floating rooms first.', 'info');
             break;
           }
+          if (game.buildBaseline) {
+            const net = netBuildCost(game.buildBaseline, game.tower);
+            game.player.currency = game.buildBaseline.currency - net;
+          }
           beginWave(game);
         }
         break;
@@ -171,6 +175,7 @@ export class Store {
       case 'devAddCurrency':
         if (game.devMode) {
           reward(game, 50);
+          if (game.buildBaseline) game.buildBaseline.currency += 50;
           addMessage(game, 'Dev: +50 gold.', 'economy');
         }
         break;
@@ -202,7 +207,7 @@ export class Store {
 
   private placeSelected(cell: { col: number; row: number }): void {
     const game = this.game;
-    if (game.phase !== 'build') return;
+    if (game.phase !== 'build' || !game.buildBaseline) return;
     const id = this.view.selectedBlueprintId;
     if (!id) return;
     const blueprint = getBlueprint(id);
@@ -213,14 +218,15 @@ export class Store {
       addMessage(game, `Cannot build here: ${result.reason.replace(/_/g, ' ')}.`, 'info');
       return;
     }
-    if (!canAfford(game, blueprint.cost)) {
+
+    const room = createRoom(`room-${this.roomCounter++}`, blueprint, cell);
+    const projected = placeRoom(game.tower, room);
+    if (!canAffordBuild(game.buildBaseline, projected)) {
       addMessage(game, `Not enough gold for ${blueprint.name} (${blueprint.cost}).`, 'economy');
       return;
     }
-    spend(game, blueprint.cost);
-    const room = createRoom(`room-${this.roomCounter++}`, blueprint, cell);
-    game.tower = placeRoom(game.tower, room);
-    addMessage(game, `Built ${blueprint.name} for ${blueprint.cost} gold.`, 'economy');
+    game.tower = projected;
+    addMessage(game, `Placed ${blueprint.name}.`, 'info');
   }
 
   private removeAt(cell: { col: number; row: number }): void {
@@ -230,7 +236,7 @@ export class Store {
 
   private addModificationTo(roomId: string, modId: string): void {
     const game = this.game;
-    if (game.phase !== 'build') return;
+    if (game.phase !== 'build' || !game.buildBaseline) return;
     const room = game.tower.rooms.find((r) => r.id === roomId);
     const def = getModification(modId);
     if (!room || !def) return;
@@ -240,18 +246,17 @@ export class Store {
       return;
     }
     const cost = modificationCost(def, 1);
-    if (!canAfford(game, cost)) {
+    if (!canAffordBuild(game.buildBaseline, game.tower, cost)) {
       addMessage(game, `Not enough gold for ${def.name} (${cost}).`, 'economy');
       return;
     }
-    spend(game, cost);
     room.modifications.push({ id: modId, level: 1 });
-    addMessage(game, `Added ${def.name} for ${cost} gold.`, 'economy');
+    addMessage(game, `Added ${def.name}.`, 'info');
   }
 
   private upgradeModificationOn(roomId: string, modId: string): void {
     const game = this.game;
-    if (game.phase !== 'build') return;
+    if (game.phase !== 'build' || !game.buildBaseline) return;
     const room = game.tower.rooms.find((r) => r.id === roomId);
     const def = getModification(modId);
     const mod = room?.modifications.find((m) => m.id === modId);
@@ -262,26 +267,23 @@ export class Store {
       return;
     }
     const cost = modificationCost(def, mod.level + 1);
-    if (!canAfford(game, cost)) {
+    if (!canAffordBuild(game.buildBaseline, game.tower, cost)) {
       addMessage(game, `Not enough gold to upgrade ${def.name} (${cost}).`, 'economy');
       return;
     }
-    spend(game, cost);
     mod.level += 1;
-    addMessage(game, `Upgraded ${def.name} to level ${mod.level} for ${cost} gold.`, 'economy');
+    addMessage(game, `Upgraded ${def.name} to level ${mod.level}.`, 'info');
   }
 
   private sellRoomById(roomId: string): void {
     const game = this.game;
-    if (game.phase !== 'build') return;
+    if (game.phase !== 'build' || !game.buildBaseline) return;
     const room = game.tower.rooms.find((r) => r.id === roomId);
     if (!room) return;
 
     const blueprint = getBlueprint(room.blueprintId);
-    const refund = (blueprint ? Math.floor(blueprint.cost / 2) : 0) + modificationRefund(room);
     game.tower = removeRoom(game.tower, room.id);
-    if (refund > 0) reward(game, refund);
-    addMessage(game, `Sold ${blueprint?.name ?? 'room'}. Refunded ${refund} gold.`, 'economy');
+    addMessage(game, `Removed ${blueprint?.name ?? 'room'}.`, 'info');
 
     if (this.view.modal?.kind === 'room' && this.view.modal.roomId === roomId) {
       this.view.modal = null;

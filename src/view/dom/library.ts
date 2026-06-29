@@ -1,4 +1,5 @@
 import { BLUEPRINTS } from '@/model/blueprints';
+import { selectBuildEconomy } from '@/store/selectors';
 import type { Store } from '@/store/store';
 
 export function createLibrary(root: HTMLElement, store: Store): () => void {
@@ -9,8 +10,9 @@ export function createLibrary(root: HTMLElement, store: Store): () => void {
   });
 
   return function render(): void {
-    const { game, view } = store.getSnapshot();
-    const affordable = (cost: number) => game.player.currency >= cost;
+    const { view } = store.getSnapshot();
+    const { remainingGold } = selectBuildEconomy(store.getSnapshot());
+    const affordable = (cost: number) => remainingGold >= cost;
 
     const items = BLUEPRINTS.map((b) => {
       const selected = view.selectedBlueprintId === b.id ? 'selected' : '';
@@ -23,6 +25,6 @@ export function createLibrary(root: HTMLElement, store: Store): () => void {
         </button>`;
     }).join('');
 
-    root.innerHTML = `<h2>Blueprints</h2>${items}<p class="hint">Click to build · right-click to sell · click a room to modify or sell.</p>`;
+    root.innerHTML = `<h2>Blueprints</h2>${items}<p class="hint">Click or drag to place · right-click to remove · rearrange freely until you start the wave.</p>`;
   };
 }

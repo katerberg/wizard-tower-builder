@@ -5,9 +5,17 @@ import { linearProgression } from './waves';
 import { buildSpawnQueue } from './waves';
 import type { GameState } from './types';
 
+export function captureBuildBaseline(state: GameState): void {
+  state.buildBaseline = {
+    tower: structuredClone(state.tower),
+    currency: state.player.currency,
+  };
+}
+
 export function startRun(state: GameState): void {
   state.scene = 'run';
   state.phase = 'build';
+  captureBuildBaseline(state);
   addMessage(state, `Build your tower, then start wave ${state.levelIndex + 1}.`, 'info');
 }
 
@@ -36,6 +44,7 @@ export function endWave(state: GameState): void {
   state.levelIndex += 1;
   state.waveIndex += 1;
   state.phase = 'build';
+  captureBuildBaseline(state);
   addMessage(state, `Reinforce the tower for wave ${state.levelIndex + 1}.`, 'info');
 }
 

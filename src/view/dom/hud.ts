@@ -1,5 +1,5 @@
 import { FINAL_LEVEL_INDEX } from '@/model/waves';
-import { selectTowerStability } from '@/store/selectors';
+import { selectBuildEconomy, selectTowerStability } from '@/store/selectors';
 import type { Intent } from '@/store/intents';
 import type { Store } from '@/store/store';
 
@@ -35,6 +35,11 @@ export function createHud(root: HTMLElement, store: Store): () => void {
 
     const inBuild = game.scene === 'run' && game.phase === 'build';
     const stability = selectTowerStability(snapshot);
+    const economy = selectBuildEconomy(snapshot);
+    const goldLabel =
+      economy.isPlanning && economy.committedGold > 0
+        ? `${economy.remainingGold} (${economy.committedGold} committed)`
+        : `${economy.remainingGold}`;
     const phaseControls = inBuild
       ? `${stability.stable ? '' : '<p class="warning">Tower unstable: floating rooms must be supported or removed.</p>'}
          <button class="primary" data-action="startWave" ${stability.stable ? '' : 'disabled'}>Start Wave ${game.levelIndex + 1}</button>`
@@ -56,7 +61,7 @@ export function createHud(root: HTMLElement, store: Store): () => void {
       <h1>Wizard Tower</h1>
       <div class="stat"><span>Phase</span><strong>${labelPhase(game.scene, game.phase)}</strong></div>
       <div class="stat"><span>Level</span><strong>${level}</strong></div>
-      <div class="stat"><span>Gold</span><strong>${player.currency}</strong></div>
+      <div class="stat"><span>Gold</span><strong>${goldLabel}</strong></div>
       <div class="stat"><span>Wizard HP</span><strong>${player.wizard.hp} / ${player.wizard.maxHp}</strong></div>
       ${attackInfo}
       ${phaseControls}

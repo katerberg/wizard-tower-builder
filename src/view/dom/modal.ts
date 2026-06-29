@@ -5,9 +5,8 @@ import {
   canUpgradeModification,
   listModifications,
   modificationCost,
-  modificationRefund,
 } from '@/model/modifications';
-import { selectRoomById } from '@/store/selectors';
+import { selectBuildEconomy, selectRoomById } from '@/store/selectors';
 import type { Snapshot, Store } from '@/store/store';
 import type { Room } from '@/model/types';
 
@@ -63,7 +62,7 @@ function roomBody(snapshot: Snapshot, room: Room): string {
 
   const stats = computeRoomStats(room, blueprint);
   const isBuild = game.scene === 'run' && game.phase === 'build';
-  const gold = game.player.currency;
+  const { remainingGold } = selectBuildEconomy(snapshot);
 
   const rows = listModifications()
     .map((def) => {
@@ -76,11 +75,11 @@ function roomBody(snapshot: Snapshot, room: Room): string {
         control = '';
       } else if (level === 0) {
         const cost = modificationCost(def, 1);
-        const allowed = canApplyModification(room, game.tower, def.id) && gold >= cost;
+        const allowed = canApplyModification(room, game.tower, def.id) && remainingGold >= cost;
         control = `<button class="mod-btn ${allowed ? '' : 'disabled'}" data-action="addModification" data-room="${room.id}" data-mod="${def.id}">Add · ${cost}g</button>`;
       } else if (canUpgradeModification(room, def.id)) {
         const cost = modificationCost(def, level + 1);
-        const allowed = gold >= cost;
+        const allowed = remainingGold >= cost;
         control = `<button class="mod-btn ${allowed ? '' : 'disabled'}" data-action="upgradeModification" data-room="${room.id}" data-mod="${def.id}">Upgrade · ${cost}g</button>`;
       } else {
         control = '<span class="mod-max">Max</span>';
@@ -98,9 +97,8 @@ function roomBody(snapshot: Snapshot, room: Room): string {
     })
     .join('');
 
-  const refund = (blueprint ? Math.floor(blueprint.cost / 2) : 0) + modificationRefund(room);
-  const sell = isBuild
-    ? `<button class="danger" data-action="sellRoom" data-room="${room.id}">Sell room · +${refund}g</button>`
+  const remove = isBuild
+    ? `<button class="danger" data-action="sellRoom" data-room="${room.id}">Remove room</button>`
     : '';
 
   return `
@@ -111,7 +109,7 @@ function roomBody(snapshot: Snapshot, room: Room): string {
     <h4>Modifications</h4>
     <div class="mod-list">${rows}</div>
     ${isBuild ? '' : '<p class="hint">Modifications can only be changed during the build phase.</p>'}
-    ${sell}`;
+    ${remove}`;
 }
 
 function helpBody(): string {
@@ -121,7 +119,7 @@ function helpBody(): string {
       <li>Build a tower from blueprints, then start the wave.</li>
       <li>Enemies climb the outside toward your wizard at the top.</li>
       <li>The wizard auto-zaps the nearest climber in range.</li>
-      <li>Click a room while building to add modifications (spikes, turret, gold mine) or sell it.</li>
+      <li>Click a room while building to add modifications or remove it. Rearrange freely until you start the wave.</li>
       <li>A taller, longer approach keeps enemies in range while they climb.</li>
       <li>Spire blocks need ground or a room directly below; they cannot overhang.</li>
       <li>Buttress rooms (2 or 3 wide) can cantilever at most one step.</li>

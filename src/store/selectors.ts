@@ -1,8 +1,36 @@
 import { getBlueprint } from '@/model/blueprints';
+import { netBuildCost, remainingBuildGold } from '@/calculations/buildCost';
 import { roomCells } from '@/calculations/grid';
 import { canPlace, getUnstableRoomIds, getWizardPosition } from '@/model/tower';
 import type { Blueprint, Cell, ExteriorNode, PlacementReason, Room } from '@/model/types';
 import type { Snapshot } from './store';
+
+export type BuildEconomy = {
+  isPlanning: boolean;
+  remainingGold: number;
+  committedGold: number;
+  budget: number;
+};
+
+export function selectBuildEconomy(snapshot: Snapshot): BuildEconomy {
+  const { game } = snapshot;
+  const baseline = game.buildBaseline;
+  if (game.scene !== 'run' || game.phase !== 'build' || !baseline) {
+    return {
+      isPlanning: false,
+      remainingGold: game.player.currency,
+      committedGold: 0,
+      budget: game.player.currency,
+    };
+  }
+  const committedGold = netBuildCost(baseline, game.tower);
+  return {
+    isPlanning: true,
+    remainingGold: remainingBuildGold(baseline, game.tower),
+    committedGold,
+    budget: baseline.currency,
+  };
+}
 
 export function selectWizardPosition(snapshot: Snapshot): ExteriorNode {
   return getWizardPosition(snapshot.game.tower);

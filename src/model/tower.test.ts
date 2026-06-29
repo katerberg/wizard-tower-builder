@@ -174,6 +174,25 @@ describe('canPlace - connectivity', () => {
     expect(isTowerConnected(tower)).toBe(false);
     expect(isTowerStable(tower)).toBe(false);
   });
+
+  it('allows bridging a multi-row gap in a broken stack one cell at a time', () => {
+    const col = 5;
+    let tower = createTower();
+    tower = place(tower, 'stem', { col, row: 0 });
+    tower = place(tower, 'stem', { col, row: 1 });
+    const top = tower.rooms.find((r) => r.origin.row === 1)!;
+    tower = removeRoom(tower, top.id);
+    tower = placeRoom(tower, createRoom('floating', stem, { col, row: 3 }));
+    expect(isTowerStable(tower)).toBe(false);
+
+    expect(canPlace(tower, stem, { col, row: 1 })).toEqual({ ok: true, reason: 'ok' });
+    tower = place(tower, 'stem', { col, row: 1 });
+    expect(isTowerStable(tower)).toBe(false);
+
+    expect(canPlace(tower, stem, { col, row: 2 })).toEqual({ ok: true, reason: 'ok' });
+    tower = place(tower, 'stem', { col, row: 2 });
+    expect(isTowerStable(tower)).toBe(true);
+  });
 });
 
 describe('getWizardPosition', () => {

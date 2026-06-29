@@ -6,7 +6,7 @@ import { getEnemyTemplate } from './enemies';
 import { addMessage } from './messages';
 import { findPath } from '../calculations/pathfinding';
 import { runEnemyStepEffects, runRoomEffects } from './modifications/effects';
-import { endWave, loseGame, startRun } from './phases';
+import { endWave, loseGame, startRun, captureBuildBaseline } from './phases';
 import { seedFrom } from '../calculations/rng';
 import { createTower, getWizardPosition } from './tower';
 import { goblinNames, bruteNames, wispNames } from '@/static/names';
@@ -16,7 +16,7 @@ let enemyCounter = 0;
 
 export function createInitialState(seed: string | number = 'wizard'): GameState {
   enemyCounter = 0;
-  return {
+  const state: GameState = {
     scene: 'run',
     phase: 'build',
     progressionMode: 'linear',
@@ -38,7 +38,10 @@ export function createInitialState(seed: string | number = 'wizard'): GameState 
     rngState: seedFrom(seed),
     devMode: false,
     roomEffectTimers: {},
+    buildBaseline: null,
   };
+  captureBuildBaseline(state);
+  return state;
 }
 
 export function beginRun(state: GameState): void {
