@@ -17,7 +17,9 @@ export type Intent =
   | { type: 'devAddCurrency' }
   | { type: 'devSkipWave' }
   | { type: 'scrollCamera'; deltaY: number }
-  | { type: 'setViewportHeight'; height: number };
+  | { type: 'setViewportHeight'; height: number }
+  | { type: 'undoBuild' }
+  | { type: 'revertBuild' };
 
 export type ModalData = { kind: 'room'; roomId: string } | { kind: 'help' };
 

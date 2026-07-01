@@ -1,5 +1,5 @@
 import { FINAL_LEVEL_INDEX } from '@/model/waves';
-import { selectBuildEconomy, selectTowerStability } from '@/store/selectors';
+import { selectBuildEconomy, selectBuildUndoState, selectTowerStability } from '@/store/selectors';
 import type { Intent } from '@/store/intents';
 import type { Store } from '@/store/store';
 
@@ -36,12 +36,17 @@ export function createHud(root: HTMLElement, store: Store): () => void {
     const inBuild = game.scene === 'run' && game.phase === 'build';
     const stability = selectTowerStability(snapshot);
     const economy = selectBuildEconomy(snapshot);
+    const undoState = selectBuildUndoState(snapshot);
     const goldLabel =
       economy.isPlanning && economy.committedGold > 0
         ? `${economy.remainingGold} (${economy.committedGold} committed)`
         : `${economy.remainingGold}`;
     const phaseControls = inBuild
-      ? `${stability.stable ? '' : '<p class="warning">Tower unstable: floating rooms must be supported or removed.</p>'}
+      ? `<div class="build-undo-row">
+           <button data-action="undoBuild" ${undoState.canUndo ? '' : 'disabled'}>Undo</button>
+           <button data-action="revertBuild" ${undoState.canRevert ? '' : 'disabled'}>Revert all</button>
+         </div>
+         ${stability.stable ? '' : '<p class="warning">Tower unstable: floating rooms must be supported or removed.</p>'}
          <button class="primary" data-action="startWave" ${stability.stable ? '' : 'disabled'}>Start Wave ${game.levelIndex + 1}</button>`
       : '';
 

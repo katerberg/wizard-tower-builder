@@ -1,7 +1,7 @@
 import { getBlueprint } from '@/model/blueprints';
 import { netBuildCost, remainingBuildGold } from '@/calculations/buildCost';
 import { roomCells } from '@/calculations/grid';
-import { canPlace, getUnstableRoomIds, getWizardPosition } from '@/model/tower';
+import { canPlace, getUnstableRoomIds, getWizardPosition, towersEqual } from '@/model/tower';
 import type { Blueprint, Cell, ExteriorNode, PlacementReason, Room } from '@/model/types';
 import type { Snapshot } from './store';
 
@@ -29,6 +29,24 @@ export function selectBuildEconomy(snapshot: Snapshot): BuildEconomy {
     remainingGold: remainingBuildGold(baseline, game.tower),
     committedGold,
     budget: baseline.currency,
+  };
+}
+
+export type BuildUndoState = {
+  canUndo: boolean;
+  canRevert: boolean;
+};
+
+export function selectBuildUndoState(snapshot: Snapshot): BuildUndoState {
+  const { game } = snapshot;
+  const baseline = game.buildBaseline;
+  const inBuild = game.scene === 'run' && game.phase === 'build';
+  if (!inBuild || !baseline) {
+    return { canUndo: false, canRevert: false };
+  }
+  return {
+    canUndo: snapshot.buildUndoDepth > 0,
+    canRevert: !towersEqual(game.tower, baseline.tower),
   };
 }
 

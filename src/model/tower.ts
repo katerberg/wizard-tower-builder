@@ -130,29 +130,62 @@ function fail(reason: PlacementReason): PlacementResult {
 const PLACEMENT_PROBE_ID = '__placement_probe__';
 
 /**
+ * Strip rooms fully contained in the footprint. Partial overlap (e.g. corner of a
+ * buttress) is rejected so replace behaves like sell-then-place for covered cells.
+ */
+export function clearReplaceableFootprint(
+  tower: Tower,
+  footprint: Cell[],
+): { ok: true; tower: Tower } | { ok: false; reason: PlacementReason } {
+  for (const c of footprint) {
+    if (!inBounds(c.col, c.row)) {
+      return { ok: false, reason: 'out_of_bounds' };
+    }
+  }
+
+  const footKeys = new Set(footprint.map((c) => cellKey(c.col, c.row)));
+  const roomIds = new Set<string>();
+  for (const c of footprint) {
+    const room = roomAt(tower, c.col, c.row);
+    if (room) roomIds.add(room.id);
+  }
+
+  for (const roomId of roomIds) {
+    const room = tower.rooms.find((r) => r.id === roomId);
+    if (!room) continue;
+    for (const c of roomCells(room.origin, room.size)) {
+      if (!footKeys.has(cellKey(c.col, c.row))) {
+        return { ok: false, reason: 'overlap' };
+      }
+    }
+  }
+
+  let cleared = tower;
+  for (const roomId of roomIds) {
+    cleared = removeRoom(cleared, roomId);
+  }
+  return { ok: true, tower: cleared };
+}
+
+/**
  * Single authority for placement legality during build planning. A placement is
- * legal when in-bounds, non-overlapping, orthogonally adjacent to existing
- * structure, and the new cells satisfy support rules. The full tower need not
- * be stable yet — disconnected or floating existing rooms can be repaired
- * incrementally; {@link isTowerStable} gates wave start.
+ * legal when in-bounds, non-overlapping (or fully replacing covered rooms),
+ * orthogonally adjacent to existing structure, and the new cells satisfy support
+ * rules. The full tower need not be stable yet — disconnected or floating
+ * existing rooms can be repaired incrementally; {@link isTowerStable} gates wave start.
  */
 export function canPlace(tower: Tower, blueprint: Blueprint, origin: Cell): PlacementResult {
   const cells = roomCells(origin, blueprint.size);
-
-  for (const c of cells) {
-    if (!inBounds(c.col, c.row)) {
-      return fail('out_of_bounds');
-    }
-    if (isOccupied(tower, c.col, c.row)) {
-      return fail('overlap');
-    }
+  const cleared = clearReplaceableFootprint(tower, cells);
+  if (!cleared.ok) {
+    return fail(cleared.reason);
   }
 
-  if (!newCellsTouchTower(tower, cells)) {
+  if (!newCellsTouchTower(cleared.tower, cells)) {
     return fail('disconnected');
   }
 
-  const candidate = placeRoom(tower, createRoom(PLACEMENT_PROBE_ID, blueprint, origin));
+  const candidate = placeRoom(cleared.tower, createRoom(PLACEMENT_PROBE_ID, blueprint, origin));
   const analysis = analyzeSupport(candidate);
   const newPlacement = validateNewPlacement(candidate, cells, analysis, blueprint);
   if (newPlacement === 'ok') {
@@ -160,6 +193,22 @@ export function canPlace(tower: Tower, blueprint: Blueprint, origin: Cell): Plac
   }
 
   return fail(newPlacement);
+}
+
+/** Place a room, removing any fully covered rooms under its footprint first. */
+export function placeRoomReplacing(tower: Tower, room: Room, blueprint: Blueprint): PlacementResult & { tower?: Tower } {
+  const cells = roomCells(room.origin, room.size);
+  const cleared = clearReplaceableFootprint(tower, cells);
+  if (!cleared.ok) {
+    return fail(cleared.reason);
+  }
+
+  const legality = canPlace(cleared.tower, blueprint, room.origin);
+  if (!legality.ok) {
+    return legality;
+  }
+
+  return { ok: true, reason: 'ok', tower: placeRoom(cleared.tower, room) };
 }
 
 /** Support and spire rules for the cells being placed — not whole-tower validity. */
@@ -384,6 +433,44 @@ export function towerExtents(tower: Tower): TowerExtents {
     if (row > maxOccupiedRow) maxOccupiedRow = row;
   }
   return { maxOccupiedRow, wizardRow: maxOccupiedRow + 1 };
+}
+
+function modificationsEqual(a: Room['modifications'], b: Room['modifications']): boolean {
+  if (a.length !== b.length) return false;
+  const norm = (mods: Room['modifications']) =>
+    [...mods].sort((x, y) => x.id.localeCompare(y.id)).map((m) => `${m.id}:${m.level}`);
+  const sa = norm(a);
+  const sb = norm(b);
+  return sa.every((v, i) => v === sb[i]);
+}
+
+function roomsEqual(a: Room, b: Room): boolean {
+  return (
+    a.blueprintId === b.blueprintId &&
+    a.origin.col === b.origin.col &&
+    a.origin.row === b.origin.row &&
+    a.size.w === b.size.w &&
+    a.size.h === b.size.h &&
+    a.hp === b.hp &&
+    modificationsEqual(a.modifications, b.modifications)
+  );
+}
+
+/** Structural equality for build-phase revert checks. */
+export function towersEqual(a: Tower, b: Tower): boolean {
+  const keysA = Object.keys(a.occupancy).sort();
+  const keysB = Object.keys(b.occupancy).sort();
+  if (keysA.length !== keysB.length) return false;
+  for (let i = 0; i < keysA.length; i++) {
+    if (keysA[i] !== keysB[i] || a.occupancy[keysA[i]] !== b.occupancy[keysB[i]]) return false;
+  }
+  if (a.rooms.length !== b.rooms.length) return false;
+  const byIdA = new Map(a.rooms.map((r) => [r.id, r]));
+  for (const room of b.rooms) {
+    const other = byIdA.get(room.id);
+    if (!other || !roomsEqual(room, other)) return false;
+  }
+  return true;
 }
 
 /**

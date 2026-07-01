@@ -126,6 +126,17 @@ button:disabled:hover {
   margin-top: 8px;
 }
 
+.build-undo-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.build-undo-row button {
+  flex: 1;
+  font-size: 13px;
+}
+
 .dev-row button {
   flex: 1;
   font-size: 12px;

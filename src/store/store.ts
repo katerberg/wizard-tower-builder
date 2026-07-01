@@ -10,9 +10,9 @@ import {
   getModification,
   modificationCost,
 } from '@/model/modifications';
-import { canPlace, createRoom, isTowerStable, placeRoom, removeRoom, roomAt } from '@/model/tower';
+import { canPlace, createRoom, isTowerStable, placeRoomReplacing, removeRoom, roomAt, towersEqual } from '@/model/tower';
 import { clampScrollY, MIN_VIEWPORT_HEIGHT } from '@/view/canvas/camera';
-import type { GameState, ExteriorNode } from '@/model/types';
+import type { GameState, ExteriorNode, Phase, Tower } from '@/model/types';
 import type { Intent, ViewState } from './intents';
 
 export type Snapshot = {
@@ -21,6 +21,8 @@ export type Snapshot = {
   /** 0..1 blend from pre-step positions to current (for smooth canvas motion). */
   renderAlpha: number;
   previousEnemyPositions: ReadonlyMap<string, ExteriorNode>;
+  /** Successful build edits recorded this phase (undo stack depth). */
+  buildUndoDepth: number;
 };
 
 type Listener = () => void;
@@ -33,9 +35,12 @@ export class Store {
   private dirty = false;
   private renderAlpha = 1;
   private previousEnemyPositions = new Map<string, ExteriorNode>();
+  private buildHistory: Tower[] = [];
+  private lastPhase: Phase = 'build';
 
   constructor(seed?: string | number) {
     this.game = createInitialState(seed);
+    this.lastPhase = this.game.phase;
     this.view = {
       selectedBlueprintId: this.game.player.unlockedBlueprints[0] ?? null,
       hoveredCell: null,
@@ -51,6 +56,7 @@ export class Store {
       view: this.view,
       renderAlpha: this.renderAlpha,
       previousEnemyPositions: this.previousEnemyPositions,
+      buildUndoDepth: this.buildHistory.length,
     };
   }
 
@@ -85,6 +91,11 @@ export class Store {
 
   /** Notify subscribers once per frame if the simulation changed. */
   flush(): void {
+    if (this.lastPhase === 'attack' && this.game.phase === 'build') {
+      this.clearBuildHistory();
+    }
+    this.lastPhase = this.game.phase;
+
     if (this.dirty) {
       this.dirty = false;
       this.emit();
@@ -101,6 +112,7 @@ export class Store {
     switch (intent.type) {
       case 'beginRun':
         beginRun(game);
+        this.clearBuildHistory();
         break;
 
       case 'selectBlueprint':
@@ -151,13 +163,24 @@ export class Store {
             const net = netBuildCost(game.buildBaseline, game.tower);
             game.player.currency = game.buildBaseline.currency - net;
           }
+          this.clearBuildHistory();
           beginWave(game);
         }
+        break;
+
+      case 'undoBuild':
+        this.undoBuild();
+        break;
+
+      case 'revertBuild':
+        this.revertBuild();
         break;
 
       case 'restart':
         this.game = createInitialState();
         beginRun(this.game);
+        this.clearBuildHistory();
+        this.lastPhase = this.game.phase;
         this.view = {
           selectedBlueprintId: this.game.player.unlockedBlueprints[0] ?? null,
           hoveredCell: null,
@@ -220,12 +243,17 @@ export class Store {
     }
 
     const room = createRoom(`room-${this.roomCounter++}`, blueprint, cell);
-    const projected = placeRoom(game.tower, room);
-    if (!canAffordBuild(game.buildBaseline, projected)) {
+    const placed = placeRoomReplacing(game.tower, room, blueprint);
+    if (!placed.ok || !placed.tower) {
+      addMessage(game, `Cannot build here: ${placed.reason.replace(/_/g, ' ')}.`, 'info');
+      return;
+    }
+    if (!canAffordBuild(game.buildBaseline, placed.tower)) {
       addMessage(game, `Not enough gold for ${blueprint.name} (${blueprint.cost}).`, 'economy');
       return;
     }
-    game.tower = projected;
+    this.recordBuildStep();
+    game.tower = placed.tower;
     addMessage(game, `Placed ${blueprint.name}.`, 'info');
   }
 
@@ -250,6 +278,7 @@ export class Store {
       addMessage(game, `Not enough gold for ${def.name} (${cost}).`, 'economy');
       return;
     }
+    this.recordBuildStep();
     room.modifications.push({ id: modId, level: 1 });
     addMessage(game, `Added ${def.name}.`, 'info');
   }
@@ -271,6 +300,7 @@ export class Store {
       addMessage(game, `Not enough gold to upgrade ${def.name} (${cost}).`, 'economy');
       return;
     }
+    this.recordBuildStep();
     mod.level += 1;
     addMessage(game, `Upgraded ${def.name} to level ${mod.level}.`, 'info');
   }
@@ -282,11 +312,48 @@ export class Store {
     if (!room) return;
 
     const blueprint = getBlueprint(room.blueprintId);
+    this.recordBuildStep();
     game.tower = removeRoom(game.tower, room.id);
     addMessage(game, `Removed ${blueprint?.name ?? 'room'}.`, 'info');
 
     if (this.view.modal?.kind === 'room' && this.view.modal.roomId === roomId) {
       this.view.modal = null;
     }
+  }
+
+  private recordBuildStep(): void {
+    this.buildHistory.push(structuredClone(this.game.tower));
+  }
+
+  private clearBuildHistory(): void {
+    this.buildHistory = [];
+  }
+
+  private closeModalIfRoomMissing(): void {
+    const modal = this.view.modal;
+    if (modal?.kind !== 'room') return;
+    const exists = this.game.tower.rooms.some((r) => r.id === modal.roomId);
+    if (!exists) this.view.modal = null;
+  }
+
+  private undoBuild(): void {
+    const game = this.game;
+    if (game.phase !== 'build' || !game.buildBaseline || this.buildHistory.length === 0) return;
+
+    game.tower = this.buildHistory.pop()!;
+    this.closeModalIfRoomMissing();
+    addMessage(game, 'Undid last change.', 'info');
+  }
+
+  private revertBuild(): void {
+    const game = this.game;
+    const baseline = game.buildBaseline;
+    if (game.phase !== 'build' || !baseline) return;
+    if (towersEqual(game.tower, baseline.tower)) return;
+
+    game.tower = structuredClone(baseline.tower);
+    this.clearBuildHistory();
+    this.closeModalIfRoomMissing();
+    addMessage(game, 'Reverted to wave start layout.', 'info');
   }
 }

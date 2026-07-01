@@ -12,6 +12,7 @@ import {
   placeRoom,
   removeRoom,
   towerExtents,
+  towersEqual,
 } from './tower';
 
 const stem = getBlueprint('stem')!;
@@ -35,10 +36,23 @@ describe('canPlace - basic support', () => {
     expect(canPlace(createTower(), stem, { col: -1, row: 0 }).reason).toBe('out_of_bounds');
   });
 
-  it('rejects overlap', () => {
+  it('allows replacing a room when the footprint fully covers it', () => {
     let tower = createTower();
     tower = place(tower, 'stem', { col: 5, row: 0 });
-    expect(canPlace(tower, stem, { col: 5, row: 0 }).reason).toBe('overlap');
+    expect(canPlace(tower, stem, { col: 5, row: 0 })).toEqual({ ok: true, reason: 'ok' });
+  });
+
+  it('allows replacing a spire fully under a buttress footprint', () => {
+    let tower = createTower();
+    tower = place(tower, 'stem', { col: 5, row: 0 });
+    tower = place(tower, 'stem', { col: 5, row: 1 });
+    expect(canPlace(tower, b2, { col: 5, row: 1 })).toEqual({ ok: true, reason: 'ok' });
+  });
+
+  it('rejects partial overlap with a wider room', () => {
+    let tower = createTower();
+    tower = place(tower, 'buttress3', { col: 4, row: 0 });
+    expect(canPlace(tower, b2, { col: 5, row: 0 }).reason).toBe('overlap');
   });
 
   it('allows spires stacked directly on each other', () => {
@@ -309,6 +323,34 @@ describe('tower stability', () => {
     const lowerButtress = tower.rooms.find((r) => r.origin.row === 1)!;
     tower = removeRoom(tower, lowerButtress.id);
     expect(isTowerStable(tower)).toBe(false);
+  });
+});
+
+describe('towersEqual', () => {
+  it('treats empty towers as equal', () => {
+    expect(towersEqual(createTower(), createTower())).toBe(true);
+  });
+
+  it('detects identical layouts', () => {
+    let a = createTower();
+    let b = createTower();
+    a = placeRoom(a, createRoom('a', stem, { col: 4, row: 0 }));
+    b = placeRoom(b, createRoom('a', stem, { col: 4, row: 0 }));
+    expect(towersEqual(a, b)).toBe(true);
+  });
+
+  it('detects moved rooms', () => {
+    const base = placeRoom(createTower(), createRoom('a', stem, { col: 4, row: 0 }));
+    const moved = placeRoom(createTower(), createRoom('b', stem, { col: 8, row: 0 }));
+    expect(towersEqual(base, moved)).toBe(false);
+  });
+
+  it('detects modification changes', () => {
+    const room = createRoom('a', stem, { col: 4, row: 0 });
+    const plain = placeRoom(createTower(), room);
+    const modded = structuredClone(plain);
+    modded.rooms[0].modifications.push({ id: 'spikes', level: 1 });
+    expect(towersEqual(plain, modded)).toBe(false);
   });
 });
 
