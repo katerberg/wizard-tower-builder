@@ -22,9 +22,9 @@ isProject: false
 
 # Build-Phase Undo and Revert
 
-## Context
+## ContextL
 
-Build-phase planning is already implemented ([`buildCost.ts`](src/calculations/buildCost.ts), [`buildBaseline`](src/model/types.ts), [`store.ts`](src/store/store.ts)). Place/remove/mod mutations defer gold until **Start Wave**. This extension adds step-level undo and full revert to the phase template.
+Build-phase planning is already implemented (`[buildCost.ts](src/calculations/buildCost.ts)`, `[buildBaseline](src/model/types.ts)`, `[store.ts](src/store/store.ts)`). Place/remove/mod mutations defer gold until **Start Wave**. This extension adds step-level undo and full revert to the phase template.
 
 ```mermaid
 flowchart TB
@@ -52,7 +52,7 @@ Undo and revert do **not** touch `player.currency` (still committed only on Star
 
 ## 1. Tower equality helper
 
-Add `towersEqual(a, b)` in [`src/model/tower.ts`](src/model/tower.ts) (or [`buildCost.ts`](src/calculations/buildCost.ts)):
+Add `towersEqual(a, b)` in `[src/model/tower.ts](src/model/tower.ts)` (or `[buildCost.ts](src/calculations/buildCost.ts)`):
 
 - Compare `occupancy` keys and room ids
 - Per room: `blueprintId`, `origin`, `size`, `hp`, `modifications` (id + level, order-independent)
@@ -61,7 +61,7 @@ Used by revert button enablement and tests.
 
 ## 2. Undo stack in Store
 
-Private field on [`Store`](src/store/store.ts):
+Private field on `[Store](src/store/store.ts)`:
 
 ```typescript
 private buildHistory: Tower[] = [];
@@ -85,9 +85,9 @@ private recordBuildStep(): void {
 - `beginRun` / `restart`
 - `startWave` (leaving build phase)
 - `revertBuild`
-- Phase transition `attack → build` in `flush()` (new baseline from [`endWave`](src/model/phases.ts); track `private lastPhase` on store)
+- Phase transition `attack → build` in `flush()` (new baseline from `[endWave](src/model/phases.ts)`; track `private lastPhase` on store)
 
-**Expose** in [`Snapshot`](src/store/store.ts):
+**Expose** in `[Snapshot](src/store/store.ts)`:
 
 ```typescript
 buildUndoDepth: number; // buildHistory.length
@@ -95,20 +95,20 @@ buildUndoDepth: number; // buildHistory.length
 
 ## 3. New intents
 
-In [`src/store/intents.ts`](src/store/intents.ts):
+In `[src/store/intents.ts](src/store/intents.ts)`:
 
 ```typescript
 | { type: 'undoBuild' }
 | { type: 'revertBuild' }
 ```
 
-**`undoBuild`** (build phase + baseline only):
+`**undoBuild**` (build phase + baseline only):
 
 - If `buildHistory.length === 0`, no-op
 - `game.tower = buildHistory.pop()!`
 - Close room modal if inspected room no longer exists
 
-**`revertBuild`**:
+`**revertBuild**`:
 
 - If `towersEqual(game.tower, baseline.tower)`, no-op
 - `game.tower = structuredClone(baseline.tower)`
@@ -119,7 +119,7 @@ Quiet log messages: `"Undid last change."` / `"Reverted to wave start layout."`
 
 ## 4. Selectors
 
-Extend [`src/store/selectors.ts`](src/store/selectors.ts):
+Extend `[src/store/selectors.ts](src/store/selectors.ts)`:
 
 ```typescript
 export type BuildUndoState = {
@@ -135,7 +135,7 @@ export function selectBuildUndoState(snapshot: Snapshot): BuildUndoState;
 
 ## 5. HUD buttons
 
-In [`src/view/dom/hud.ts`](src/view/dom/hud.ts), inside build-phase controls (above **Start Wave**):
+In `[src/view/dom/hud.ts](src/view/dom/hud.ts)`, inside build-phase controls (above **Start Wave**):
 
 ```html
 <div class="build-undo-row">
@@ -144,7 +144,7 @@ In [`src/view/dom/hud.ts`](src/view/dom/hud.ts), inside build-phase controls (ab
 </div>
 ```
 
-Use existing `pointerdown` + `disabled` guard pattern. Optional CSS row in [`styles.css`](src/view/styles.css) (flex gap, match `.dev-row`).
+Use existing `pointerdown` + `disabled` guard pattern. Optional CSS row in `[styles.css](src/view/styles.css)` (flex gap, match `.dev-row`).
 
 ## 6. Edge cases
 
@@ -161,9 +161,9 @@ Use existing `pointerdown` + `disabled` guard pattern. Optional CSS row in [`sty
 
 ## 7. Tests
 
-**[`src/model/tower.test.ts`](src/model/tower.test.ts)** or new **`buildCost.test.ts`**: `towersEqual` cases (empty, same, moved room, mod change).
+`**[src/model/tower.test.ts](src/model/tower.test.ts)**` or new `**buildCost.test.ts**`: `towersEqual` cases (empty, same, moved room, mod change).
 
-**[`src/store/store.planning.test.ts`](src/store/store.planning.test.ts)**:
+`**[src/store/store.planning.test.ts](src/store/store.planning.test.ts)**`:
 
 - Place twice → undo once → one room remains
 - Place → revert all → empty tower matching baseline
