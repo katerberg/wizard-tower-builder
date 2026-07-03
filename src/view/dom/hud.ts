@@ -5,9 +5,13 @@ import type { Store } from '@/store/store';
 
 export function createHud(root: HTMLElement, store: Store): () => void {
   function dispatchFromTarget(eventTarget: EventTarget | null): void {
-    const target = (eventTarget as HTMLElement | null)?.closest('[data-action]') as HTMLElement | null;
-    if (!target || (target as HTMLButtonElement).disabled) return;
-    const action = target.dataset.action as Intent['type'];
+    const target =
+      eventTarget instanceof HTMLElement
+        ? eventTarget.closest<HTMLElement>('[data-action]')
+        : null;
+    if (!target || (target instanceof HTMLButtonElement && target.disabled)) return;
+    const action = target.dataset.action as Intent['type'] | undefined;
+    if (!action) return;
     store.dispatch({ type: action } as Intent);
   }
 

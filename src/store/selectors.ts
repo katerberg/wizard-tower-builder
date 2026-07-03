@@ -5,12 +5,12 @@ import { canPlace, getUnstableRoomIds, getWizardPosition, towersEqual } from '@/
 import type { Blueprint, Cell, ExteriorNode, PlacementReason, Room } from '@/model/types';
 import type { Snapshot } from './store';
 
-export type BuildEconomy = {
+export interface BuildEconomy {
   isPlanning: boolean;
   remainingGold: number;
   committedGold: number;
   budget: number;
-};
+}
 
 export function selectBuildEconomy(snapshot: Snapshot): BuildEconomy {
   const { game } = snapshot;
@@ -32,10 +32,10 @@ export function selectBuildEconomy(snapshot: Snapshot): BuildEconomy {
   };
 }
 
-export type BuildUndoState = {
+export interface BuildUndoState {
   canUndo: boolean;
   canRevert: boolean;
-};
+}
 
 export function selectBuildUndoState(snapshot: Snapshot): BuildUndoState {
   const { game } = snapshot;
@@ -54,7 +54,7 @@ export function selectWizardPosition(snapshot: Snapshot): ExteriorNode {
   return getWizardPosition(snapshot.game.tower);
 }
 
-export type TowerStability = { stable: boolean; unstableRoomIds: Set<string> };
+export interface TowerStability { stable: boolean; unstableRoomIds: Set<string> }
 
 export function selectTowerStability(snapshot: Snapshot): TowerStability {
   const unstableRoomIds = getUnstableRoomIds(snapshot.game.tower);
@@ -70,11 +70,11 @@ export function selectRoomById(snapshot: Snapshot, roomId: string): Room | undef
   return snapshot.game.tower.rooms.find((r) => r.id === roomId);
 }
 
-export type GhostPlacement = {
+export interface GhostPlacement {
   cells: Cell[];
   valid: boolean;
   reason: PlacementReason;
-};
+}
 
 export function selectGhostPlacement(snapshot: Snapshot): GhostPlacement | null {
   const { game, view } = snapshot;

@@ -2,7 +2,8 @@ import type { Store } from '@/store/store';
 
 export function createOverlay(root: HTMLElement, store: Store): () => void {
   root.addEventListener('click', (e) => {
-    const target = (e.target as HTMLElement).closest('[data-action]') as HTMLElement | null;
+    const target =
+      e.target instanceof HTMLElement ? e.target.closest<HTMLElement>('[data-action]') : null;
     if (!target) return;
     const action = target.dataset.action;
     if (action === 'beginRun') store.dispatch({ type: 'beginRun' });

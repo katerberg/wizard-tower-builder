@@ -12,10 +12,11 @@ import type { Room } from '@/model/types';
 
 export function createModal(root: HTMLElement, store: Store): () => void {
   root.addEventListener('click', (e) => {
-    const target = (e.target as HTMLElement).closest('[data-action]') as HTMLElement | null;
+    const target =
+      e.target instanceof HTMLElement ? e.target.closest<HTMLElement>('[data-action]') : null;
     if (target?.classList.contains('disabled')) return;
     const action = target?.dataset.action;
-    if (!action && (e.target as HTMLElement).classList.contains('modal-backdrop')) {
+    if (!action && e.target instanceof HTMLElement && e.target.classList.contains('modal-backdrop')) {
       store.dispatch({ type: 'closeModal' });
       return;
     }
@@ -38,7 +39,7 @@ export function createModal(root: HTMLElement, store: Store): () => void {
       return;
     }
 
-    let body = '';
+    let body: string;
     if (modal.kind === 'room') {
       const room = selectRoomById(snapshot, modal.roomId);
       body = room ? roomBody(snapshot, room) : '<p>Room no longer exists.</p>';
@@ -70,20 +71,21 @@ function roomBody(snapshot: Snapshot, room: Room): string {
       const level = current?.level ?? 0;
       const levelText = level > 0 ? `Lv${level}/${def.maxLevel}` : 'not installed';
 
-      let control = '';
-      if (!isBuild) {
-        control = '';
-      } else if (level === 0) {
-        const cost = modificationCost(def, 1);
-        const allowed = canApplyModification(room, game.tower, def.id) && remainingGold >= cost;
-        control = `<button class="mod-btn ${allowed ? '' : 'disabled'}" data-action="addModification" data-room="${room.id}" data-mod="${def.id}">Add · ${cost}g</button>`;
-      } else if (canUpgradeModification(room, def.id)) {
-        const cost = modificationCost(def, level + 1);
-        const allowed = remainingGold >= cost;
-        control = `<button class="mod-btn ${allowed ? '' : 'disabled'}" data-action="upgradeModification" data-room="${room.id}" data-mod="${def.id}">Upgrade · ${cost}g</button>`;
-      } else {
-        control = '<span class="mod-max">Max</span>';
-      }
+      const renderControl = (): string => {
+        if (!isBuild) return '';
+        if (level === 0) {
+          const cost = modificationCost(def, 1);
+          const allowed = canApplyModification(room, game.tower, def.id) && remainingGold >= cost;
+          return `<button class="mod-btn ${allowed ? '' : 'disabled'}" data-action="addModification" data-room="${room.id}" data-mod="${def.id}">Add · ${cost}g</button>`;
+        }
+        if (canUpgradeModification(room, def.id)) {
+          const cost = modificationCost(def, level + 1);
+          const allowed = remainingGold >= cost;
+          return `<button class="mod-btn ${allowed ? '' : 'disabled'}" data-action="upgradeModification" data-room="${room.id}" data-mod="${def.id}">Upgrade · ${cost}g</button>`;
+        }
+        return '<span class="mod-max">Max</span>';
+      };
+      const control = renderControl();
 
       return `
         <div class="mod-row">

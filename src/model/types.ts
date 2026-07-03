@@ -1,8 +1,8 @@
-export type Cell = { col: number; row: number };
+export interface Cell { col: number; row: number }
 
-export type Modifier = { attack?: number; defense?: number; hp?: number };
+export interface Modifier { attack?: number; defense?: number; hp?: number }
 
-export type Blueprint = {
+export interface Blueprint {
   id: string;
   name: string;
   glyph: string;
@@ -10,31 +10,31 @@ export type Blueprint = {
   size: { w: number; h: number };
   cost: number;
   baseHp: number;
-};
+}
 
 /** A modification instance attached to a room (one per type, leveled in place). */
-export type RoomModification = { id: string; level: number };
+export interface RoomModification { id: string; level: number }
 
-export type Room = {
+export interface Room {
   id: string;
   blueprintId: string;
   origin: Cell;
   size: { w: number; h: number };
   modifications: RoomModification[];
   hp: number;
-};
+}
 
-export type RoomStats = { maxHp: number; attack: number; defense: number };
+export interface RoomStats { maxHp: number; attack: number; defense: number }
 
-export type Tower = {
+export interface Tower {
   rooms: Room[];
   occupancy: Record<string, string>;
-};
+}
 
 /** Snapshot of tower + gold at the start of a build phase (planning baseline). */
-export type BuildBaseline = { tower: Tower; currency: number };
+export interface BuildBaseline { tower: Tower; currency: number }
 
-export type Wizard = {
+export interface Wizard {
   hp: number;
   maxHp: number;
   glyph: string;
@@ -45,23 +45,23 @@ export type Wizard = {
   dexterity: number;
   range: number;
   attackCooldown: number;
-};
+}
 
 export type ExteriorFace = 'left' | 'right' | 'top';
 
-export type ExteriorNode = { col: number; row: number; face: ExteriorFace };
+export interface ExteriorNode { col: number; row: number; face: ExteriorFace }
 
 export type MovementKind = 'under_overhang' | 'surface_climb' | 'attack_overhang' | 'fly' | 'face_transfer';
 
-export type MovementProfile = {
+export interface MovementProfile {
   kind: MovementKind;
   canPassUnderOverhang: boolean;
   canAttackOverhang: boolean;
   canFly: boolean;
   canTransferFaces: boolean;
-};
+}
 
-export type EnemyTemplate = {
+export interface EnemyTemplate {
   id: string;
   type: string;
   glyph: string;
@@ -72,9 +72,9 @@ export type EnemyTemplate = {
   movement: MovementProfile;
   dropChance?: number;
   dropItemId?: string;
-};
+}
 
-export type Enemy = {
+export interface Enemy {
   id: string;
   templateId: string;
   name: string;
@@ -84,18 +84,18 @@ export type Enemy = {
   currentHp: number;
   moveCooldown: number;
   attackCooldown: number;
-};
+}
 
 export type GameMessageKind = 'info' | 'combat' | 'economy';
 
-export type GameMessage = { tick: number; text: string; kind: GameMessageKind };
+export interface GameMessage { tick: number; text: string; kind: GameMessageKind }
 
-export type Player = {
+export interface Player {
   currency: number;
   unlockedBlueprints: string[];
   levelIndex: number;
   wizard: Wizard;
-};
+}
 
 export type ProgressionMode = 'linear' | 'branching';
 
@@ -103,7 +103,7 @@ export type Phase = 'build' | 'attack';
 
 export type Scene = 'menu' | 'run' | 'gameOver' | 'victory';
 
-export type GameState = {
+export interface GameState {
   scene: Scene;
   phase: Phase;
   progressionMode: ProgressionMode;
@@ -122,7 +122,7 @@ export type GameState = {
   roomEffectTimers: Record<string, number>;
   /** Tower + gold at build-phase start; edits commit on wave start. */
   buildBaseline: BuildBaseline | null;
-};
+}
 
 export type PlacementReason =
   | 'ok'
@@ -132,4 +132,4 @@ export type PlacementReason =
   | 'overhang_too_far'
   | 'disconnected';
 
-export type PlacementResult = { ok: boolean; reason: PlacementReason };
+export interface PlacementResult { ok: boolean; reason: PlacementReason }

@@ -8,6 +8,7 @@ dist-ssr/
 # Vite / test caches
 .vite/
 coverage/
+.eslintcache
 
 # IDE files
 .vscode/

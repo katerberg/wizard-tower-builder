@@ -4,9 +4,11 @@ import type { Store } from '@/store/store';
 
 export function createLibrary(root: HTMLElement, store: Store): () => void {
   root.addEventListener('click', (e) => {
-    const target = (e.target as HTMLElement).closest('[data-blueprint]') as HTMLElement | null;
-    if (!target) return;
-    store.dispatch({ type: 'selectBlueprint', blueprintId: target.dataset.blueprint! });
+    const target =
+      e.target instanceof HTMLElement ? e.target.closest<HTMLElement>('[data-blueprint]') : null;
+    const blueprintId = target?.dataset.blueprint;
+    if (!blueprintId) return;
+    store.dispatch({ type: 'selectBlueprint', blueprintId });
   });
 
   return function render(): void {

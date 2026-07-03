@@ -283,10 +283,10 @@ export function roomAt(tower: Tower, col: number, row: number): Room | undefined
   return tower.rooms.find((r) => r.id === id);
 }
 
-type SupportAnalysis = {
+interface SupportAnalysis {
   /** Keys of every cell that is held up (grounded, direct, or 1-step cantilever). */
   supported: Set<string>;
-};
+}
 
 /**
  * Bottom-up support propagation. Buttress rooms may cantilever at most one step
@@ -339,12 +339,12 @@ export function analyzeSupport(tower: Tower): SupportAnalysis {
   return { supported };
 }
 
-export type TowerValidity = {
+export interface TowerValidity {
   valid: boolean;
   /** Rooms that make the tower invalid (floating or breaking spire/buttress rules). */
   invalidRoomIds: Set<string>;
   reason: PlacementReason;
-};
+}
 
 function validityFromAnalysis(tower: Tower, analysis: SupportAnalysis): TowerValidity {
   const invalidRoomIds = new Set<string>();
@@ -390,7 +390,7 @@ export function isTowerStable(tower: Tower): boolean {
 }
 
 /** Contiguous top-row spans at the highest occupied row. */
-function topRowSpans(tower: Tower, topRow: number): Array<{ min: number; max: number }> {
+function topRowSpans(tower: Tower, topRow: number): { min: number; max: number }[] {
   const cols = Object.keys(tower.occupancy)
     .map(parseKey)
     .filter(({ row }) => row === topRow)
@@ -399,7 +399,7 @@ function topRowSpans(tower: Tower, topRow: number): Array<{ min: number; max: nu
 
   if (cols.length === 0) return [];
 
-  const spans: Array<{ min: number; max: number }> = [];
+  const spans: { min: number; max: number }[] = [];
   let runMin = cols[0];
   let runMax = cols[0];
   for (let i = 1; i < cols.length; i++) {
@@ -415,12 +415,12 @@ function topRowSpans(tower: Tower, topRow: number): Array<{ min: number; max: nu
   return spans;
 }
 
-export type TowerExtents = {
+export interface TowerExtents {
   /** Highest occupied row, or -1 when the tower is empty. */
   maxOccupiedRow: number;
   /** Exterior row of the wizard perch (topRow + 1). */
   wizardRow: number;
-};
+}
 
 /** Vertical span of the tower in grid rows — used by air bounds and camera clamping. */
 export function towerExtents(tower: Tower): TowerExtents {

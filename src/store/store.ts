@@ -15,7 +15,7 @@ import { clampScrollY, MIN_VIEWPORT_HEIGHT } from '@/view/canvas/camera';
 import type { GameState, ExteriorNode, Phase, Tower } from '@/model/types';
 import type { Intent, ViewState } from './intents';
 
-export type Snapshot = {
+export interface Snapshot {
   game: GameState;
   view: ViewState;
   /** 0..1 blend from pre-step positions to current (for smooth canvas motion). */
@@ -23,7 +23,7 @@ export type Snapshot = {
   previousEnemyPositions: ReadonlyMap<string, ExteriorNode>;
   /** Successful build edits recorded this phase (undo stack depth). */
   buildUndoDepth: number;
-};
+}
 
 type Listener = () => void;
 

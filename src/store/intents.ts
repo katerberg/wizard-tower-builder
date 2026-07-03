@@ -23,7 +23,7 @@ export type Intent =
 
 export type ModalData = { kind: 'room'; roomId: string } | { kind: 'help' };
 
-export type ViewState = {
+export interface ViewState {
   selectedBlueprintId: string | null;
   hoveredCell: Cell | null;
   modal: ModalData | null;
@@ -31,4 +31,4 @@ export type ViewState = {
   cameraScrollY: number;
   /** Canvas height in pixels (snapped to whole cell rows). */
   viewportHeight: number;
-};
+}

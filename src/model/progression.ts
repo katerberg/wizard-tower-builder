@@ -1,5 +1,5 @@
-export type WaveEntry = { templateId: string; count: number };
-export type WaveDef = { entries: WaveEntry[] };
+export interface WaveEntry { templateId: string; count: number }
+export interface WaveDef { entries: WaveEntry[] }
 
 /**
  * Pluggable source of waves/rewards. v1 ships a linear escalating provider; a

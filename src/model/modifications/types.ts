@@ -5,7 +5,7 @@ import type { Cell, Enemy, GameMessageKind, GameState, Room, RoomStats, Tower } 
  * builds this per room so definition files never import combat/economy/messages
  * directly — they only describe behavior in terms of these helpers.
  */
-export type ModEffectContext = {
+export interface ModEffectContext {
   state: GameState;
   room: Room;
   /** The room's footprint cells. */
@@ -26,13 +26,13 @@ export type ModEffectContext = {
   reward: (amount: number) => void;
   /** Append a message to the game log. */
   log: (text: string, kind?: GameMessageKind) => void;
-};
+}
 
 /**
  * A room modification type. Adding a new modification to the game is a single
  * new file exporting one of these plus a line in the registry.
  */
-export type ModificationDef = {
+export interface ModificationDef {
   id: string;
   name: string;
   glyph: string;
@@ -59,4 +59,4 @@ export type ModificationDef = {
   };
   /** Lifecycle hook fired once when a wave is cleared (e.g. passive income). */
   onWaveCleared?: (ctx: Omit<ModEffectContext, 'dt'>) => void;
-};
+}

@@ -2,7 +2,7 @@ import { roomAt } from '@/model/tower';
 import type { Store } from '@/store/store';
 import { screenToCell } from './canvas/camera';
 
-export type PointerTracker = { x: number; y: number };
+export interface PointerTracker { x: number; y: number }
 
 const DRAG_THRESHOLD_PX = 5;
 

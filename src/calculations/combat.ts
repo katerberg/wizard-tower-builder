@@ -2,9 +2,9 @@ import { nextRandom } from './rng';
 import { aggregateModifierStats } from '../model/modifications';
 import type { Blueprint, Room, RoomStats } from '../model/types';
 
-export type Combatant = { attack: number; defense: number; dexterity: number };
+export interface Combatant { attack: number; defense: number; dexterity: number }
 
-export type DamageResult = { damage: number; dodged: boolean; rngState: number };
+export interface DamageResult { damage: number; dodged: boolean; rngState: number }
 
 /**
  * Mirrors 7drl's dex-dodge + flat mitigation, decoupled from any renderer.
