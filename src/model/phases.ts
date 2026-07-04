@@ -1,3 +1,4 @@
+import { prepareWaveNames } from './game';
 import { addMessage } from './messages';
 import { reward } from '../calculations/economy';
 import { runWaveClearedEffects } from './modifications/effects';
@@ -24,6 +25,7 @@ export function beginWave(state: GameState): void {
   state.phase = 'attack';
   state.enemies = [];
   state.spawnQueue = buildSpawnQueue(wave);
+  prepareWaveNames(state);
   state.spawnTimer = 0;
   state.waveTimer = 0;
   state.roomEffectTimers = {};

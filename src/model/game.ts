@@ -7,15 +7,17 @@ import { addMessage } from './messages';
 import { findPath } from '../calculations/pathfinding';
 import { runEnemyStepEffects, runRoomEffects } from './modifications/effects';
 import { endWave, loseGame, startRun, captureBuildBaseline } from './phases';
-import { seedFrom } from '../calculations/rng';
+import { seedFrom, shuffle } from '../calculations/rng';
 import { createTower, getWizardPosition } from './tower';
 import { goblinNames, bruteNames, wispNames } from '@/static/names';
 import type { Enemy, EnemyTemplate, ExteriorNode, GameState } from './types';
 
 let enemyCounter = 0;
+let waveNamePools: Record<string, string[]> = {};
 
 export function createInitialState(seed: string | number = 'wizard'): GameState {
   enemyCounter = 0;
+  waveNamePools = {};
   const state: GameState = {
     scene: 'run',
     phase: 'build',
@@ -54,18 +56,51 @@ const namePools: Record<string, readonly string[]> = {
   wisp: wispNames,
 };
 
-function pickName(templateId: string, spawnIndex: number): string {
+/** Build shuffled, without-replacement name queues for each enemy type in the wave. */
+export function prepareWaveNames(state: GameState): void {
+  waveNamePools = {};
+  const counts = new Map<string, number>();
+  for (const templateId of state.spawnQueue) {
+    counts.set(templateId, (counts.get(templateId) ?? 0) + 1);
+  }
+
+  let rngState = state.rngState;
+  for (const [templateId, count] of counts) {
+    const source = namePools[templateId] ?? ['Foe'];
+    const assigned: string[] = [];
+    while (assigned.length < count) {
+      const shuffled = shuffle(rngState, source);
+      rngState = shuffled.state;
+      for (const name of shuffled.items) {
+        if (assigned.length >= count) break;
+        assigned.push(name);
+      }
+    }
+    waveNamePools[templateId] = assigned;
+  }
+  state.rngState = rngState;
+}
+
+function pickName(templateId: string): string {
+  const queue = waveNamePools[templateId];
+  if (queue && queue.length > 0) {
+    return queue.shift()!;
+  }
   const pool = namePools[templateId] ?? ['Foe'];
-  return pool[spawnIndex % pool.length];
+  return pool[0];
+}
+
+/** Test and debug helper for dequeuing a wave name without spawning. */
+export function takeEnemyName(templateId: string): string {
+  return pickName(templateId);
 }
 
 function spawnEnemy(state: GameState, template: EnemyTemplate, side: 'left' | 'right'): void {
   const pos = spawnNode(state.tower, side);
-  const spawnIndex = enemyCounter;
   const enemy: Enemy = {
     id: `enemy-${enemyCounter++}`,
     templateId: template.id,
-    name: pickName(template.id, spawnIndex),
+    name: pickName(template.id),
     pos,
     path: [],
     pathIndex: 0,
