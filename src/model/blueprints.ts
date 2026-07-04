@@ -46,6 +46,15 @@ export const BLUEPRINTS: Blueprint[] = [
     cost: 8,
     baseHp: 15,
   },
+  {
+    id: 'barracksRoom',
+    name: 'Barracks',
+    glyph: 'A',
+    color: '#718096',
+    size: { w: 1, h: 1 },
+    cost: 9,
+    baseHp: 20,
+  },
 ];
 
 export const STARTING_BLUEPRINT_IDS = BLUEPRINTS.map((b) => b.id);
