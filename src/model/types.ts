@@ -38,8 +38,7 @@ export interface Wizard {
   hp: number;
   maxHp: number;
   glyph: string;
-  // v1 defense: room turrets are deferred, so the wizard auto-attacks the
-  // nearest climbing enemy. This is what makes a taller approach worthwhile.
+  // v1 defense: wizard auto-attacks; dedicated turret rooms also fire via roomBehaviors.
   attack: number;
   defense: number;
   dexterity: number;

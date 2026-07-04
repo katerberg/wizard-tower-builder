@@ -9,7 +9,7 @@ Stack: **TypeScript**, **Vite**, **HTML5 Canvas** (board), **DOM** (UI chrome). 
 The run alternates between two phases:
 
 1. **Build** — Spend currency to place rooms on a grid. Rooms must obey gravity and support rules (see below). Use the **Select** tool to inspect rooms and add modifications. Pick a **blueprint** to place or replace rooms. Right-click to remove. When the tower is stable, start the wave.
-2. **Attack** — Enemies spawn at the base and pathfind up the **exterior** of the tower toward the wizard at the top. The wizard auto-attacks nearby climbers; room modifications (spikes, turret, gold mine) add extra behavior. Survive the wave to earn currency and return to build. Lose if the wizard’s HP reaches zero.
+2. **Attack** — Enemies spawn at the base and pathfind up the **exterior** of the tower toward the wizard at the top. The wizard auto-attacks nearby climbers; **Turret rooms** fire independently; **spikes** (a modification) damage climbers on contact. **Gold Mine rooms** pay out when a wave clears. Survive the wave to earn currency and return to build. Lose if the wizard’s HP reaches zero.
 
 Progression is linear and escalating for now (designed so branching roguelike paths can be added later).
 
@@ -165,8 +165,8 @@ Mount points: `#board`, `#stage`, `#hud`, `#library`, `#message-log`, `#modal-ro
 |------|---------|
 | **Tower** | Collection of rooms + occupancy grid |
 | **Room** | Placed blueprint instance (origin, size, hp, modifications) |
-| **Blueprint** | Room type definition (cost, size, base hp) |
-| **Modification** | Leveled add-on on a room (spikes, turret, gold mine) |
+| **Blueprint** | Room type definition (cost, size, base hp) — includes structure rooms and specialty rooms (Turret, Gold Mine) |
+| **Modification** | Leveled add-on on any room (spikes only today) |
 | **Phase** | `build` or `attack` within a run |
 | **Scene** | `menu`, `run`, `gameOver`, `victory` |
 | **Intent** | Typed action dispatched to the store |

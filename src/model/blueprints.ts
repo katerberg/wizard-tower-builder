@@ -28,6 +28,24 @@ export const BLUEPRINTS: Blueprint[] = [
     cost: 8,
     baseHp: 45,
   },
+  {
+    id: 'turretRoom',
+    name: 'Turret Room',
+    glyph: '*',
+    color: '#f6ad55',
+    size: { w: 1, h: 1 },
+    cost: 10,
+    baseHp: 18,
+  },
+  {
+    id: 'goldMineRoom',
+    name: 'Gold Mine',
+    glyph: '$',
+    color: '#ecc94b',
+    size: { w: 1, h: 1 },
+    cost: 8,
+    baseHp: 15,
+  },
 ];
 
 export const STARTING_BLUEPRINT_IDS = BLUEPRINTS.map((b) => b.id);

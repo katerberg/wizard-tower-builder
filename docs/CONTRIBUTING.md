@@ -45,12 +45,17 @@ A replacement UI only needs `Store`, `Intent`, `Snapshot`, and functions from `s
 2. Add placement/stability tests in [`src/model/tower.test.ts`](../src/model/tower.test.ts) if rules differ.
 3. Library auto-lists via `selectLibraryBlueprints` — no view change unless custom UI.
 
-### Add a modification
+### Add a modification (spikes-style add-on)
 
 1. Create [`src/model/modifications/<name>.ts`](../src/model/modifications/) exporting a `ModificationDef`.
 2. Register in [`src/model/modifications/index.ts`](../src/model/modifications/index.ts).
-3. Test `canApply`, costs, and effects in `modifications.test.ts` / `effects.test.ts`.
-4. Modal auto-lists via `selectRoomInspector` — extend selector if new affordance fields needed.
+3. Test in `modifications.test.ts` / `effects.test.ts` if combat hooks apply.
+
+### Add a specialty room (turret, gold mine, etc.)
+
+1. Add blueprint in [`src/model/blueprints.ts`](../src/model/blueprints.ts).
+2. Add behavior in [`src/model/roomBehaviors/`](../src/model/roomBehaviors/) and register in `index.ts`.
+3. Test in `effects.test.ts`. Library lists the blueprint automatically via selectors.
 
 ### Add an intent and UI control
 

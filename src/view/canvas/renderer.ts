@@ -130,6 +130,10 @@ export class Renderer {
   private drawModIndicators(modifications: { id: string; level: number }[], left: number, bottom: number): void {
     const { ctx } = this;
     const size = Math.floor(CELL_SIZE * 0.28);
+    const padX = 4;
+    const padY = 2;
+    const badgeH = size + padY * 2;
+    const badgeBottom = bottom - 4;
     ctx.font = `${size}px monospace`;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'bottom';
@@ -138,9 +142,19 @@ export class Renderer {
       const def = getModification(mod.id);
       if (!def) continue;
       const label = mod.level > 1 ? `${def.glyph}${mod.level}` : def.glyph;
+      const textW = ctx.measureText(label).width;
+      const badgeW = textW + padX * 2;
+      const badgeY = badgeBottom - badgeH;
+
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+      ctx.fillRect(cursorX, badgeY, badgeW, badgeH);
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(cursorX + 0.5, badgeY + 0.5, badgeW - 1, badgeH - 1);
+
       ctx.fillStyle = def.color;
-      ctx.fillText(label, cursorX, bottom - 4);
-      cursorX += ctx.measureText(label).width + size * 0.4;
+      ctx.fillText(label, cursorX + padX, badgeBottom - padY);
+      cursorX += badgeW + size * 0.35;
     }
   }
 

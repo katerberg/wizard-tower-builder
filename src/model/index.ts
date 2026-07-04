@@ -7,3 +7,4 @@ export * from './enemies';
 export * from './waves';
 export * from './messages';
 export * from './progression';
+export * from './roomBehaviors';

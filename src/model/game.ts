@@ -186,7 +186,7 @@ export function step(state: GameState, dt: number): void {
     }
   }
 
-  // Room modifications (turrets, spikes, ...) act on enemies this tick.
+  // Room behaviors (turret rooms) and modifications (spikes) act on enemies this tick.
   runRoomEffects(state, dt);
 
   // Reap dead enemies and award currency.

@@ -18,19 +18,16 @@ function makeRoom(): Room {
 
 describe('modification economy', () => {
   it('reports the cost to reach each level', () => {
-    const turret = getModification('turret')!;
-    expect(modificationCost(turret, 1)).toBe(10);
-    expect(modificationCost(turret, 2)).toBe(16);
-    expect(modificationCost(turret, 3)).toBe(24);
+    const spikes = getModification('spikes')!;
+    expect(modificationCost(spikes, 1)).toBe(5);
+    expect(modificationCost(spikes, 2)).toBe(8);
+    expect(modificationCost(spikes, 3)).toBe(12);
   });
 
   it('refunds half of everything spent on a modification', () => {
     const room = makeRoom();
     room.modifications.push({ id: 'spikes', level: 2 }); // spent 5 + 8 = 13
     expect(modificationRefund(room)).toBe(6); // floor(13 * 0.5)
-
-    room.modifications.push({ id: 'turret', level: 1 }); // + spent 10
-    expect(modificationRefund(room)).toBe(6 + 5); // + floor(10 * 0.5)
   });
 });
 
@@ -43,17 +40,19 @@ describe('modification rules', () => {
     expect(canUpgradeModification(room, 'spikes')).toBe(false);
 
     room.modifications.push({ id: 'spikes', level: 1 });
-    expect(canApplyModification(room, tower, 'spikes')).toBe(false); // already installed
+    expect(canApplyModification(room, tower, 'spikes')).toBe(false);
     expect(canUpgradeModification(room, 'spikes')).toBe(true);
 
     room.modifications[0].level = getModification('spikes')!.maxLevel;
-    expect(canUpgradeModification(room, 'spikes')).toBe(false); // at max
+    expect(canUpgradeModification(room, 'spikes')).toBe(false);
   });
 
   it('rejects unknown modification ids', () => {
     const room = makeRoom();
     expect(canApplyModification(room, createTower(), 'nope')).toBe(false);
     expect(getModification('nope')).toBeUndefined();
+    expect(getModification('turret')).toBeUndefined();
+    expect(getModification('goldMine')).toBeUndefined();
   });
 });
 

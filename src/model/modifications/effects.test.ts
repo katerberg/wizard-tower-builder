@@ -19,18 +19,22 @@ function makeEnemy(templateId: string, col: number, row: number, hp: number): En
   };
 }
 
-function stateWithRoom(seed: string, modId: string, level: number): GameState {
+function stateWithRoom(
+  seed: string,
+  blueprintId: string,
+  mod?: { id: string; level: number },
+): GameState {
   const state = createInitialState(seed);
-  const room = createRoom('r0', getBlueprint('stem')!, { col: 8, row: 0 });
-  room.modifications.push({ id: modId, level });
+  const room = createRoom('r0', getBlueprint(blueprintId)!, { col: 8, row: 0 });
+  if (mod) room.modifications.push(mod);
   state.tower = placeRoom(state.tower, room);
   return state;
 }
 
-describe('turret effect', () => {
+describe('turret room effect', () => {
   it('damages the nearest enemy within range', () => {
-    const state = stateWithRoom('turret', 'turret', 1); // range 3
-    const brute = makeEnemy('brute', 8, 2, 34); // 2 cells above the room
+    const state = stateWithRoom('turret', 'turretRoom');
+    const brute = makeEnemy('brute', 8, 2, 34);
     state.enemies = [brute];
 
     for (let i = 0; i < 5; i++) runRoomEffects(state, 1.0);
@@ -39,8 +43,8 @@ describe('turret effect', () => {
   });
 
   it('ignores enemies beyond range', () => {
-    const state = stateWithRoom('turret-range', 'turret', 1); // range 3
-    const far = makeEnemy('brute', 8, 9, 34); // 9 cells up, out of range
+    const state = stateWithRoom('turret-range', 'turretRoom');
+    const far = makeEnemy('brute', 8, 9, 34);
     state.enemies = [far];
 
     for (let i = 0; i < 5; i++) runRoomEffects(state, 1.0);
@@ -51,7 +55,7 @@ describe('turret effect', () => {
 
 describe('spikes effect', () => {
   it('damages an enemy when they step onto a spiked surface', () => {
-    const state = stateWithRoom('spikes-multi', 'spikes', 1);
+    const state = stateWithRoom('spikes-multi', 'stem', { id: 'spikes', level: 1 });
     const enemy = makeEnemy('brute', 8, 5, 34);
     state.enemies = [enemy];
 
@@ -83,7 +87,7 @@ describe('spikes effect', () => {
   });
 
   it('does not damage enemies who never step near the room', () => {
-    const state = stateWithRoom('spikes-far', 'spikes', 1);
+    const state = stateWithRoom('spikes-far', 'stem', { id: 'spikes', level: 1 });
     const distant = makeEnemy('brute', 8, 5, 34);
     state.enemies = [distant];
 
@@ -92,18 +96,18 @@ describe('spikes effect', () => {
   });
 });
 
-describe('gold mine effect', () => {
-  it('grants level-scaled income when a wave is cleared', () => {
-    const state = stateWithRoom('gold', 'goldMine', 2); // 4 * 2 = 8 per wave
+describe('gold mine room effect', () => {
+  it('grants income when a wave is cleared', () => {
+    const state = stateWithRoom('gold', 'goldMineRoom');
     const before = state.player.currency;
 
     runWaveClearedEffects(state);
 
-    expect(state.player.currency).toBe(before + 8);
+    expect(state.player.currency).toBe(before + 4);
   });
 
-  it('does nothing for modifications without a wave-clear hook', () => {
-    const state = stateWithRoom('gold-none', 'spikes', 1);
+  it('does nothing for rooms without a wave-clear hook', () => {
+    const state = stateWithRoom('gold-none', 'stem', { id: 'spikes', level: 1 });
     const before = state.player.currency;
 
     runWaveClearedEffects(state);
