@@ -170,7 +170,8 @@ export function runWaveClearedEffects(state: GameState): void {
     const cells = roomCells(room.origin, room.size);
     const behavior = getRoomBehavior(room.blueprintId);
     if (behavior?.onWaveCleared) {
-      const { dt: _dt, ...ctx } = buildRoomContext(state, room, cells, 0, 'Gold Mine');
+      const { dt, ...ctx } = buildRoomContext(state, room, cells, 0, 'Gold Mine');
+      void dt;
       behavior.onWaveCleared(ctx);
     }
 
