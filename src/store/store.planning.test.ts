@@ -145,8 +145,9 @@ describe('build mode vs select mode', () => {
     store.dispatch({ type: 'selectBlueprint', blueprintId: 'stem' });
     store.dispatch({ type: 'inspectRoomAt', cell: { col: 8, row: 0 } });
 
+    const roomId = store.getSnapshot().game.tower.rooms[0].id;
     const { view } = store.getSnapshot();
-    expect(view.modal).toEqual({ kind: 'room', roomId: expect.any(String) });
+    expect(view.modal).toEqual({ kind: 'room', roomId });
     expect(view.selectedBlueprintId).toBeNull();
   });
 
