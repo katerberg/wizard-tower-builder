@@ -43,11 +43,10 @@ export function attachInput(
 
     if (!isDragging) return;
 
-    const { game } = store.getSnapshot();
-    if (game.phase !== 'build') return;
+    const { game, view } = store.getSnapshot();
+    if (game.phase !== 'build' || !view.selectedBlueprintId) return;
 
     const cell = cellFromEvent(e);
-    if (roomAt(game.tower, cell.col, cell.row)) return;
     if (lastDragCell?.col === cell.col && lastDragCell.row === cell.row) return;
 
     lastDragCell = cell;
@@ -71,12 +70,11 @@ export function attachInput(
 
     const cell = cellFromEvent(e);
     if (dragStart && !isDragging) {
-      const { game } = store.getSnapshot();
-      const room = roomAt(game.tower, cell.col, cell.row);
-      if (room) {
-        store.dispatch({ type: 'inspectRoomAt', cell });
-      } else if (game.phase === 'build') {
+      const { game, view } = store.getSnapshot();
+      if (game.phase === 'build' && view.selectedBlueprintId) {
         store.dispatch({ type: 'placeSelectedAt', cell });
+      } else if (roomAt(game.tower, cell.col, cell.row)) {
+        store.dispatch({ type: 'inspectRoomAt', cell });
       }
     }
 
@@ -101,4 +99,13 @@ export function attachInput(
     },
     { passive: false },
   );
+
+  window.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    const { view } = store.getSnapshot();
+    if (view.selectedBlueprintId) {
+      e.preventDefault();
+      store.dispatch({ type: 'selectBlueprint', blueprintId: null });
+    }
+  });
 }

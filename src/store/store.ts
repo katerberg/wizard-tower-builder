@@ -42,7 +42,7 @@ export class Store {
     this.game = createInitialState(seed);
     this.lastPhase = this.game.phase;
     this.view = {
-      selectedBlueprintId: this.game.player.unlockedBlueprints[0] ?? null,
+      selectedBlueprintId: null,
       hoveredCell: null,
       modal: null,
       cameraScrollY: 0,
@@ -133,7 +133,10 @@ export class Store {
 
       case 'inspectRoomAt': {
         const room = roomAt(game.tower, intent.cell.col, intent.cell.row);
-        if (room) this.view.modal = { kind: 'room', roomId: room.id };
+        if (room) {
+          this.view.selectedBlueprintId = null;
+          this.view.modal = { kind: 'room', roomId: room.id };
+        }
         break;
       }
 
@@ -182,7 +185,7 @@ export class Store {
         this.clearBuildHistory();
         this.lastPhase = this.game.phase;
         this.view = {
-          selectedBlueprintId: this.game.player.unlockedBlueprints[0] ?? null,
+          selectedBlueprintId: null,
           hoveredCell: null,
           modal: null,
           cameraScrollY: 0,
@@ -254,6 +257,9 @@ export class Store {
     }
     this.recordBuildStep();
     game.tower = placed.tower;
+    if (this.view.modal?.kind === 'room') {
+      this.view.modal = null;
+    }
     addMessage(game, `Placed ${blueprint.name}.`, 'info');
   }
 

@@ -2,7 +2,7 @@ import type { Cell } from '@/model/types';
 
 export type Intent =
   | { type: 'beginRun' }
-  | { type: 'selectBlueprint'; blueprintId: string }
+  | { type: 'selectBlueprint'; blueprintId: string | null }
   | { type: 'hoverCell'; cell: Cell | null }
   | { type: 'placeSelectedAt'; cell: Cell }
   | { type: 'removeRoomAt'; cell: Cell }

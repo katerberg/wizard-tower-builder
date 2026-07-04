@@ -15,17 +15,18 @@ export function createTooltip(root: HTMLElement, store: Store, pointer: PointerT
 
     const room = roomAt(game.tower, cell.col, cell.row);
     let text = '';
-    if (room) {
-      const blueprint = getBlueprint(room.blueprintId);
-      text = `${blueprint?.name ?? 'Room'} · ${room.hp} hp`;
-    } else if (game.phase === 'build') {
+    if (game.phase === 'build' && view.selectedBlueprintId) {
       const ghost = selectGhostPlacement(store.getSnapshot());
-      const blueprint = view.selectedBlueprintId ? getBlueprint(view.selectedBlueprintId) : undefined;
+      const blueprint = getBlueprint(view.selectedBlueprintId);
       if (ghost && blueprint) {
+        const action = room ? 'Replace with' : 'Place';
         text = ghost.valid
-          ? `${blueprint.name} · ${blueprint.cost} gold`
+          ? `${action} ${blueprint.name} · ${blueprint.cost} gold`
           : `Cannot build: ${ghost.reason.replace(/_/g, ' ')}`;
       }
+    } else if (room) {
+      const blueprint = getBlueprint(room.blueprintId);
+      text = `${blueprint?.name ?? 'Room'} · ${room.hp} hp`;
     }
 
     if (!text) {

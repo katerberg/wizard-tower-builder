@@ -1,5 +1,5 @@
 import { FINAL_LEVEL_INDEX } from '@/model/waves';
-import { selectBuildEconomy, selectBuildUndoState, selectTowerStability } from '@/store/selectors';
+import { selectBuildEconomy, selectBuildUndoState, selectSelectedBlueprint, selectTowerStability } from '@/store/selectors';
 import type { Intent } from '@/store/intents';
 import type { Store } from '@/store/store';
 
@@ -41,6 +41,13 @@ export function createHud(root: HTMLElement, store: Store): () => void {
     const stability = selectTowerStability(snapshot);
     const economy = selectBuildEconomy(snapshot);
     const undoState = selectBuildUndoState(snapshot);
+    const selectedBlueprint = selectSelectedBlueprint(snapshot);
+    const buildModeHint =
+      inBuild && selectedBlueprint
+        ? `<p class="mode-hint">Placing: ${selectedBlueprint.name}</p>`
+        : inBuild
+          ? '<p class="mode-hint">Select rooms to modify</p>'
+          : '';
     const goldLabel =
       economy.isPlanning && economy.committedGold > 0
         ? `${economy.remainingGold} (${economy.committedGold} committed)`
@@ -73,6 +80,7 @@ export function createHud(root: HTMLElement, store: Store): () => void {
       <div class="stat"><span>Gold</span><strong>${goldLabel}</strong></div>
       <div class="stat"><span>Wizard HP</span><strong>${player.wizard.hp} / ${player.wizard.maxHp}</strong></div>
       ${attackInfo}
+      ${buildModeHint}
       ${phaseControls}
       <div class="dev-row">
         <button data-action="toggleDevMode">${game.devMode ? 'Dev: on' : 'Dev: off'}</button>
