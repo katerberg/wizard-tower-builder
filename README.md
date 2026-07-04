@@ -8,8 +8,8 @@ Stack: **TypeScript**, **Vite**, **HTML5 Canvas** (board), **DOM** (UI chrome). 
 
 The run alternates between two phases:
 
-1. **Build** — Spend currency to place rooms on a grid. Rooms must obey gravity and support rules (see below). Click a blueprint in the library, then click the grid to place. Right-click (or remove intent) to tear down a room. When the tower is valid, start the wave.
-2. **Attack** — Enemies spawn at the base and pathfind up the **exterior** of the tower toward the wizard at the top. The wizard auto-attacks nearby climbers (room turrets are deferred). Survive the wave to earn currency and return to build. Lose if the wizard’s HP reaches zero.
+1. **Build** — Spend currency to place rooms on a grid. Rooms must obey gravity and support rules (see below). Use the **Select** tool to inspect rooms and add modifications. Pick a **blueprint** to place or replace rooms. Right-click to remove. When the tower is stable, start the wave.
+2. **Attack** — Enemies spawn at the base and pathfind up the **exterior** of the tower toward the wizard at the top. The wizard auto-attacks nearby climbers; room modifications (spikes, turret, gold mine) add extra behavior. Survive the wave to earn currency and return to build. Lose if the wizard’s HP reaches zero.
 
 Progression is linear and escalating for now (designed so branching roguelike paths can be added later).
 
@@ -26,13 +26,15 @@ Unstable towers (floating rooms or illegal cantilevers) are highlighted on the b
 
 ### Controls
 
-| Action           | Input                             |
-| ---------------- | --------------------------------- |
-| Select blueprint | Click in the library              |
-| Place room       | Click grid (build phase)          |
-| Remove room      | Right-click grid (build phase)    |
-| Inspect room     | Click occupied cell (opens modal) |
-| Start wave       | HUD button (when tower is stable) |
+| Action | Input |
+|--------|-------|
+| Select / inspect | **Select** tool (default), then click a room |
+| Place / replace | Pick a blueprint, click or drag on grid |
+| Deselect blueprint | **Esc**, Select tool, or click same blueprint again |
+| Remove room | Right-click grid (build phase) |
+| Undo / revert layout | HUD buttons (build phase) |
+| Start wave | HUD button (when tower is stable) |
+| Scroll tower | Mouse wheel on board |
 
 Dev mode toggles are available via intents (`toggleDevMode`, `devAddCurrency`, `devSkipWave`) for local testing.
 
@@ -46,60 +48,161 @@ A `MovementProfile` gates which surfaces a given enemy may use. The only profile
 
 ## Getting started
 
+Requires **Node.js LTS** (see `.nvmrc`; matches CI).
+
 ```bash
 npm install
 npm run dev      # dev server (Vite)
-npm test         # Vitest (model + calculations)
+npm test         # Vitest (engine tests)
 npm run typecheck
+npm run lint     # ESLint + typecheck
 npm run build    # production build to dist/
 ```
 
 Open the URL Vite prints (usually `http://localhost:5173`).
 
+Contributor recipes: [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md).
+
 ## Architecture
 
-Strict **MVVM** separation:
+### Agent quick-start
 
+- All user actions flow **Input → Intent → Store handlers → Model**
+- Rules live in `src/model/` and `src/calculations/`; test with Vitest
+- **UI never mutates `GameState` directly** — only `store.dispatch(intent)`
+- Build phase uses draft economy (`buildBaseline`); gold commits on `startWave`
+- **Build vs Select mode:** blueprint selected = place/replace; Select tool = inspect/modify
+
+### Engine vs shell
+
+The **engine** (`model/`, `calculations/`, `store/`) is UI-agnostic. The **shell** (`view/`, `main.ts`) is disposable — swap canvas/DOM for another renderer without changing game rules.
+
+```mermaid
+flowchart LR
+  subgraph engine [Engine]
+    Model[model/]
+    Calc[calculations/]
+    Store[store/]
+  end
+  subgraph shell [Shell]
+    Main[main.ts]
+    View[view/]
+  end
+  View -->|dispatch Intent| Store
+  View -->|read Snapshot selectors| Store
+  Store --> Model
+  Store --> Calc
 ```
-Input → Intents → Store (ViewModel) → Model (pure logic)
-                      ↓
-              Selectors → Canvas + DOM views
+
+**UI contract** (all a replacement shell needs):
+
+| Export | Role |
+|--------|------|
+| `Store` | `dispatch`, `getSnapshot`, `subscribe`, `advance`, `flush` |
+| `Intent` | Typed user/system actions |
+| `Snapshot` | `game` + `view` + render interpolation |
+| `selectors.ts` | Affordances and derived display state |
+
+### Data flow
+
+```mermaid
+flowchart TB
+  subgraph viewLayer [View shell]
+    Input[input.ts + dom/*]
+    Canvas[canvas/renderer.ts]
+  end
+  subgraph storeLayer [Store]
+    Dispatch[dispatch]
+    Handlers[handlers/*]
+    Selectors[selectors.ts]
+  end
+  subgraph domain [Domain]
+    Model[model/*]
+    Calc[calculations/*]
+  end
+  Input -->|dispatch only| Dispatch
+  Dispatch --> Handlers
+  Handlers --> Model
+  Handlers --> Calc
+  Selectors --> Model
+  Selectors --> Calc
+  Canvas --> Selectors
+  Input --> Selectors
 ```
 
-- **Model** (`src/model/`) — Pure game state and rules. No imports from DOM, canvas, or store. Seeded RNG for reproducible runs. Unit-tested with Vitest.
-- **Store** (`src/store/`) — Reactive ViewModel: `getSnapshot()`, `subscribe()`, `dispatch(intent)`. Holds transient UI state (selected blueprint, hover, modals).
-- **View** (`src/view/`) — Canvas renderer for the board; DOM modules for HUD, library, modals, tooltips. Fixed-timestep loop during the attack phase (`src/view/loop.ts`).
-- **Calculations** (`src/calculations/`) — Shared pure helpers: grid math, exterior graph, pathfinding, combat, economy.
+### Layer dependency rules
 
-The hard rule: **model code never depends on the view layer**, so rules can be tested and iterated without touching rendering.
+| Layer | May import | Must not import |
+|-------|------------|-----------------|
+| `model/` | `calculations/`, `config/` | `store/`, `view/` |
+| `calculations/` | `config/`, `model/` | `store/`, `view/` |
+| `store/` | `model/`, `calculations/`, `config/` | **`view/`** |
+| `view/` | `store/`, presentation metadata from `model/` | Rule predicates — use **selectors** |
 
-## Project layout
+ESLint enforces these boundaries (`npm run lint`).
+
+### Agent guardrails
+
+1. Never import `view/` from `store/`, `model/`, or `calculations/`.
+2. Never mutate `game` outside `store/handlers/`.
+3. Never call `canPlace` / `canApplyModification` from `view/` — use selectors.
+4. New actions = new `Intent` + handler + tests; view only dispatches.
+5. Run `npm run lint` before finishing.
+
+### Bootstrap (`main.ts`)
+
+1. `new Store()` — creates `GameState` + `ViewState`
+2. `attachInput(canvas, stage, store)` — pointer/wheel → intents
+3. DOM factories (`createHud`, `createLibrary`, …) — each returns a `render()` fn
+4. `store.subscribe(renderDom)` — DOM updates on discrete state changes
+5. `startLoop(store, draw)` — fixed-timestep attack sim + per-frame canvas draw
+
+Mount points: `#board`, `#stage`, `#hud`, `#library`, `#message-log`, `#modal-root`, `#overlay-root`, `#tooltip-root` (see `index.html`).
+
+### Domain glossary
+
+| Term | Meaning |
+|------|---------|
+| **Tower** | Collection of rooms + occupancy grid |
+| **Room** | Placed blueprint instance (origin, size, hp, modifications) |
+| **Blueprint** | Room type definition (cost, size, base hp) |
+| **Modification** | Leveled add-on on a room (spikes, turret, gold mine) |
+| **Phase** | `build` or `attack` within a run |
+| **Scene** | `menu`, `run`, `gameOver`, `victory` |
+| **Intent** | Typed action dispatched to the store |
+| **buildBaseline** | Tower + gold snapshot at phase start; planning edits diff against this |
+| **Selectors** | Pure functions deriving UI affordances from `Snapshot` |
+
+### Project layout
 
 ```
 src/
-  main.ts                 # Bootstrap: store, views, loop
+  main.ts                 # Shell bootstrap
   config/constants.ts     # Grid size, tuning, colors
-  model/                  # Game entities, phases, tower rules, waves
-  calculations/           # Grid, pathfinding, combat, economy, rng
-  store/                  # Store, intents, selectors
+  model/                  # Game entities, phases, tower rules, waves, mods
+  calculations/           # Grid, pathfinding, combat, economy, camera math
+  store/
+    store.ts              # Store class
+    intents.ts            # Intent + ViewState types
+    selectors.ts          # UI affordances (single read authority)
+    handlers/             # Intent handlers (only writers of game state)
   view/
-    canvas/               # Board renderer + camera
+    canvas/               # Board renderer + pixel camera
     dom/                  # HUD, library, modal, tooltip, overlay
     input.ts              # Pointer → intents
     loop.ts               # Fixed-timestep game loop
-  static/                 # Static data (e.g. names)
-docs/                     # Design notes and draft plans
+docs/
+  CONTRIBUTING.md         # Task recipes for contributors and agents
 ```
 
 Key model entry points:
 
-- `tower.ts` — `canPlace()`, `placeRoom()`, `removeRoom()`, `validateTower()`, `isTowerStable()`
-- `game.ts` — `GameState`, wave lifecycle, `step(dt)` during attack
-- `phases.ts` — Scene/phase finite state machine
+- `tower.ts` — `canPlace()`, `placeRoomReplacing()`, `validateTower()`, `isTowerStable()`
+- `game.ts` — `GameState`, `step(dt)` during attack
+- `phases.ts` — build/attack lifecycle, `buildBaseline`
 
 ## Deferred / not in v1
 
-- Room contents and turret behavior (items exist in types; placement contents TBD)
 - Multiple currencies, build constraints, roguelike map branching
 - Alternative enemy movement modes (fly, attack overhangs, etc.) — default is `under_overhang` exterior climb
 - Visual polish beyond ASCII-style glyphs on canvas

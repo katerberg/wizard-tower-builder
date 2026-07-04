@@ -1,15 +1,9 @@
-import { CELL_SIZE, GRID_COLS, MIN_VIEWPORT_ROWS, VIEWPORT_AIR_ROWS } from '@/config/constants';
-import { towerExtents } from '@/model/tower';
-import type { Cell, Tower } from '@/model/types';
+import { CELL_SIZE, GRID_COLS } from '@/config/constants';
+import type { Cell } from '@/model/types';
+
+export { clampScrollY, MIN_VIEWPORT_HEIGHT, snapViewportHeight } from '@/calculations/camera';
 
 export const BOARD_WIDTH = GRID_COLS * CELL_SIZE;
-export const MIN_VIEWPORT_HEIGHT = MIN_VIEWPORT_ROWS * CELL_SIZE;
-
-/** Snap available stage height down to whole cell rows. */
-export function snapViewportHeight(availablePx: number): number {
-  const rows = Math.max(MIN_VIEWPORT_ROWS, Math.floor(availablePx / CELL_SIZE));
-  return rows * CELL_SIZE;
-}
 
 /** Top-left pixel of a cell in viewport space (row 0 sits on the ground). */
 export function cellTopLeft(
@@ -49,12 +43,4 @@ export function visibleRowRange(
   const minRow = Math.max(0, Math.floor(scrollY / CELL_SIZE) - 1);
   const maxRow = Math.ceil((viewportHeight + scrollY) / CELL_SIZE) + 1;
   return { minRow, maxRow };
-}
-
-/** Keep scroll between ground (0) and enough headroom to see air above the tower top. */
-export function clampScrollY(scrollY: number, tower: Tower, viewportHeight: number): number {
-  const { maxOccupiedRow } = towerExtents(tower);
-  const topRow = maxOccupiedRow + VIEWPORT_AIR_ROWS + 1;
-  const maxScroll = Math.max(0, topRow * CELL_SIZE - viewportHeight);
-  return Math.max(0, Math.min(scrollY, maxScroll));
 }

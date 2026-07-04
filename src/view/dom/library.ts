@@ -1,5 +1,4 @@
-import { BLUEPRINTS } from '@/model/blueprints';
-import { selectBuildEconomy } from '@/store/selectors';
+import { selectLibraryBlueprints } from '@/store/selectors';
 import type { Store } from '@/store/store';
 
 export function createLibrary(root: HTMLElement, store: Store): () => void {
@@ -26,10 +25,9 @@ export function createLibrary(root: HTMLElement, store: Store): () => void {
   });
 
   return function render(): void {
-    const { view } = store.getSnapshot();
-    const { remainingGold } = selectBuildEconomy(store.getSnapshot());
-    const affordable = (cost: number) => remainingGold >= cost;
-    const inSelectMode = view.selectedBlueprintId === null;
+    const snapshot = store.getSnapshot();
+    const inSelectMode = snapshot.view.selectedBlueprintId === null;
+    const blueprints = selectLibraryBlueprints(snapshot);
 
     const hand = `
       <button class="tool ${inSelectMode ? 'selected' : ''}" data-tool="select" title="Select rooms to inspect and modify">
@@ -37,16 +35,18 @@ export function createLibrary(root: HTMLElement, store: Store): () => void {
         <span class="tool-name">Select</span>
       </button>`;
 
-    const items = BLUEPRINTS.map((b) => {
-      const selected = view.selectedBlueprintId === b.id ? 'selected' : '';
-      const poor = affordable(b.cost) ? '' : 'unaffordable';
-      return `
+    const items = blueprints
+      .map((b) => {
+        const selected = b.selected ? 'selected' : '';
+        const poor = b.affordable ? '' : 'unaffordable';
+        return `
         <button class="blueprint ${selected} ${poor}" data-tool="blueprint" data-blueprint="${b.id}">
           <span class="bp-glyph">${b.glyph}</span>
           <span class="bp-name">${b.name}</span>
-          <span class="bp-meta">${b.size.w}x${b.size.h} · ${b.cost} gold · ${b.baseHp} hp</span>
+          <span class="bp-meta">${b.sizeW}x${b.sizeH} · ${b.cost} gold · ${b.baseHp} hp</span>
         </button>`;
-    }).join('');
+      })
+      .join('');
 
     root.innerHTML = `
       <h2>Build</h2>

@@ -1,8 +1,15 @@
-import { getBlueprint } from '@/model/blueprints';
+import { BLUEPRINTS, getBlueprint } from '@/model/blueprints';
 import { netBuildCost, remainingBuildGold } from '@/calculations/buildCost';
+import { computeRoomStats } from '@/calculations/combat';
 import { roomCells } from '@/calculations/grid';
+import {
+  canApplyModification,
+  canUpgradeModification,
+  listModifications,
+  modificationCost,
+} from '@/model/modifications';
 import { canPlace, getUnstableRoomIds, getWizardPosition, towersEqual } from '@/model/tower';
-import type { Blueprint, Cell, ExteriorNode, PlacementReason, Room } from '@/model/types';
+import type { Blueprint, Cell, ExteriorNode, PlacementReason, Room, RoomStats } from '@/model/types';
 import type { Snapshot } from './store';
 
 export interface BuildEconomy {
@@ -87,5 +94,152 @@ export function selectGhostPlacement(snapshot: Snapshot): GhostPlacement | null 
     cells: roomCells(view.hoveredCell, blueprint.size),
     valid: result.ok,
     reason: result.reason,
+  };
+}
+
+export interface LibraryBlueprintItem {
+  id: string;
+  name: string;
+  glyph: string;
+  sizeW: number;
+  sizeH: number;
+  cost: number;
+  baseHp: number;
+  affordable: boolean;
+  selected: boolean;
+}
+
+export function selectLibraryBlueprints(snapshot: Snapshot): LibraryBlueprintItem[] {
+  const { game, view } = snapshot;
+  const { remainingGold } = selectBuildEconomy(snapshot);
+  const unlocked = new Set(game.player.unlockedBlueprints);
+
+  return BLUEPRINTS.filter((b) => unlocked.has(b.id)).map((b) => ({
+    id: b.id,
+    name: b.name,
+    glyph: b.glyph,
+    sizeW: b.size.w,
+    sizeH: b.size.h,
+    cost: b.cost,
+    baseHp: b.baseHp,
+    affordable: remainingGold >= b.cost,
+    selected: view.selectedBlueprintId === b.id,
+  }));
+}
+
+export interface RoomModificationOption {
+  id: string;
+  name: string;
+  glyph: string;
+  color: string;
+  description: string;
+  level: number;
+  maxLevel: number;
+  levelText: string;
+  action: 'none' | 'add' | 'upgrade' | 'max';
+  cost: number;
+  enabled: boolean;
+}
+
+export interface RoomInspector {
+  room: Room;
+  blueprint: Blueprint;
+  stats: RoomStats;
+  isBuildPhase: boolean;
+  modifications: RoomModificationOption[];
+  canRemove: boolean;
+}
+
+export function selectRoomInspector(snapshot: Snapshot, roomId: string): RoomInspector | null {
+  const room = selectRoomById(snapshot, roomId);
+  if (!room) return null;
+
+  const blueprint = getBlueprint(room.blueprintId);
+  if (!blueprint) return null;
+
+  const { game } = snapshot;
+  const isBuildPhase = game.scene === 'run' && game.phase === 'build';
+  const { remainingGold } = selectBuildEconomy(snapshot);
+  const stats = computeRoomStats(room, blueprint);
+
+  const modifications = listModifications().map((def) => {
+    const current = room.modifications.find((m) => m.id === def.id);
+    const level = current?.level ?? 0;
+    const levelText = level > 0 ? `Lv${level}/${def.maxLevel}` : 'not installed';
+
+    if (!isBuildPhase) {
+      return {
+        id: def.id,
+        name: def.name,
+        glyph: def.glyph,
+        color: def.color,
+        description: def.description,
+        level,
+        maxLevel: def.maxLevel,
+        levelText,
+        action: 'none' as const,
+        cost: 0,
+        enabled: false,
+      };
+    }
+
+    if (level === 0) {
+      const cost = modificationCost(def, 1);
+      const enabled = canApplyModification(room, game.tower, def.id) && remainingGold >= cost;
+      return {
+        id: def.id,
+        name: def.name,
+        glyph: def.glyph,
+        color: def.color,
+        description: def.description,
+        level,
+        maxLevel: def.maxLevel,
+        levelText,
+        action: 'add' as const,
+        cost,
+        enabled,
+      };
+    }
+
+    if (canUpgradeModification(room, def.id)) {
+      const cost = modificationCost(def, level + 1);
+      const enabled = remainingGold >= cost;
+      return {
+        id: def.id,
+        name: def.name,
+        glyph: def.glyph,
+        color: def.color,
+        description: def.description,
+        level,
+        maxLevel: def.maxLevel,
+        levelText,
+        action: 'upgrade' as const,
+        cost,
+        enabled,
+      };
+    }
+
+    return {
+      id: def.id,
+      name: def.name,
+      glyph: def.glyph,
+      color: def.color,
+      description: def.description,
+      level,
+      maxLevel: def.maxLevel,
+      levelText,
+      action: 'max' as const,
+      cost: 0,
+      enabled: false,
+    };
+  });
+
+  return {
+    room,
+    blueprint,
+    stats,
+    isBuildPhase,
+    modifications,
+    canRemove: isBuildPhase,
   };
 }

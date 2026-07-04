@@ -1,5 +1,5 @@
 import { Renderer } from './view/canvas/renderer';
-import { snapViewportHeight } from './view/canvas/camera';
+import { snapViewportHeight } from '@/calculations/camera';
 import { attachInput, type PointerTracker } from './view/input';
 import { createHud } from './view/dom/hud';
 import { createLibrary } from './view/dom/library';

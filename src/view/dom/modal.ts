@@ -1,14 +1,5 @@
-import { getBlueprint } from '@/model/blueprints';
-import { computeRoomStats } from '@/calculations/combat';
-import {
-  canApplyModification,
-  canUpgradeModification,
-  listModifications,
-  modificationCost,
-} from '@/model/modifications';
-import { selectBuildEconomy, selectRoomById } from '@/store/selectors';
-import type { Snapshot, Store } from '@/store/store';
-import type { Room } from '@/model/types';
+import { selectRoomInspector, type RoomInspector } from '@/store/selectors';
+import type { Store } from '@/store/store';
 
 export function createModal(root: HTMLElement, store: Store): () => void {
   root.addEventListener('click', (e) => {
@@ -41,8 +32,8 @@ export function createModal(root: HTMLElement, store: Store): () => void {
 
     let body: string;
     if (modal.kind === 'room') {
-      const room = selectRoomById(snapshot, modal.roomId);
-      body = room ? roomBody(snapshot, room) : '<p>Room no longer exists.</p>';
+      const inspector = selectRoomInspector(snapshot, modal.roomId);
+      body = inspector ? roomBody(inspector) : '<p>Room no longer exists.</p>';
     } else {
       body = helpBody();
     }
@@ -56,50 +47,33 @@ export function createModal(root: HTMLElement, store: Store): () => void {
   };
 }
 
-function roomBody(snapshot: Snapshot, room: Room): string {
-  const { game } = snapshot;
-  const blueprint = getBlueprint(room.blueprintId);
-  if (!blueprint) return '<p>Room no longer exists.</p>';
+function roomBody(inspector: RoomInspector): string {
+  const { room, blueprint, stats, isBuildPhase, modifications, canRemove } = inspector;
 
-  const stats = computeRoomStats(room, blueprint);
-  const isBuild = game.scene === 'run' && game.phase === 'build';
-  const { remainingGold } = selectBuildEconomy(snapshot);
-
-  const rows = listModifications()
-    .map((def) => {
-      const current = room.modifications.find((m) => m.id === def.id);
-      const level = current?.level ?? 0;
-      const levelText = level > 0 ? `Lv${level}/${def.maxLevel}` : 'not installed';
-
-      const renderControl = (): string => {
-        if (!isBuild) return '';
-        if (level === 0) {
-          const cost = modificationCost(def, 1);
-          const allowed = canApplyModification(room, game.tower, def.id) && remainingGold >= cost;
-          return `<button class="mod-btn ${allowed ? '' : 'disabled'}" data-action="addModification" data-room="${room.id}" data-mod="${def.id}">Add · ${cost}g</button>`;
-        }
-        if (canUpgradeModification(room, def.id)) {
-          const cost = modificationCost(def, level + 1);
-          const allowed = remainingGold >= cost;
-          return `<button class="mod-btn ${allowed ? '' : 'disabled'}" data-action="upgradeModification" data-room="${room.id}" data-mod="${def.id}">Upgrade · ${cost}g</button>`;
-        }
-        return '<span class="mod-max">Max</span>';
-      };
-      const control = renderControl();
+  const rows = modifications
+    .map((mod) => {
+      let control = '';
+      if (mod.action === 'add') {
+        control = `<button class="mod-btn ${mod.enabled ? '' : 'disabled'}" data-action="addModification" data-room="${room.id}" data-mod="${mod.id}">Add · ${mod.cost}g</button>`;
+      } else if (mod.action === 'upgrade') {
+        control = `<button class="mod-btn ${mod.enabled ? '' : 'disabled'}" data-action="upgradeModification" data-room="${room.id}" data-mod="${mod.id}">Upgrade · ${mod.cost}g</button>`;
+      } else if (mod.action === 'max') {
+        control = '<span class="mod-max">Max</span>';
+      }
 
       return `
         <div class="mod-row">
-          <span class="mod-glyph" style="color:${def.color}">${def.glyph}</span>
+          <span class="mod-glyph" style="color:${mod.color}">${mod.glyph}</span>
           <span class="mod-info">
-            <strong>${def.name}</strong> <span class="mod-level">${levelText}</span>
-            <span class="mod-desc">${def.description}</span>
+            <strong>${mod.name}</strong> <span class="mod-level">${mod.levelText}</span>
+            <span class="mod-desc">${mod.description}</span>
           </span>
           ${control}
         </div>`;
     })
     .join('');
 
-  const remove = isBuild
+  const remove = canRemove
     ? `<button class="danger" data-action="sellRoom" data-room="${room.id}">Remove room</button>`
     : '';
 
@@ -110,7 +84,7 @@ function roomBody(snapshot: Snapshot, room: Room): string {
     <div class="stat"><span>Origin</span><strong>(${room.origin.col}, ${room.origin.row})</strong></div>
     <h4>Modifications</h4>
     <div class="mod-list">${rows}</div>
-    ${isBuild ? '' : '<p class="hint">Modifications can only be changed during the build phase.</p>'}
+    ${isBuildPhase ? '' : '<p class="hint">Modifications can only be changed during the build phase.</p>'}
     ${remove}`;
 }
 
@@ -118,11 +92,11 @@ function helpBody(): string {
   return `
     <h3>How to play</h3>
     <ul class="help-list">
-      <li>Build a tower from blueprints, then start the wave.</li>
+      <li>Use the Select tool and click a room to add modifications or remove it.</li>
+      <li>Pick a blueprint to place or replace rooms; Esc cancels the blueprint.</li>
       <li>Enemies climb the outside toward your wizard at the top.</li>
       <li>The wizard auto-zaps the nearest climber in range.</li>
-      <li>Click a room while building to add modifications or remove it. Rearrange freely until you start the wave.</li>
-      <li>A taller, longer approach keeps enemies in range while they climb.</li>
+      <li>Rearrange freely until you start the wave.</li>
       <li>Spire blocks need ground or a room directly below; they cannot overhang.</li>
       <li>Buttress rooms (2 or 3 wide) can cantilever at most one step.</li>
       <li>The whole tower must stay one connected structure — no second base elsewhere.</li>
