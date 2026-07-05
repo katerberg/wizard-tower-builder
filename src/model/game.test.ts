@@ -29,13 +29,6 @@ describe('attack-phase simulation', () => {
     const state = createInitialState('integration');
     beginRun(state);
 
-    // Small valid tower: spire → buttress → spire.
-    const stem = getBlueprint('stem')!;
-    const buttress = getBlueprint('buttress2')!;
-    state.tower = placeRoom(state.tower, createRoom('r0', stem, { col: 8, row: 0 }));
-    state.tower = placeRoom(state.tower, createRoom('r1', buttress, { col: 8, row: 1 }));
-    state.tower = placeRoom(state.tower, createRoom('r2', stem, { col: 8, row: 2 }));
-
     beginWave(state);
     expect(state.phase).toBe('attack');
     expect(state.spawnQueue.length).toBeGreaterThan(0);

@@ -9,7 +9,8 @@ import { runEnemyStepEffects, runRoomEffects } from './modifications/effects';
 import { runAutoSpells, tickSpellCooldowns } from './spells';
 import { endWave, loseGame, startRun, captureBuildBaseline } from './phases';
 import { seedFrom, shuffle } from '../calculations/rng';
-import { createTower, getWizardPosition } from './tower';
+import { createStarterTower } from './starterTower';
+import { getWizardPosition } from './tower';
 import { goblinNames, bruteNames, wispNames } from '@/static/names';
 import type { Enemy, EnemyTemplate, ExteriorNode, GameState } from './types';
 
@@ -36,7 +37,7 @@ export function createInitialState(seed: string | number = 'wizard'): GameState 
       mana: MAX_MANA,
       maxMana: MAX_MANA,
     },
-    tower: createTower(),
+    tower: createStarterTower(),
     enemies: [],
     messages: [],
     rngState: seedFrom(seed),

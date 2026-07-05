@@ -18,7 +18,7 @@ export function startRun(state: GameState): void {
   state.scene = 'run';
   state.phase = 'build';
   captureBuildBaseline(state);
-  addMessage(state, `Build your tower, then start wave ${state.levelIndex + 1}.`, 'info');
+  addMessage(state, 'A starter tower frame is in place — reinforce it before wave 1.', 'info');
 }
 
 export function beginWave(state: GameState): void {
