@@ -270,12 +270,12 @@ Phase 1 recommendation: **keep auto-zap** so zero-mana moments aren't helpless; 
 
 ## Implementation phases (after Phase 1)
 
-| Phase | Deliverable                                                       |
-| ----- | ----------------------------------------------------------------- |
-| **1** | Mana + Fireball + 1-slot toolbar + grid targeting                 |
-| **2** | Zap, cooldown UI polish, delayed impact VFX, Earthquake + charges |
-| **3** | Charge-up, material costs, sustain toggles                        |
-| **4** | Mana Well room, spell unlocks, hotbar expansion (4–6 slots)       |
+| Phase | Deliverable | Plan doc |
+| ----- | ----------- | -------- |
+| **1** | Mana + Fireball + 1-slot toolbar + grid targeting | this file |
+| **2** | ~18 elemental spells, 6-slot hotbar, charges, all targeting modes, statuses, charge-up/sustain/gold demos | [spell_system_phase2_elementals.plan.md](./spell_system_phase2_elementals.plan.md) |
+| **3** | Spell purchasing, Mana Well room, room mana use, unlock progression | TBD |
+| **4** | Progression branches, flyers + anti-air, hotbar presets in build | TBD |
 
 ---
 
