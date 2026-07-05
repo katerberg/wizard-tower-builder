@@ -81,7 +81,7 @@ export function canCastSpell(state: GameState, spellId: string, target?: SpellTa
   if (spellCooldownRemaining(state, spellId) > 0) return { ok: false, reason: 'on_cooldown' };
 
   if (spell.targeting === 'gridPoint') {
-    if (!target || target.kind !== 'cell') return { ok: false, reason: 'no_target' };
+    if (target?.kind !== 'cell') return { ok: false, reason: 'no_target' };
     const wizardPos = getWizardPosition(state.tower);
     if (gridDistance(wizardPos, target.cell) > spell.range) {
       return { ok: false, reason: 'out_of_range' };

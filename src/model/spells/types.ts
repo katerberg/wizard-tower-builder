@@ -2,7 +2,10 @@ import type { Cell, Enemy, GameMessageKind, GameState } from '../types';
 
 export type SpellTargeting = 'gridPoint' | 'autoNearest';
 
-export type SpellTarget = { kind: 'cell'; cell: Cell };
+export interface SpellTarget {
+  kind: 'cell';
+  cell: Cell;
+}
 
 export type CastFailureReason =
   | 'wrong_phase'

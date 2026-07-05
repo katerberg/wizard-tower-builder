@@ -363,7 +363,7 @@ export function selectCastPreview(snapshot: Snapshot): CastPreview | null {
   if (!spellId || !view.hoveredCell) return null;
 
   const spell = getSpell(spellId);
-  if (!spell || spell.targeting !== 'gridPoint') return null;
+  if (spell?.targeting !== 'gridPoint') return null;
 
   const result = canCastSpell(game, spellId, { kind: 'cell', cell: view.hoveredCell });
   const radius = spell.aoeRadius ?? 0;
