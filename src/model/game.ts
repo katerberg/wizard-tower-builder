@@ -6,7 +6,9 @@ import { getEnemyTemplate } from './enemies';
 import { addMessage } from './messages';
 import { findPath } from '../calculations/pathfinding';
 import { runEnemyStepEffects, runRoomEffects } from './modifications/effects';
-import { runAutoSpells, tickSpellCooldowns } from './spells';
+import { runAutoSpells, tickFireEffects, tickSpellCooldowns } from './spells';
+import { onEnemyStepKindling } from './spells/fire/kindling';
+import { createEmptyFireState } from './spells/fire';
 import { endWave, loseGame, startRun, captureBuildBaseline } from './phases';
 import { seedFrom, shuffle } from '../calculations/rng';
 import { createStarterTower } from './starterTower';
@@ -44,6 +46,7 @@ export function createInitialState(seed: string | number = 'wizard'): GameState 
     devMode: false,
     roomEffectTimers: {},
     spellCooldowns: {},
+    ...createEmptyFireState(),
     buildBaseline: null,
   };
   captureBuildBaseline(state);
@@ -187,8 +190,11 @@ export function step(state: GameState, dt: number): void {
       enemy.pos = enemy.path[enemy.pathIndex];
       enemy.moveCooldown = 1 / template.speed;
       runEnemyStepEffects(state, enemy);
+      onEnemyStepKindling(state, enemy.pos.col, enemy.pos.row, enemy.id);
     }
   }
+
+  tickFireEffects(state, dt);
 
   // Wand Strike and other auto-cast spells tick on cooldown during the wave.
   tickSpellCooldowns(state, dt);

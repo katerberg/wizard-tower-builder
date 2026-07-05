@@ -35,6 +35,7 @@ export class Store {
       view: {
         selectedBlueprintId: null,
         selectedSpellId: null,
+        wallOfFlameAnchor: null,
         hoveredCell: null,
         modal: null,
         cameraScrollY: 0,

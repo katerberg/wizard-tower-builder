@@ -4,6 +4,7 @@ import type { ViewState } from './intents';
 export function resetToSelectMode(view: ViewState): void {
   view.selectedBlueprintId = null;
   view.selectedSpellId = null;
+  view.wallOfFlameAnchor = null;
   view.modal = null;
 }
 

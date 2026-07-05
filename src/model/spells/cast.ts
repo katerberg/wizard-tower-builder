@@ -4,6 +4,11 @@ import { addMessage } from '../messages';
 import { loseGame } from '../phases';
 import { getWizardPosition } from '../tower';
 import { fireball } from './fireball';
+import { immolate } from './fire/immolateSpell';
+import { kindling } from './fire/kindlingSpell';
+import { wallOfFlame } from './fire/wallOfFlameSpell';
+import { isKindlingTrapCell } from './fire/kindling';
+import { validateWallSegment } from './fire/wallOfFlame';
 import { wandStrike } from './wandStrike';
 import type { CastCheckResult, SpellCastContext, SpellDef, SpellTarget } from './types';
 import type { Cell, GameState } from '../types';
@@ -11,12 +16,13 @@ import type { Cell, GameState } from '../types';
 export type { CastCheckResult, SpellCastContext, SpellDef, SpellTarget } from './types';
 export { fireball, aoeCells, enemiesInFireballBlast } from './fireball';
 export { wandStrike } from './wandStrike';
+export { resetFireWaveState, tickFireEffects } from './fire';
 
-/** Spells shown on the attack-phase hotbar (manual cast only). */
-export const HOTBAR_SPELL_IDS = ['fireball'] as const;
+/** Manual spells on the attack-phase hotbar (fire school playtest kit). */
+export const HOTBAR_SPELL_IDS = ['fireball', 'immolate', 'wallOfFlame', 'kindling'] as const;
 export const HOTBAR_SLOT_COUNT = 6;
 
-const SPELLS: SpellDef[] = [fireball, wandStrike];
+const SPELLS: SpellDef[] = [fireball, immolate, wallOfFlame, kindling, wandStrike];
 
 export function getSpell(id: string): SpellDef | undefined {
   return SPELLS.find((s) => s.id === id);
@@ -70,6 +76,13 @@ export function spellCooldownRemaining(state: GameState, spellId: string): numbe
   return Math.max(0, state.spellCooldowns[spellId] ?? 0);
 }
 
+function enemyInRange(state: GameState, enemyId: string, range: number): boolean {
+  const enemy = state.enemies.find((e) => e.id === enemyId);
+  if (!enemy) return false;
+  const wizardPos = getWizardPosition(state.tower);
+  return gridDistance(wizardPos, enemy.pos) <= range;
+}
+
 export function canCastSpell(state: GameState, spellId: string, target?: SpellTarget): CastCheckResult {
   if (state.scene !== 'run' || state.phase !== 'attack') {
     return { ok: false, reason: 'wrong_phase' };
@@ -80,11 +93,44 @@ export function canCastSpell(state: GameState, spellId: string, target?: SpellTa
   if (state.player.mana < spell.manaCost) return { ok: false, reason: 'no_mana' };
   if (spellCooldownRemaining(state, spellId) > 0) return { ok: false, reason: 'on_cooldown' };
 
+  const wizardPos = getWizardPosition(state.tower);
+
   if (spell.targeting === 'gridPoint') {
     if (target?.kind !== 'cell') return { ok: false, reason: 'no_target' };
-    const wizardPos = getWizardPosition(state.tower);
     if (gridDistance(wizardPos, target.cell) > spell.range) {
       return { ok: false, reason: 'out_of_range' };
+    }
+  }
+
+  if (spell.targeting === 'enemy') {
+    if (target?.kind !== 'enemy') return { ok: false, reason: 'no_target' };
+    if (!enemyInRange(state, target.enemyId, spell.range)) {
+      return { ok: false, reason: 'out_of_range' };
+    }
+    const enemy = state.enemies.find((e) => e.id === target.enemyId);
+    if (!enemy || enemy.currentHp <= 0) return { ok: false, reason: 'invalid_target' };
+  }
+
+  if (spell.targeting === 'kindlingTrap') {
+    if (target?.kind !== 'cell') return { ok: false, reason: 'no_target' };
+    if (gridDistance(wizardPos, target.cell) > spell.range) {
+      return { ok: false, reason: 'out_of_range' };
+    }
+    if (!isKindlingTrapCell(state.tower, target.cell)) {
+      return { ok: false, reason: 'invalid_target' };
+    }
+  }
+
+  if (spell.targeting === 'wallSegment') {
+    if (target?.kind !== 'segment') return { ok: false, reason: 'no_target' };
+    if (
+      gridDistance(wizardPos, target.a) > spell.range ||
+      gridDistance(wizardPos, target.b) > spell.range
+    ) {
+      return { ok: false, reason: 'out_of_range' };
+    }
+    if (!validateWallSegment(state.tower, target.a, target.b).ok) {
+      return { ok: false, reason: 'invalid_target' };
     }
   }
 
@@ -140,4 +186,14 @@ export function castSpellUnchecked(state: GameState, spellId: string, target: Sp
   const spell = getSpell(spellId);
   if (!spell) return;
   spell.cast(buildContext(state, spell), target);
+}
+
+export function findEnemyAtCell(state: GameState, cell: Cell): string | null {
+  for (const enemy of state.enemies) {
+    if (enemy.currentHp <= 0) continue;
+    if (enemy.pos.col === cell.col && enemy.pos.row === cell.row) {
+      return enemy.id;
+    }
+  }
+  return null;
 }

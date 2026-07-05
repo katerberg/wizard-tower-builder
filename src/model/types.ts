@@ -86,6 +86,28 @@ export interface Enemy {
   attackCooldown: number;
 }
 
+/** Active Kindling trap on the board (fire school). */
+export interface KindlingPatch {
+  cell: Cell;
+  expiresAt: number;
+}
+
+/** Immolate burn tracking per enemy (fire school). */
+export interface ImmolateState {
+  until: number;
+  wallDistance: number;
+  tickAccumulator: number;
+  lastPosKey: string;
+}
+
+/** Timed Wall of Flame segment (fire school). */
+export interface WallOfFlameSegment {
+  cells: Cell[];
+  expiresAt: number;
+  tickAccumulator: number;
+  entered: Record<string, boolean>;
+}
+
 export type GameMessageKind = 'info' | 'combat' | 'economy';
 
 export interface GameMessage { text: string; kind: GameMessageKind }
@@ -123,6 +145,14 @@ export interface GameState {
   roomEffectTimers: Record<string, number>;
   /** Seconds remaining before each spell can be cast again. */
   spellCooldowns: Record<string, number>;
+  /** Fire school — Kindling trap patches. */
+  kindlingPatches: KindlingPatch[];
+  /** Fire school — enemy id → Kindled expiry (waveTimer). */
+  kindledUntil: Record<string, number>;
+  /** Fire school — Immolate state per enemy. */
+  immolateByEnemyId: Record<string, ImmolateState>;
+  /** Fire school — active Wall of Flame segments. */
+  wallOfFlameSegments: WallOfFlameSegment[];
   /** Tower + gold at build-phase start; edits commit on wave start. */
   buildBaseline: BuildBaseline | null;
 }

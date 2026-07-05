@@ -46,6 +46,7 @@ function restart(ctx: HandlerContext): void {
   ctx.view = {
     selectedBlueprintId: null,
     selectedSpellId: null,
+    wallOfFlameAnchor: null,
     hoveredCell: null,
     modal: null,
     cameraScrollY: 0,

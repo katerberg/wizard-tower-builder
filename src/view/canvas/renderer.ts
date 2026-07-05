@@ -40,6 +40,7 @@ export class Renderer {
     this.drawRooms(snapshot, scrollY, viewportHeight);
     this.drawGhost(snapshot, scrollY, viewportHeight);
     this.drawCastPreview(snapshot, scrollY, viewportHeight);
+    this.drawFireEffects(snapshot, scrollY, viewportHeight);
     if (snapshot.game.devMode) this.drawPaths(snapshot, scrollY, viewportHeight);
     const wizardPos = selectWizardPosition(snapshot);
     this.drawEnemies(snapshot, wizardPos, scrollY, viewportHeight, 'climbers');
@@ -169,6 +170,29 @@ export class Renderer {
     for (const cell of ghost.cells) {
       const { x, y } = cellTopLeft(cell.col, cell.row, scrollY, viewportHeight);
       ctx.fillRect(x + 2, y + 2, CELL_SIZE - 4, CELL_SIZE - 4);
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  private drawFireEffects(snapshot: Snapshot, scrollY: number, viewportHeight: number): void {
+    const { ctx } = this;
+    ctx.globalAlpha = 0.85;
+    for (const patch of snapshot.game.kindlingPatches) {
+      const { x, y } = cellTopLeft(patch.cell.col, patch.cell.row, scrollY, viewportHeight);
+      ctx.fillStyle = colors.kindlingPatch;
+      ctx.fillRect(x + 4, y + 4, CELL_SIZE - 8, CELL_SIZE - 8);
+      ctx.fillStyle = '#744210';
+      ctx.font = `${Math.floor(CELL_SIZE * 0.35)}px monospace`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('.', x + CELL_SIZE / 2, y + CELL_SIZE / 2);
+    }
+    for (const seg of snapshot.game.wallOfFlameSegments) {
+      ctx.fillStyle = colors.wallOfFlame;
+      for (const cell of seg.cells) {
+        const { x, y } = cellTopLeft(cell.col, cell.row, scrollY, viewportHeight);
+        ctx.fillRect(x + 3, y + 3, CELL_SIZE - 6, CELL_SIZE - 6);
+      }
     }
     ctx.globalAlpha = 1;
   }

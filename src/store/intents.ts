@@ -22,6 +22,7 @@ export type Intent =
   | { type: 'revertBuild' }
   | { type: 'selectSpell'; spellId: string | null }
   | { type: 'castSpellAt'; spellId: string; cell: Cell }
+  | { type: 'castSpellOnEnemy'; spellId: string; enemyId: string }
   | { type: 'cancelCast' };
 
 export type ModalData = { kind: 'room'; roomId: string } | { kind: 'help' };
@@ -29,6 +30,8 @@ export type ModalData = { kind: 'room'; roomId: string } | { kind: 'help' };
 export interface ViewState {
   selectedBlueprintId: string | null;
   selectedSpellId: string | null;
+  /** First click for Wall of Flame (point A). */
+  wallOfFlameAnchor: Cell | null;
   hoveredCell: Cell | null;
   modal: ModalData | null;
   /** Pixels scrolled upward from ground (viewport camera). */

@@ -47,6 +47,8 @@ export const colors = {
   ghostInvalid: '#c53030',
   spellValid: '#dd6b20',
   spellInvalid: '#742a2a',
+  kindlingPatch: 'rgba(251, 211, 141, 0.65)',
+  wallOfFlame: 'rgba(245, 101, 101, 0.55)',
   spellAim: 'rgba(221, 107, 32, 0.55)',
   spellAimOut: 'rgba(197, 48, 48, 0.5)',
   mana: '#63b3ed',

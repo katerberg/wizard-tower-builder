@@ -1,4 +1,5 @@
 import { roomAt } from '@/model/tower';
+import { findEnemyAtCell, getSpell } from '@/model/spells';
 import { selectSpellBar } from '@/store/selectors';
 import type { Store } from '@/store/store';
 import { screenToCell } from './canvas/camera';
@@ -73,7 +74,15 @@ export function attachInput(
     if (dragStart && !isDragging) {
       const { game, view } = store.getSnapshot();
       if (game.phase === 'attack' && view.selectedSpellId) {
-        store.dispatch({ type: 'castSpellAt', spellId: view.selectedSpellId, cell });
+        const spell = getSpell(view.selectedSpellId);
+        if (spell?.targeting === 'enemy') {
+          const enemyId = findEnemyAtCell(game, cell);
+          if (enemyId) {
+            store.dispatch({ type: 'castSpellOnEnemy', spellId: view.selectedSpellId, enemyId });
+          }
+        } else {
+          store.dispatch({ type: 'castSpellAt', spellId: view.selectedSpellId, cell });
+        }
       } else if (game.phase === 'build' && view.selectedBlueprintId) {
         store.dispatch({ type: 'placeSelectedAt', cell });
       } else if (game.phase === 'build' && roomAt(game.tower, cell.col, cell.row)) {

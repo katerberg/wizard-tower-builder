@@ -10,7 +10,9 @@ import {
   modificationCost,
 } from '@/model/modifications';
 import { getRoomBehavior } from '@/model/roomBehaviors';
-import { canCastSpell, getSpell, HOTBAR_SLOT_COUNT, listHotbarSpells, spellCooldownRemaining } from '@/model/spells';
+import { canCastSpell, findEnemyAtCell, getSpell, HOTBAR_SLOT_COUNT, listHotbarSpells, spellCooldownRemaining } from '@/model/spells';
+import { WALL_OF_FLAME_MAX_CELLS } from '@/model/spells/fire/constants';
+import { gridLineCells, isWallEndpointCell } from '@/model/spells/fire/wallOfFlame';
 import { aoeCells } from '@/model/spells/fireball';
 import { canPlace, getUnstableRoomIds, getWizardPosition, towersEqual } from '@/model/tower';
 import { getBuildTool } from '@/static/buildTools';
@@ -363,15 +365,63 @@ export function selectCastPreview(snapshot: Snapshot): CastPreview | null {
   if (!spellId || !view.hoveredCell) return null;
 
   const spell = getSpell(spellId);
-  if (spell?.targeting !== 'gridPoint') return null;
+  if (!spell || spell.autoCast) return null;
 
-  const result = canCastSpell(game, spellId, { kind: 'cell', cell: view.hoveredCell });
-  const radius = spell.aoeRadius ?? 0;
-  return {
-    cells: aoeCells(view.hoveredCell, radius),
-    valid: result.ok,
-    reason: result.ok ? 'ok' : result.reason,
-  };
+  if (spell.targeting === 'gridPoint') {
+    const result = canCastSpell(game, spellId, { kind: 'cell', cell: view.hoveredCell });
+    const radius = spell.aoeRadius ?? 0;
+    return {
+      cells: aoeCells(view.hoveredCell, radius),
+      valid: result.ok,
+      reason: result.ok ? 'ok' : result.reason,
+    };
+  }
+
+  if (spell.targeting === 'kindlingTrap') {
+    const result = canCastSpell(game, spellId, { kind: 'cell', cell: view.hoveredCell });
+    return {
+      cells: [view.hoveredCell],
+      valid: result.ok,
+      reason: result.ok ? 'ok' : result.reason,
+    };
+  }
+
+  if (spell.targeting === 'enemy') {
+    const enemyId = findEnemyAtCell(game, view.hoveredCell);
+    const result = enemyId
+      ? canCastSpell(game, spellId, { kind: 'enemy', enemyId })
+      : { ok: false as const, reason: 'invalid_target' as const };
+    return {
+      cells: [view.hoveredCell],
+      valid: result.ok,
+      reason: result.ok ? 'ok' : result.reason,
+    };
+  }
+
+  if (spell.targeting === 'wallSegment') {
+    const anchor = view.wallOfFlameAnchor;
+    if (!anchor) {
+      const inRange =
+        Math.abs(getWizardPosition(game.tower).col - view.hoveredCell.col) +
+          Math.abs(getWizardPosition(game.tower).row - view.hoveredCell.row) <=
+        spell.range;
+      const endpoint = isWallEndpointCell(game.tower, view.hoveredCell);
+      return {
+        cells: [view.hoveredCell],
+        valid: inRange && endpoint,
+        reason: endpoint ? 'ok' : 'invalid_target',
+      };
+    }
+    const line = gridLineCells(anchor, view.hoveredCell, WALL_OF_FLAME_MAX_CELLS);
+    const result = canCastSpell(game, spellId, { kind: 'segment', a: anchor, b: view.hoveredCell });
+    return {
+      cells: line ?? [anchor, view.hoveredCell],
+      valid: result.ok,
+      reason: result.ok ? 'ok' : result.reason,
+    };
+  }
+
+  return null;
 }
 
 export function selectCanCastSpell(
@@ -433,7 +483,13 @@ function selectSpellTooltip(snapshot: Snapshot, spellId: string): UiTooltipConte
     stats.push({ label: 'Area', value: `${size}×${size} blast` });
   }
 
-  stats.push({ label: 'Targeting', value: 'Click grid cell' });
+  const targetingLabel: Record<string, string> = {
+    gridPoint: 'Click grid cell',
+    enemy: 'Click enemy',
+    kindlingTrap: 'Click trap tile beside wall',
+    wallSegment: 'Click A, then B (max 5 cells)',
+  };
+  stats.push({ label: 'Targeting', value: targetingLabel[spell.targeting] ?? spell.targeting });
 
   let footer: string | undefined;
   if (!inAttack) {

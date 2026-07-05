@@ -1,11 +1,16 @@
 import type { Cell, Enemy, GameMessageKind, GameState } from '../types';
 
-export type SpellTargeting = 'gridPoint' | 'autoNearest';
+export type SpellTargeting =
+  | 'gridPoint'
+  | 'autoNearest'
+  | 'enemy'
+  | 'kindlingTrap'
+  | 'wallSegment';
 
-export interface SpellTarget {
-  kind: 'cell';
-  cell: Cell;
-}
+export type SpellTarget =
+  | { kind: 'cell'; cell: Cell }
+  | { kind: 'enemy'; enemyId: string }
+  | { kind: 'segment'; a: Cell; b: Cell };
 
 export type CastFailureReason =
   | 'wrong_phase'
@@ -14,7 +19,8 @@ export type CastFailureReason =
   | 'on_cooldown'
   | 'out_of_range'
   | 'no_target'
-  | 'manual_only';
+  | 'manual_only'
+  | 'invalid_target';
 
 export interface SpellCastContext {
   state: GameState;

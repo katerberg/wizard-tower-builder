@@ -57,18 +57,17 @@ describe('selectRoomInspector', () => {
 });
 
 describe('selectSpellBar', () => {
-  it('shows six slots with fireball on hotkey 1 during attack', () => {
+  it('shows six slots with four fire spells during attack', () => {
     const store = new Store('spell0');
     placeStem(store, { col: 8, row: 0 });
     store.dispatch({ type: 'startWave' });
     const bar = selectSpellBar(store.getSnapshot());
     expect(bar).toHaveLength(6);
-    expect(bar[0].hotkey).toBe(1);
     expect(bar[0].id).toBe('fireball');
-    expect(bar[0].manaCost).toBe(4);
-    expect(bar[0].enabled).toBe(true);
-    expect(bar[1].empty).toBe(true);
-    expect(bar[1].hotkey).toBe(2);
+    expect(bar[1].id).toBe('immolate');
+    expect(bar[2].id).toBe('wallOfFlame');
+    expect(bar[3].id).toBe('kindling');
+    expect(bar[4].empty).toBe(true);
   });
 
   it('disables fireball when out of mana', () => {
@@ -101,7 +100,7 @@ describe('selectUiTooltip', () => {
     expect(tip?.title).toBe('Fireball');
     expect(tip?.stats.some((s) => s.label === 'Range' && s.value === '8 cells')).toBe(true);
     expect(tip?.stats.some((s) => s.label === 'Mana' && s.value === '4')).toBe(true);
-    expect(tip?.description).toContain('3×3');
+    expect(tip?.description).toContain('Kindled');
   });
 
   it('describes blueprint purpose and cost', () => {

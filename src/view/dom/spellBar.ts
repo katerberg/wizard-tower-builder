@@ -71,7 +71,7 @@ export function createSpellBar(root: HTMLElement, store: Store): () => void {
     const { current, max } = selectMana(snapshot);
     const slots = selectSpellBar(snapshot);
     const hint = inAttack
-      ? 'Press 1–6 or click a slot · click grid to cast · Esc cancels · Wand Strike auto-fires'
+      ? 'Press 1–6 or click a slot · Esc cancels · Wand Strike auto-fires · Wall of Flame: click A then B'
       : 'Mana refills each wave · spells activate during attack';
 
     root.innerHTML = `

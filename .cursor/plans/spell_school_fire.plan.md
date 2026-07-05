@@ -4,34 +4,34 @@ overview: LOCKED — implement ONLY fire school from this file. See spell_system
 todos:
   - id: scope-check
     content: "Confirm IN SCOPE only — no air/water/earth/shop/Mana Well"
-    status: pending
+    status: completed
   - id: kindled-system
     content: "Kindled status + applyFireDamage hook + patch step detection (fire-only)"
-    status: pending
+    status: completed
   - id: targeting-extensions
     content: "Enemy click, A→B segment cast UX, trap placement validation (as needed by fire spells)"
-    status: pending
+    status: completed
   - id: fireball
     content: "Fireball — wire applyFireDamage + Kindled proc"
-    status: pending
+    status: completed
   - id: immolate
     content: "Immolate — ramping wall burn; ends on knock-off/fly; face transfers OK"
-    status: pending
+    status: completed
   - id: wall-of-flame
     content: "Wall of Flame — A→B grid line, same-face, enter+tick, wizard FF"
-    status: pending
+    status: completed
   - id: kindling
     content: "Kindling — adjacent trap, patch 15s, spell cooldown, clear VFX"
-    status: pending
+    status: completed
   - id: hotbar-fire-kit
     content: "Hotbar lists 4 fire spells for wave-1 playtest (not other schools)"
-    status: pending
+    status: completed
   - id: tests-fire
     content: "Colocated tests — Kindled proc, Immolate wall rule, Wall segment, Kindling patch"
-    status: pending
+    status: completed
   - id: verify
     content: "npm test && npm run lint"
-    status: pending
+    status: completed
 isProject: false
 ---
 
