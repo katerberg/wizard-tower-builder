@@ -1,18 +1,36 @@
 ---
 name: Fire School — Four Spells (Design Sketch)
-overview: LOCKED design for four fire spells + Kindled combo thread. All behavior questions resolved; tuning numbers deferred to playtest. Ready to implement.
+overview: LOCKED — implement ONLY fire school from this file. See spell_system_index.plan.md for workflow. Tuning numbers deferred to playtest.
 todos:
+  - id: scope-check
+    content: "Confirm IN SCOPE only — no air/water/earth/shop/Mana Well"
+    status: pending
+  - id: kindled-system
+    content: "Kindled status + applyFireDamage hook + patch step detection (fire-only)"
+    status: pending
+  - id: targeting-extensions
+    content: "Enemy click, A→B segment cast UX, trap placement validation (as needed by fire spells)"
+    status: pending
   - id: fireball
-    content: "Fireball — wire Kindled proc (fire hit then flat burst)"
+    content: "Fireball — wire applyFireDamage + Kindled proc"
     status: pending
   - id: immolate
     content: "Immolate — ramping wall burn; ends on knock-off/fly; face transfers OK"
     status: pending
   - id: wall-of-flame
-    content: "Wall of Flame — A→B grid line, same-face, enter+t tick, wizard FF"
+    content: "Wall of Flame — A→B grid line, same-face, enter+tick, wizard FF"
     status: pending
   - id: kindling
     content: "Kindling — adjacent trap, patch 15s, spell cooldown, clear VFX"
+    status: pending
+  - id: hotbar-fire-kit
+    content: "Hotbar lists 4 fire spells for wave-1 playtest (not other schools)"
+    status: pending
+  - id: tests-fire
+    content: "Colocated tests — Kindled proc, Immolate wall rule, Wall segment, Kindling patch"
+    status: pending
+  - id: verify
+    content: "npm test && npm run lint"
     status: pending
 isProject: false
 ---
@@ -22,6 +40,73 @@ isProject: false
 **Status:** All feel/behavior questions resolved. Mana, CD, DPS, burst size, wall duration → **playtest tuning only**.
 
 **Prerequisite:** Phase 1 on `main` (mana, Fireball, hotbar, Wand Strike auto in background).
+
+**Workflow:** See [`spell_system_index.plan.md`](./spell_system_index.plan.md). **Implement from this file only.**
+
+---
+
+## IN SCOPE (fire implementation PR)
+
+Build **only** what fire needs:
+
+| Area | Deliver |
+| ---- | ------- |
+| **Kindled** | Status on enemy; proc on fire damage; refresh on re-step |
+| **Fire damage hook** | `applyFireDamage` — normal hit, then flat burst, consume Kindled |
+| **Kindling** | Patch entity, placement rules, 15s expiry, spell CD, visible VFX, step → Kindled |
+| **Immolate** | Status, wall-only ticks, ramp ~5 cells, ends on knock-off/fly |
+| **Wall of Flame** | A→B confirm UX, grid segment ≤5, same-face, timed zone, enter+tick, wizard FF |
+| **Fireball** | Route damage through `applyFireDamage` |
+| **Hotbar** | All **4 fire spells** equipped for playtest |
+| **Targeting** | Extend input/handlers only for modes these spells need |
+| **Tests** | Fire + Kindled behavior; no other schools |
+
+---
+
+## OUT OF SCOPE (do NOT build in fire PR)
+
+| Excluded | Why |
+| -------- | --- |
+| Air / water / earth spells | Separate plans + PRs |
+| Air/water/earth statuses | Not designed yet |
+| Spell gold shop / unlocks | Phase after schools feel right |
+| Mana Well, room mana, Barracks spell synergy | Later |
+| Grimoire UI / mid-wave spell shopping | Not in fire plan |
+| Backdraft or 5th fire spell | Cut (R2) |
+| Wall of Flame LoS | Deferred (WF6) |
+| Minion friendly fire | Wizard only until minions exist |
+| Fliers as enemies | Stub `canFly` hook OK; no flier templates required |
+| Rebalancing turrets / wizard / waves | Unrelated |
+| README essay / unrelated refactors | Scope creep |
+
+If shared infra is tempting (generic status framework, grimoire), **keep it minimal** — prefer fire-specific types in `src/model/spells/fire/` until a second school proves reuse.
+
+---
+
+## Agent prompt (copy for one-shot fire)
+
+```
+Implement ONLY .cursor/plans/spell_school_fire.plan.md
+
+- IN SCOPE / OUT OF SCOPE sections are binding.
+- Read spell_system_index.plan.md for workflow only.
+- Do not read or implement spell_school_air.plan.md.
+- Run npm test && npm run lint before done.
+```
+
+---
+
+## Implementation order
+
+1. Kindled + `applyFireDamage` + tests for proc/refresh/consume  
+2. Kindling patch + placement + step application  
+3. Fireball → use fire damage hook  
+4. Immolate + wall/ramp/knock-off rules + tests  
+5. Wall of Flame segment + A→B UX + enter/tick + wizard FF + tests  
+6. Hotbar: four fire spells  
+7. Lint + playtest pass  
+
+---
 
 **Roadmap after this doc:**
 
@@ -227,6 +312,10 @@ Fireball alone → still fine
 
 ## File location
 
-`.cursor/plans/spell_school_fire.plan.md` — branch `cursor/fire-school-spell-plan-cb99`
+| File | Purpose |
+| ---- | ------- |
+| [`spell_school_fire.plan.md`](./spell_school_fire.plan.md) | **This file** — implement fire |
+| [`spell_system_index.plan.md`](./spell_system_index.plan.md) | Workflow + which plan to read |
+| [`spell_school_air.plan.md`](./spell_school_air.plan.md) | **Next** — plan air only (not implement yet) |
 
-**Fire plan is closed.** Next document: `spell_school_air.plan.md` (separate PR).
+**Design:** closed. **Implementation:** use IN SCOPE + agent prompt above on branch `cursor/implement-fire-school-cb99` (suggested).

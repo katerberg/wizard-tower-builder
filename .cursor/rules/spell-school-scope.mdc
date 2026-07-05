@@ -1,0 +1,22 @@
+---
+description: Scope guardrails when implementing or planning an elemental spell school
+globs:
+  - src/model/spells/**
+  - src/store/handlers/spells.ts
+  - src/view/dom/spellBar.ts
+  - .cursor/plans/spell_school_*.plan.md
+alwaysApply: false
+---
+
+# Spell school scope
+
+When implementing or planning spells:
+
+1. **One school per task** — read only the active `spell_school_<element>.plan.md`. Use `spell_system_index.plan.md` for workflow, not spell design.
+2. **Do not implement** spells, statuses, or mechanics from other schools unless the active plan explicitly says so.
+3. **Do not expand scope** to spell shop, Mana Well, room mana, grimoire unlocks, or non-elemental schools unless the plan lists them under IN SCOPE.
+4. **Shared infra** — extend `cast.ts`, types, handlers, and input only as required by the active plan's IN SCOPE list.
+5. **Wand Strike** stays background auto-cast; not part of any elemental school kit.
+6. **Tests** — colocate with the school being added; do not delete or rewrite other schools' tests in the same PR.
+
+If the active plan status is not **LOCKED**, do not implement — plan only.
