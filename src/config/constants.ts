@@ -29,6 +29,8 @@ export const WIZARD_DEFAULTS = {
   attackCooldown: 0.6,
 } as const;
 
+export const MAX_MANA = 10;
+
 export const symbols = {
   wizard: '@',
   ground: '=',
@@ -43,6 +45,11 @@ export const colors = {
   roomStroke: '#9aa5b1',
   ghostValid: '#2f855a',
   ghostInvalid: '#c53030',
+  spellValid: '#dd6b20',
+  spellInvalid: '#742a2a',
+  spellAim: 'rgba(221, 107, 32, 0.55)',
+  spellAimOut: 'rgba(197, 48, 48, 0.5)',
+  mana: '#63b3ed',
   wizard: '#f6e05e',
   enemy: '#fc8181',
   hpBar: '#48bb78',

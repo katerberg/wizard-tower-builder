@@ -4,34 +4,34 @@ overview: Introduce mana, a one-spell attack-phase hotbar (Fireball only), and c
 todos:
   - id: mana-model
     content: Add mana/maxMana to Player; refill in beginWave(); expose in HUD selectors
-    status: pending
+    status: completed
   - id: spell-registry
     content: Create src/model/spells/ with SpellDef, registry, fireball.ts, and cast context helpers
-    status: pending
+    status: completed
   - id: spell-state
     content: Add spellCooldowns to GameState; reset in beginWave()
-    status: pending
+    status: completed
   - id: store-intents
     content: Add selectSpell, castSpellAt, cancelCast intents + handlers/spells.ts with validation
-    status: pending
+    status: completed
   - id: selectors
     content: selectSpellBar, selectCastPreview, selectCanCastSpell for UI affordances
-    status: pending
+    status: completed
   - id: attack-input
     content: Attack-phase click targeting when spell selected; Esc cancels; screenToCell for aim
-    status: pending
+    status: completed
   - id: spell-ui
     content: DOM spell hotbar (1 slot — Fireball) + mana bar in HUD
-    status: pending
+    status: completed
   - id: fireball-effect
     content: Delayed 3×3 grid blast; damage enemies in AoE; optional friendly room chip damage
-    status: pending
+    status: completed
   - id: canvas-preview
     content: AoE ghost + valid/invalid tint while aiming (minimal v1)
-    status: pending
+    status: completed
   - id: tests
     content: Mana spend/refill, cooldown, invalid target rejection, fireball damage in AoE
-    status: pending
+    status: completed
 isProject: false
 ---
 
@@ -54,27 +54,27 @@ Out of scope for Phase 1: charge-up, per-wave charges, gold material costs, sust
 
 ### Mana
 
-| Event | Behavior |
-|-------|----------|
-| Wave start | `mana = maxMana` |
-| Cast | `mana -= spell.manaCost` |
-| Wave end | Unused mana discarded (v1) |
+| Event       | Behavior                                  |
+| ----------- | ----------------------------------------- |
+| Wave start  | `mana = maxMana`                          |
+| Cast        | `mana -= spell.manaCost`                  |
+| Wave end    | Unused mana discarded (v1)                |
 | Build phase | No casting; HUD may show "next wave: X/Y" |
 
 **Starting tuning:** `maxMana = 10`, Fireball cost = `4`.
 
-**Future:** Mana Well rooms regen mid-wave; Barracks increases max or grants charges. **Rooms may spend mana someday** — same `player.mana` pool and shared `canSpendMana` / `spendMana` helpers; only the *source* of the spend differs (wizard cast vs room behavior).
+**Future:** Mana Well rooms regen mid-wave; Barracks increases max or grants charges. **Rooms may spend mana someday** — same `player.mana` pool and shared `canSpendMana` / `spendMana` helpers; only the _source_ of the spend differs (wizard cast vs room behavior).
 
 ### Casting components (full model — implement incrementally)
 
-| Component | Role | Phase 1 |
-|-----------|------|---------|
-| **Mana** | Primary attack ammo | Yes |
-| **Cooldown** | Per-spell refractory (seconds) | Yes (Fireball 2s) |
-| **Charges** | Max casts per wave | No (defer) |
-| **Charge-up** | Potency grows while unused | No |
-| **Material (gold)** | Spend gold at cast | No |
-| **Sustain** | Toggle/channeled; decay or escalating drain | No |
+| Component           | Role                                        | Phase 1           |
+| ------------------- | ------------------------------------------- | ----------------- |
+| **Mana**            | Primary attack ammo                         | Yes               |
+| **Cooldown**        | Per-spell refractory (seconds)              | Yes (Fireball 2s) |
+| **Charges**         | Max casts per wave                          | No (defer)        |
+| **Charge-up**       | Potency grows while unused                  | No                |
+| **Material (gold)** | Spend gold at cast                          | No                |
+| **Sustain**         | Toggle/channeled; decay or escalating drain | No                |
 
 #### Cooldown
 
@@ -108,15 +108,15 @@ Out of scope for Phase 1: charge-up, per-wave charges, gold material costs, sust
 
 ### Targeting modes
 
-| Mode | Input | Example |
-|------|-------|---------|
-| `instant` | Button | Haste, Repair |
-| `gridPoint` | Click cell | **Fireball** |
-| `exteriorPoint` | Click tower surface | Lightning |
-| `enemy` | Click enemy | Zap |
-| `none_confirm` | Confirm dialog | Earthquake |
+| Mode            | Input               | Example       |
+| --------------- | ------------------- | ------------- |
+| `instant`       | Button              | Haste, Repair |
+| `gridPoint`     | Click cell          | **Fireball**  |
+| `exteriorPoint` | Click tower surface | Lightning     |
+| `enemy`         | Click enemy         | Zap           |
+| `none_confirm`  | Confirm dialog      | Earthquake    |
 
-Phase 1 uses **`gridPoint`** only.
+Phase 1 uses `**gridPoint**` only.
 
 ### Example spells (later phases)
 
@@ -139,7 +139,7 @@ maxMana: number;
 
 // GameState
 spellCooldowns: Record<string, number>;
-selectedSpellId: string | null;  // ViewState alternative — prefer ViewState if selection is UI-only
+selectedSpellId: string | null; // ViewState alternative — prefer ViewState if selection is UI-only
 ```
 
 Init in `createInitialState()`: `mana = maxMana = 10`, `spellCooldowns = {}`.
@@ -182,7 +182,11 @@ Mirror `src/model/modifications/` layout:
 Add lightweight queue on `GameState`:
 
 ```typescript
-pendingSpellEffects: Array<{ spellId: string; at: number; target: SpellTarget }>
+pendingSpellEffects: Array<{
+  spellId: string;
+  at: number;
+  target: SpellTarget;
+}>;
 ```
 
 `step()` processes entries when `waveTimer >= at`: apply 3×3 AoE. Lets fireball "drop" while sim continues.
@@ -246,32 +250,32 @@ Phase 1 recommendation: **keep auto-zap** so zero-mana moments aren't helpless; 
 
 ## File checklist
 
-| File | Change |
-|------|--------|
-| `src/model/types.ts` | mana, spellCooldowns, pendingSpellEffects |
-| `src/model/phases.ts` | refill mana, reset cooldowns |
-| `src/model/spells/*` | new folder |
-| `src/model/game.ts` | tick cooldowns, process pending effects |
-| `src/store/intents.ts` | spell intents |
-| `src/store/handlers/spells.ts` | new |
-| `src/store/handlers/index.ts` | register |
-| `src/store/selectors.ts` | spell selectors |
-| `src/view/dom/spellBar.ts` | new (or extend hud) |
-| `src/view/input.ts` | attack cast clicks |
-| `src/view/canvas/renderer.ts` | AoE preview |
-| `src/main.ts` | mount spell bar |
-| `index.html` | slot for spell bar if needed |
+| File                           | Change                                    |
+| ------------------------------ | ----------------------------------------- |
+| `src/model/types.ts`           | mana, spellCooldowns, pendingSpellEffects |
+| `src/model/phases.ts`          | refill mana, reset cooldowns              |
+| `src/model/spells/*`           | new folder                                |
+| `src/model/game.ts`            | tick cooldowns, process pending effects   |
+| `src/store/intents.ts`         | spell intents                             |
+| `src/store/handlers/spells.ts` | new                                       |
+| `src/store/handlers/index.ts`  | register                                  |
+| `src/store/selectors.ts`       | spell selectors                           |
+| `src/view/dom/spellBar.ts`     | new (or extend hud)                       |
+| `src/view/input.ts`            | attack cast clicks                        |
+| `src/view/canvas/renderer.ts`  | AoE preview                               |
+| `src/main.ts`                  | mount spell bar                           |
+| `index.html`                   | slot for spell bar if needed              |
 
 ---
 
 ## Implementation phases (after Phase 1)
 
-| Phase | Deliverable |
-|-------|-------------|
-| **1** | Mana + Fireball + 1-slot toolbar + grid targeting |
+| Phase | Deliverable                                                       |
+| ----- | ----------------------------------------------------------------- |
+| **1** | Mana + Fireball + 1-slot toolbar + grid targeting                 |
 | **2** | Zap, cooldown UI polish, delayed impact VFX, Earthquake + charges |
-| **3** | Charge-up, material costs, sustain toggles |
-| **4** | Mana Well room, spell unlocks, hotbar expansion (4–6 slots) |
+| **3** | Charge-up, material costs, sustain toggles                        |
+| **4** | Mana Well room, spell unlocks, hotbar expansion (4–6 slots)       |
 
 ---
 
@@ -286,28 +290,28 @@ Copy your answers below this section (or reply in chat) before / while implement
 - [ ] **C.** Pause auto-zap while a spell is selected
 - [ ] **D.** Remove auto-zap; add 0-mana "Wand Strike" spell later
 
-**Your answer:**
+**Your answer: Remove current attack; instead create wand strike now that is on an "auto" attack cadence where it has a fixed cooldown, but represents itself as a skill that is set to auto-fire on range rather than on manual trigger **
 
 ### Q2. Fireball friendly fire on rooms?
 
 - [ ] **A.** Yes — chip room HP in blast (tension)
-- [ ] **B.** No — enemies only in v1
+- [x] **B.** No — enemies only in v1
 - [ ] **C.** Yes, but only if room HP > 50%
 
 **Your answer:**
 
 ### Q3. Fireball impact timing?
 
-- [ ] **A.** Instant on click (simplest)
+- [x] **A.** Instant on click (simplest)
 - [ ] **B.** 0.4s delayed drop (pending effect queue)
 
 **Your answer:**
 
 ### Q4. Mana tuning for first playtest?
 
-- [ ] **A.** max 10, Fireball 4 (~2 casts + headroom)
+- [x] **A.** max 10, Fireball 4 (~2 casts + headroom)
 - [ ] **B.** max 12, Fireball 4 (~3 casts)
-- [ ] **C.** Custom: ___
+- [ ] **C.** Custom:
 
 **Your answer:**
 
@@ -316,9 +320,9 @@ Copy your answers below this section (or reply in chat) before / while implement
 - [ ] **A.** Zap (enemy click target)
 - [ ] **B.** Second hotbar slot + Earthquake
 - [ ] **C.** Charges system (Fireball 3/wave)
-- [ ] **D.** Other: ___
+- [x] **D.** Other:
 
-**Your answer:**
+**Your answer: Next will be the spell purchasing system, but we don't want to do this as part of this first batch**
 
 ---
 
@@ -328,7 +332,7 @@ Copy your answers below this section (or reply in chat) before / while implement
 2. Open the repo in **Cursor Desktop**.
 3. Read this file: `.cursor/plans/spell_system_phase1_fireball.plan.md`
 4. Fill in **Open questions** (edit the markdown or tell the agent in chat).
-5. In Desktop Cursor, ask the agent: *"Implement Phase 1 from `.cursor/plans/spell_system_phase1_fireball.plan.md` using my answers in the Open questions section."*
+5. In Desktop Cursor, ask the agent: _"Implement Phase 1 from `.cursor/plans/spell_system_phase1_fireball.plan.md` using my answers in the Open questions section."_
 
 Plans in `.cursor/plans/` with YAML frontmatter may appear in Cursor's plan UI on desktop depending on your version.
 
@@ -336,12 +340,12 @@ Plans in `.cursor/plans/` with YAML frontmatter may appear in Cursor's plan UI o
 
 ## Mobile cloud agent ↔ desktop workflow (first-time notes)
 
-| Option | What it is | Best for |
-|--------|------------|----------|
-| **Git branch + PR** | Cloud agent commits plan/code to a branch; you `git pull` on desktop | Reviewing markdown, continuing implementation locally |
-| **Merge PR on GitHub** | Plan lands on `main`; desktop pulls `main` | Keeping one canonical branch |
-| **Cursor Desktop on same repo** | Open local clone; agent reads `.cursor/plans/` | Implementation with full IDE |
-| **Copy from chat** | Paste plan into a local file | Quick but no version history |
-| **Cloud agent implements** | Stay on mobile; agent codes + pushes | Quick prototypes you review via PR diff |
+| Option                          | What it is                                                           | Best for                                              |
+| ------------------------------- | -------------------------------------------------------------------- | ----------------------------------------------------- |
+| **Git branch + PR**             | Cloud agent commits plan/code to a branch; you `git pull` on desktop | Reviewing markdown, continuing implementation locally |
+| **Merge PR on GitHub**          | Plan lands on `main`; desktop pulls `main`                           | Keeping one canonical branch                          |
+| **Cursor Desktop on same repo** | Open local clone; agent reads `.cursor/plans/`                       | Implementation with full IDE                          |
+| **Copy from chat**              | Paste plan into a local file                                         | Quick but no version history                          |
+| **Cloud agent implements**      | Stay on mobile; agent codes + pushes                                 | Quick prototypes you review via PR diff               |
 
 **Recommended first-time flow:** use this PR to review the plan markdown locally → answer open questions → implement Phase 1 on **Desktop Cursor** (faster iteration, playtest in browser) → push from desktop or ask cloud agent to continue on the same branch.

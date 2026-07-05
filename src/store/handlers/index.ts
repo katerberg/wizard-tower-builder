@@ -5,6 +5,7 @@ import { handleCameraIntent } from './camera';
 import { handleDevIntent } from './dev';
 import { handleInspectIntent } from './inspect';
 import { handleModificationsIntent } from './modifications';
+import { handleSpellIntent } from './spells';
 import { handleWaveIntent } from './wave';
 
 export function applyIntent(ctx: HandlerContext, intent: Intent): void {
@@ -44,6 +45,12 @@ export function applyIntent(ctx: HandlerContext, intent: Intent): void {
     case 'scrollCamera':
     case 'setViewportHeight':
       handleCameraIntent(ctx, intent);
+      break;
+
+    case 'selectSpell':
+    case 'castSpellAt':
+    case 'cancelCast':
+      handleSpellIntent(ctx, intent);
       break;
   }
 }

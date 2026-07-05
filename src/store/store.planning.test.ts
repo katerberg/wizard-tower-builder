@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { netBuildCost } from '@/calculations/buildCost';
-import { STARTING_CURRENCY } from '@/config/constants';
+import { STARTING_CURRENCY, FIXED_DT } from '@/config/constants';
 import { getBlueprint } from '@/model/blueprints';
 import { createInitialState } from '@/model/game';
 import { beginWave, captureBuildBaseline } from '@/model/phases';
@@ -180,5 +180,54 @@ describe('build mode vs select mode', () => {
     store.dispatch({ type: 'selectBlueprint', blueprintId: 'stem' });
     store.dispatch({ type: 'selectBlueprint', blueprintId: null });
     expect(store.getSnapshot().view.selectedBlueprintId).toBeNull();
+  });
+
+  it('startWave clears build selection and room modal', () => {
+    const store = new Store('attack0');
+    placeStem(store, { col: 8, row: 0 });
+    store.dispatch({ type: 'selectBlueprint', blueprintId: 'stem' });
+    store.dispatch({ type: 'inspectRoomAt', cell: { col: 8, row: 0 } });
+    expect(store.getSnapshot().view.modal).not.toBeNull();
+
+    store.dispatch({ type: 'startWave' });
+    const { view, game } = store.getSnapshot();
+    expect(game.phase).toBe('attack');
+    expect(view.selectedBlueprintId).toBeNull();
+    expect(view.modal).toBeNull();
+  });
+
+  it('does not open room modal during attack', () => {
+    const store = new Store('attack1');
+    placeStem(store, { col: 8, row: 0 });
+    store.dispatch({ type: 'startWave' });
+    store.dispatch({ type: 'inspectRoomAt', cell: { col: 8, row: 0 } });
+    expect(store.getSnapshot().view.modal).toBeNull();
+  });
+
+  it('does not select blueprints during attack', () => {
+    const store = new Store('attack2');
+    placeStem(store, { col: 8, row: 0 });
+    store.dispatch({ type: 'startWave' });
+    store.dispatch({ type: 'selectBlueprint', blueprintId: 'stem' });
+    expect(store.getSnapshot().view.selectedBlueprintId).toBeNull();
+  });
+
+  it('returns to select mode when a wave ends', () => {
+    const store = new Store('attack3');
+    placeStem(store, { col: 8, row: 0 });
+    store.dispatch({ type: 'startWave' });
+    store.dispatch({ type: 'selectSpell', spellId: 'fireball' });
+
+    const game = store.getSnapshot().game;
+    game.enemies = [];
+    game.spawnQueue = [];
+    store.advance(FIXED_DT);
+    store.flush();
+
+    const { view } = store.getSnapshot();
+    expect(store.getSnapshot().game.phase).toBe('build');
+    expect(view.selectedBlueprintId).toBeNull();
+    expect(view.selectedSpellId).toBeNull();
+    expect(view.modal).toBeNull();
   });
 });

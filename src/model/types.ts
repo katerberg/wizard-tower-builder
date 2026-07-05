@@ -10,6 +10,7 @@ export interface Blueprint {
   size: { w: number; h: number };
   cost: number;
   baseHp: number;
+  description: string;
 }
 
 /** A modification instance attached to a room (one per type, leveled in place). */
@@ -87,13 +88,15 @@ export interface Enemy {
 
 export type GameMessageKind = 'info' | 'combat' | 'economy';
 
-export interface GameMessage { tick: number; text: string; kind: GameMessageKind }
+export interface GameMessage { text: string; kind: GameMessageKind }
 
 export interface Player {
   currency: number;
   unlockedBlueprints: string[];
   levelIndex: number;
   wizard: Wizard;
+  mana: number;
+  maxMana: number;
 }
 
 export type ProgressionMode = 'linear' | 'branching';
@@ -111,7 +114,6 @@ export interface GameState {
   waveTimer: number;
   spawnTimer: number;
   spawnQueue: string[];
-  tick: number;
   player: Player;
   tower: Tower;
   enemies: Enemy[];
@@ -119,6 +121,8 @@ export interface GameState {
   rngState: number;
   devMode: boolean;
   roomEffectTimers: Record<string, number>;
+  /** Seconds remaining before each spell can be cast again. */
+  spellCooldowns: Record<string, number>;
   /** Tower + gold at build-phase start; edits commit on wave start. */
   buildBaseline: BuildBaseline | null;
 }

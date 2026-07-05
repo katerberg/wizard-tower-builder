@@ -1,4 +1,4 @@
-import { ENEMY_ATTACK_COOLDOWN, SPAWN_INTERVAL, STARTING_CURRENCY, WIZARD_DEFAULTS } from '@/config/constants';
+import { ENEMY_ATTACK_COOLDOWN, MAX_MANA, SPAWN_INTERVAL, STARTING_CURRENCY, WIZARD_DEFAULTS } from '@/config/constants';
 import { STARTING_BLUEPRINT_IDS } from './blueprints';
 import { computeDamage, type Combatant } from '../calculations/combat';
 import { spawnNode } from '../calculations/exteriorGraph';
@@ -6,6 +6,7 @@ import { getEnemyTemplate } from './enemies';
 import { addMessage } from './messages';
 import { findPath } from '../calculations/pathfinding';
 import { runEnemyStepEffects, runRoomEffects } from './modifications/effects';
+import { runAutoSpells, tickSpellCooldowns } from './spells';
 import { endWave, loseGame, startRun, captureBuildBaseline } from './phases';
 import { seedFrom, shuffle } from '../calculations/rng';
 import { createTower, getWizardPosition } from './tower';
@@ -27,12 +28,13 @@ export function createInitialState(seed: string | number = 'wizard'): GameState 
     waveTimer: 0,
     spawnTimer: 0,
     spawnQueue: [],
-    tick: 0,
     player: {
       currency: STARTING_CURRENCY,
       unlockedBlueprints: [...STARTING_BLUEPRINT_IDS],
       levelIndex: 0,
       wizard: { ...WIZARD_DEFAULTS, hp: WIZARD_DEFAULTS.maxHp, glyph: '@' },
+      mana: MAX_MANA,
+      maxMana: MAX_MANA,
     },
     tower: createTower(),
     enemies: [],
@@ -40,6 +42,7 @@ export function createInitialState(seed: string | number = 'wizard'): GameState 
     rngState: seedFrom(seed),
     devMode: false,
     roomEffectTimers: {},
+    spellCooldowns: {},
     buildBaseline: null,
   };
   captureBuildBaseline(state);
@@ -115,10 +118,6 @@ function reached(a: ExteriorNode, b: ExteriorNode): boolean {
   return a.col === b.col && a.row === b.row;
 }
 
-function distance(a: ExteriorNode, b: ExteriorNode): number {
-  return Math.hypot(a.col - b.col, a.row - b.row);
-}
-
 function enemyCombatant(template: EnemyTemplate): Combatant {
   return { attack: template.stats.strength, defense: 0, dexterity: template.stats.dexterity };
 }
@@ -128,7 +127,6 @@ export function step(state: GameState, dt: number): void {
   if (state.scene !== 'run' || state.phase !== 'attack') {
     return;
   }
-  state.tick += 1;
   state.waveTimer += dt;
 
   const wizardPos = getWizardPosition(state.tower);
@@ -191,35 +189,9 @@ export function step(state: GameState, dt: number): void {
     }
   }
 
-  // Wizard auto-attacks the nearest enemy in range (v1 stand-in for room turrets).
-  wizard.attackCooldown -= dt;
-  if (wizard.attackCooldown <= 0) {
-    let target: Enemy | null = null;
-    let bestDist = Infinity;
-    for (const enemy of state.enemies) {
-      if (enemy.currentHp <= 0) continue;
-      const d = distance(enemy.pos, wizardPos);
-      if (d <= wizard.range && d < bestDist) {
-        bestDist = d;
-        target = enemy;
-      }
-    }
-    if (target) {
-      const template = getEnemyTemplate(target.templateId)!;
-      const defender: Combatant = { attack: 0, defense: 0, dexterity: template.stats.dexterity };
-      const result = computeDamage(wizard, defender, state.rngState);
-      state.rngState = result.rngState;
-      if (!result.dodged) {
-        addMessage(state, `The wizard hits ${target.name} the ${template.type} for ${result.damage}.`, 'combat');
-        target.currentHp -= result.damage;
-      } else {
-        addMessage(state, `${target.name} the ${template.type} dodges the wizard's attack.`, 'combat');
-      }
-      wizard.attackCooldown = WIZARD_DEFAULTS.attackCooldown;
-    } else {
-      wizard.attackCooldown = 0; // ready to fire the instant a target enters range
-    }
-  }
+  // Wand Strike and other auto-cast spells tick on cooldown during the wave.
+  tickSpellCooldowns(state, dt);
+  runAutoSpells(state);
 
   // Room behaviors (turret rooms) and modifications (spikes) act on enemies this tick.
   runRoomEffects(state, dt);

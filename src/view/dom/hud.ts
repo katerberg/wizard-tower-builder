@@ -1,5 +1,5 @@
 import { FINAL_LEVEL_INDEX } from '@/model/waves';
-import { selectBuildEconomy, selectBuildUndoState, selectSelectedBlueprint, selectTowerStability } from '@/store/selectors';
+import { selectBuildEconomy, selectBuildUndoState, selectMana, selectSelectedBlueprint, selectTowerStability } from '@/store/selectors';
 import type { Intent } from '@/store/intents';
 import type { Store } from '@/store/store';
 
@@ -63,7 +63,8 @@ export function createHud(root: HTMLElement, store: Store): () => void {
 
     const attackInfo =
       game.scene === 'run' && game.phase === 'attack'
-        ? `<div class="stat"><span>Enemies</span><strong>${enemiesLeft}</strong></div>`
+        ? `<div class="stat"><span>Enemies</span><strong>${enemiesLeft}</strong></div>
+           <div class="stat"><span>Mana</span><strong>${selectMana(snapshot).current} / ${selectMana(snapshot).max}</strong></div>`
         : '';
 
     const devControls = game.devMode

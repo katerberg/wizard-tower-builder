@@ -4,6 +4,7 @@ import type { ExteriorNode, Phase } from '@/model/types';
 import type { Intent, ViewState } from './intents';
 import type { HandlerContext, StoreRefs } from './context';
 import { applyIntent } from './handlers';
+import { clearBuildUi, resetToSelectMode } from './viewState';
 
 export interface Snapshot {
   game: StoreRefs['game'];
@@ -33,6 +34,7 @@ export class Store {
       game,
       view: {
         selectedBlueprintId: null,
+        selectedSpellId: null,
         hoveredCell: null,
         modal: null,
         cameraScrollY: 0,
@@ -79,14 +81,12 @@ export class Store {
       step(this.refs.game, dt);
       this.dirty = true;
     }
+    this.syncPhaseView();
   }
 
   /** Notify subscribers once per frame if the simulation changed. */
   flush(): void {
-    if (this.lastPhase === 'attack' && this.refs.game.phase === 'build') {
-      this.clearBuildHistory();
-    }
-    this.lastPhase = this.refs.game.phase;
+    this.syncPhaseView();
 
     if (this.dirty) {
       this.dirty = false;
@@ -96,6 +96,7 @@ export class Store {
 
   dispatch(intent: Intent): void {
     applyIntent(this.handlerContext(), intent);
+    this.syncPhaseView();
     this.emit();
   }
 
@@ -141,4 +142,42 @@ export class Store {
     const exists = this.refs.game.tower.rooms.some((r) => r.id === modal.roomId);
     if (!exists) this.refs.view.modal = null;
   }
+
+  private enforceAttackPhaseView(): void {
+    const before = snapshotView(this.refs.view);
+    clearBuildUi(this.refs.view);
+    if (!viewStatesEqual(before, snapshotView(this.refs.view))) {
+      this.dirty = true;
+    }
+  }
+
+  private syncPhaseView(): void {
+    const phase = this.refs.game.phase;
+
+    if (phase === 'attack') {
+      this.enforceAttackPhaseView();
+    }
+
+    if (this.lastPhase === 'attack' && phase === 'build') {
+      this.clearBuildHistory();
+      resetToSelectMode(this.refs.view);
+      this.dirty = true;
+    } else if (this.lastPhase === 'build' && phase === 'attack') {
+      resetToSelectMode(this.refs.view);
+      this.dirty = true;
+    }
+
+    this.lastPhase = phase;
+  }
+}
+
+function snapshotView(view: ViewState): Pick<ViewState, 'selectedBlueprintId' | 'modal'> {
+  return { selectedBlueprintId: view.selectedBlueprintId, modal: view.modal };
+}
+
+function viewStatesEqual(
+  a: Pick<ViewState, 'selectedBlueprintId' | 'modal'>,
+  b: Pick<ViewState, 'selectedBlueprintId' | 'modal'>,
+): boolean {
+  return a.selectedBlueprintId === b.selectedBlueprintId && a.modal === b.modal;
 }

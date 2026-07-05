@@ -3,6 +3,9 @@ import type { Store } from '@/store/store';
 
 export function createLibrary(root: HTMLElement, store: Store): () => void {
   root.addEventListener('click', (e) => {
+    const snapshot = store.getSnapshot();
+    if (snapshot.game.phase !== 'build') return;
+
     const target =
       e.target instanceof HTMLElement ? e.target.closest<HTMLElement>('[data-tool]') : null;
     if (!target) return;
@@ -26,11 +29,21 @@ export function createLibrary(root: HTMLElement, store: Store): () => void {
 
   return function render(): void {
     const snapshot = store.getSnapshot();
+    const { game } = snapshot;
+    const inBuild = game.scene === 'run' && game.phase === 'build';
+
+    if (!inBuild) {
+      root.innerHTML = '';
+      root.hidden = true;
+      return;
+    }
+
+    root.hidden = false;
     const inSelectMode = snapshot.view.selectedBlueprintId === null;
     const blueprints = selectLibraryBlueprints(snapshot);
 
     const hand = `
-      <button class="tool ${inSelectMode ? 'selected' : ''}" data-tool="select" title="Select rooms to inspect and modify">
+      <button class="tool ${inSelectMode ? 'selected' : ''}" data-tool="select" data-tip-kind="tool" data-tip-id="select">
         <span class="tool-glyph">✋</span>
         <span class="tool-name">Select</span>
       </button>`;
@@ -40,7 +53,7 @@ export function createLibrary(root: HTMLElement, store: Store): () => void {
         const selected = b.selected ? 'selected' : '';
         const poor = b.affordable ? '' : 'unaffordable';
         return `
-        <button class="blueprint ${selected} ${poor}" data-tool="blueprint" data-blueprint="${b.id}">
+        <button class="blueprint ${selected} ${poor}" data-tool="blueprint" data-blueprint="${b.id}" data-tip-kind="blueprint" data-tip-id="${b.id}">
           <span class="bp-glyph">${b.glyph}</span>
           <span class="bp-name">${b.name}</span>
           <span class="bp-meta">${b.sizeW}x${b.sizeH} · ${b.cost} gold · ${b.baseHp} hp</span>

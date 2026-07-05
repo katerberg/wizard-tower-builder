@@ -3,6 +3,7 @@ import { beginRun, createInitialState } from '@/model/game';
 import { addMessage } from '@/model/messages';
 import { beginWave } from '@/model/phases';
 import { isTowerStable } from '@/model/tower';
+import { resetToSelectMode } from '../viewState';
 import type { HandlerContext } from '../context';
 import type { Intent } from '../intents';
 
@@ -34,6 +35,7 @@ function startWave(ctx: HandlerContext): void {
   }
   ctx.clearBuildHistory();
   beginWave(game);
+  resetToSelectMode(ctx.view);
 }
 
 function restart(ctx: HandlerContext): void {
@@ -43,6 +45,7 @@ function restart(ctx: HandlerContext): void {
   ctx.clearBuildHistory();
   ctx.view = {
     selectedBlueprintId: null,
+    selectedSpellId: null,
     hoveredCell: null,
     modal: null,
     cameraScrollY: 0,

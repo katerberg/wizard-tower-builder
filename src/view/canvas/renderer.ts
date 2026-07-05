@@ -4,7 +4,7 @@ import { getEnemyTemplate } from '@/model/enemies';
 import { getModification } from '@/model/modifications';
 import { computeRoomStats } from '@/calculations/combat';
 import { getUnstableRoomIds } from '@/model/tower';
-import { selectGhostPlacement, selectWizardPosition } from '@/store/selectors';
+import { selectCastPreview, selectGhostPlacement, selectWizardPosition } from '@/store/selectors';
 import type { Snapshot } from '@/store/store';
 import { BOARD_WIDTH, cellCenter, cellTopLeft, visibleRowRange } from './camera';
 
@@ -39,10 +39,12 @@ export class Renderer {
     this.drawGround(scrollY, viewportHeight);
     this.drawRooms(snapshot, scrollY, viewportHeight);
     this.drawGhost(snapshot, scrollY, viewportHeight);
+    this.drawCastPreview(snapshot, scrollY, viewportHeight);
     if (snapshot.game.devMode) this.drawPaths(snapshot, scrollY, viewportHeight);
     const wizardPos = selectWizardPosition(snapshot);
     this.drawEnemies(snapshot, wizardPos, scrollY, viewportHeight, 'climbers');
     this.drawWizard(snapshot, scrollY, viewportHeight);
+    this.drawCastAimLine(snapshot, scrollY, viewportHeight);
     this.drawEnemies(snapshot, wizardPos, scrollY, viewportHeight, 'atWizard');
   }
 
@@ -169,6 +171,41 @@ export class Renderer {
       ctx.fillRect(x + 2, y + 2, CELL_SIZE - 4, CELL_SIZE - 4);
     }
     ctx.globalAlpha = 1;
+  }
+
+  private drawCastPreview(snapshot: Snapshot, scrollY: number, viewportHeight: number): void {
+    const preview = selectCastPreview(snapshot);
+    if (!preview) return;
+    const { ctx } = this;
+    ctx.globalAlpha = 0.5;
+    ctx.fillStyle = preview.valid ? colors.spellValid : colors.spellInvalid;
+    for (const cell of preview.cells) {
+      const { x, y } = cellTopLeft(cell.col, cell.row, scrollY, viewportHeight);
+      ctx.fillRect(x + 2, y + 2, CELL_SIZE - 4, CELL_SIZE - 4);
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  /** Dotted line from the wizard to the hovered cell while aiming a targeted spell. */
+  private drawCastAimLine(snapshot: Snapshot, scrollY: number, viewportHeight: number): void {
+    const preview = selectCastPreview(snapshot);
+    const target = snapshot.view.hoveredCell;
+    if (!preview || !target) return;
+
+    const wizardPos = selectWizardPosition(snapshot);
+    const from = cellCenter(wizardPos.col, wizardPos.row, scrollY, viewportHeight);
+    const to = cellCenter(target.col, target.row, scrollY, viewportHeight);
+
+    const { ctx } = this;
+    ctx.save();
+    ctx.strokeStyle = preview.valid ? colors.spellAim : colors.spellAimOut;
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 6]);
+    ctx.beginPath();
+    ctx.moveTo(from.x, from.y);
+    ctx.lineTo(to.x, to.y);
+    ctx.stroke();
+    ctx.restore();
   }
 
   private drawEnemies(

@@ -6,6 +6,7 @@ import {
   aggregateModifierStats,
   canApplyModification,
   canUpgradeModification,
+  formatModificationMechanics,
   getModification,
   modificationCost,
   modificationRefund,
@@ -32,6 +33,13 @@ describe('modification economy', () => {
 });
 
 describe('modification rules', () => {
+  it('describes literal effects per level for UI', () => {
+    const spikes = getModification('spikes')!;
+    expect(formatModificationMechanics(spikes, 0, 'add')).toContain('2 damage');
+    expect(formatModificationMechanics(spikes, 1, 'upgrade')).toContain('4 damage');
+    expect(formatModificationMechanics(spikes, 3, 'max')).toContain('6 damage');
+  });
+
   it('allows one instance per type and gates upgrades by level', () => {
     const tower = createTower();
     const room = makeRoom();

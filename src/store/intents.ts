@@ -19,12 +19,16 @@ export type Intent =
   | { type: 'scrollCamera'; deltaY: number }
   | { type: 'setViewportHeight'; height: number }
   | { type: 'undoBuild' }
-  | { type: 'revertBuild' };
+  | { type: 'revertBuild' }
+  | { type: 'selectSpell'; spellId: string | null }
+  | { type: 'castSpellAt'; spellId: string; cell: Cell }
+  | { type: 'cancelCast' };
 
 export type ModalData = { kind: 'room'; roomId: string } | { kind: 'help' };
 
 export interface ViewState {
   selectedBlueprintId: string | null;
+  selectedSpellId: string | null;
   hoveredCell: Cell | null;
   modal: ModalData | null;
   /** Pixels scrolled upward from ground (viewport camera). */

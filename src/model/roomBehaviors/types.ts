@@ -15,6 +15,8 @@ export interface RoomEffectContext {
 
 export interface RoomBehaviorDef {
   blueprintId: string;
+  /** Literal effect summary for UI tooltips. */
+  mechanics: string;
   /** Active attack-phase behavior on a cooldown. */
   attack?: {
     cooldown: () => number;
