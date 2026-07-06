@@ -30,6 +30,8 @@ export interface ViewState {
   selectedBlueprintId: string | null;
   selectedSpellId: string | null;
   hoveredCell: Cell | null;
+  /** First click for Wall of Flame A→B targeting. */
+  castAnchor: Cell | null;
   modal: ModalData | null;
   /** Pixels scrolled upward from ground (viewport camera). */
   cameraScrollY: number;

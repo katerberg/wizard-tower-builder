@@ -36,6 +36,7 @@ export class Store {
         selectedBlueprintId: null,
         selectedSpellId: null,
         hoveredCell: null,
+        castAnchor: null,
         modal: null,
         cameraScrollY: 0,
         viewportHeight: MIN_VIEWPORT_HEIGHT,

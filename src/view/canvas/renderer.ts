@@ -40,6 +40,7 @@ export class Renderer {
     this.drawRooms(snapshot, scrollY, viewportHeight);
     this.drawGhost(snapshot, scrollY, viewportHeight);
     this.drawCastPreview(snapshot, scrollY, viewportHeight);
+    this.drawFireEffects(snapshot, scrollY, viewportHeight);
     if (snapshot.game.devMode) this.drawPaths(snapshot, scrollY, viewportHeight);
     const wizardPos = selectWizardPosition(snapshot);
     this.drawEnemies(snapshot, wizardPos, scrollY, viewportHeight, 'climbers');
@@ -206,6 +207,39 @@ export class Renderer {
     ctx.lineTo(to.x, to.y);
     ctx.stroke();
     ctx.restore();
+  }
+
+  private drawFireEffects(snapshot: Snapshot, scrollY: number, viewportHeight: number): void {
+    const { game } = snapshot;
+    const { ctx } = this;
+
+    for (const patch of game.kindlingPatches ?? []) {
+      if (patch.expiresAt <= game.waveTimer) continue;
+      const { x, y } = cellTopLeft(patch.col, patch.row, scrollY, viewportHeight);
+      ctx.globalAlpha = 0.7;
+      ctx.fillStyle = colors.kindlingPatch;
+      ctx.fillRect(x + 4, y + 4, CELL_SIZE - 8, CELL_SIZE - 8);
+      ctx.strokeStyle = '#ecc94b';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x + 4, y + 4, CELL_SIZE - 8, CELL_SIZE - 8);
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = '#ecc94b';
+      ctx.font = `${Math.floor(CELL_SIZE * 0.4)}px monospace`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('K', x + CELL_SIZE / 2, y + CELL_SIZE / 2);
+    }
+
+    for (const segment of game.wallOfFlameSegments ?? []) {
+      if (segment.expiresAt <= game.waveTimer) continue;
+      ctx.globalAlpha = 0.55;
+      ctx.fillStyle = colors.wallFlame;
+      for (const cell of segment.cells) {
+        const { x, y } = cellTopLeft(cell.col, cell.row, scrollY, viewportHeight);
+        ctx.fillRect(x + 2, y + 2, CELL_SIZE - 4, CELL_SIZE - 4);
+      }
+      ctx.globalAlpha = 1;
+    }
   }
 
   private drawEnemies(

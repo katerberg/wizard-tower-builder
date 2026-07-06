@@ -10,7 +10,7 @@ import {
   modificationCost,
 } from '@/model/modifications';
 import { getRoomBehavior } from '@/model/roomBehaviors';
-import { canCastSpell, getSpell, HOTBAR_SLOT_COUNT, listHotbarSpells, spellCooldownRemaining } from '@/model/spells';
+import { canCastSpell, enemyAtCell, getSpell, gridLine, HOTBAR_SLOT_COUNT, listHotbarSpells, spellCooldownRemaining } from '@/model/spells';
 import { aoeCells } from '@/model/spells/fireball';
 import { canPlace, getUnstableRoomIds, getWizardPosition, towersEqual } from '@/model/tower';
 import { getBuildTool } from '@/static/buildTools';
@@ -363,15 +363,60 @@ export function selectCastPreview(snapshot: Snapshot): CastPreview | null {
   if (!spellId || !view.hoveredCell) return null;
 
   const spell = getSpell(spellId);
-  if (spell?.targeting !== 'gridPoint') return null;
+  if (!spell || spell.autoCast) return null;
 
-  const result = canCastSpell(game, spellId, { kind: 'cell', cell: view.hoveredCell });
-  const radius = spell.aoeRadius ?? 0;
-  return {
-    cells: aoeCells(view.hoveredCell, radius),
-    valid: result.ok,
-    reason: result.ok ? 'ok' : result.reason,
-  };
+  if (spell.targeting === 'gridPoint') {
+    const result = canCastSpell(game, spellId, { kind: 'cell', cell: view.hoveredCell });
+    const radius = spell.aoeRadius ?? 0;
+    return {
+      cells: aoeCells(view.hoveredCell, radius),
+      valid: result.ok,
+      reason: result.ok ? 'ok' : result.reason,
+    };
+  }
+
+  if (spell.targeting === 'trapAdjacent') {
+    const result = canCastSpell(game, spellId, { kind: 'cell', cell: view.hoveredCell });
+    return {
+      cells: [view.hoveredCell],
+      valid: result.ok,
+      reason: result.ok ? 'ok' : result.reason,
+    };
+  }
+
+  if (spell.targeting === 'enemy') {
+    const enemy = enemyAtCell(game, view.hoveredCell);
+    const result = enemy
+      ? canCastSpell(game, spellId, { kind: 'enemy', enemyId: enemy.id })
+      : { ok: false as const, reason: 'no_target' as const };
+    return {
+      cells: enemy ? [view.hoveredCell] : [],
+      valid: result.ok,
+      reason: result.ok ? 'ok' : result.reason,
+    };
+  }
+
+  if (spell.targeting === 'segment') {
+    if (!view.castAnchor) {
+      const result = canCastSpell(game, spellId, { kind: 'cell', cell: view.hoveredCell });
+      return {
+        cells: [view.hoveredCell],
+        valid: result.ok,
+        reason: result.ok ? 'ok' : result.reason,
+      };
+    }
+    const line = gridLine(view.castAnchor, view.hoveredCell);
+    const result = line
+      ? canCastSpell(game, spellId, { kind: 'segment', from: view.castAnchor, to: view.hoveredCell })
+      : { ok: false as const, reason: 'invalid_segment' as const };
+    return {
+      cells: line ?? [view.castAnchor, view.hoveredCell],
+      valid: result.ok,
+      reason: result.ok ? 'ok' : result.reason,
+    };
+  }
+
+  return null;
 }
 
 export function selectCanCastSpell(

@@ -36,7 +36,7 @@ export const fireball: SpellDef = {
   id: 'fireball',
   name: 'Fireball',
   glyph: '*',
-  description: 'Instant 3×3 blast. Damages enemies — and the wizard if caught in the blast.',
+  description: 'Instant 3×3 blast. Damages enemies — and the wizard if caught in the blast. Procs Kindled.',
   manaCost: 4,
   cooldown: 2,
   targeting: 'gridPoint',
@@ -44,10 +44,11 @@ export const fireball: SpellDef = {
   aoeRadius: 1,
   damage: 12,
   cast(ctx, target) {
+    if (target.kind !== 'cell') return;
     const blastCells = cellsInAoE(target.cell, 1);
     const hit = enemiesInCells(ctx, blastCells);
     for (const enemy of hit) {
-      ctx.damageEnemy(enemy, fireball.damage);
+      ctx.applyFireDamage(enemy, fireball.damage);
     }
     if (wizardInCells(ctx, blastCells)) {
       ctx.damageWizard(fireball.damage);

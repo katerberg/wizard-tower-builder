@@ -3,20 +3,34 @@ import { getEnemyTemplate } from '../enemies';
 import { addMessage } from '../messages';
 import { loseGame } from '../phases';
 import { getWizardPosition } from '../tower';
+import { applyFireDamage } from './fire/fireDamage';
+import { isValidKindlingPlacement } from './fire/kindling';
+import { gridLine, sameFaceEndpoints } from './fire/wall';
 import { fireball } from './fireball';
+import { immolate } from './immolate';
+import { kindling } from './kindling';
 import { wandStrike } from './wandStrike';
+import { wallOfFlame } from './wallOfFlame';
 import type { CastCheckResult, SpellCastContext, SpellDef, SpellTarget } from './types';
-import type { Cell, GameState } from '../types';
+import type { Cell, Enemy, GameState } from '../types';
 
 export type { CastCheckResult, SpellCastContext, SpellDef, SpellTarget } from './types';
 export { fireball, aoeCells, enemiesInFireballBlast } from './fireball';
 export { wandStrike } from './wandStrike';
+export { immolate } from './immolate';
+export { kindling } from './kindling';
+export { wallOfFlame, gridLine, sameFaceEndpoints } from './wallOfFlame';
+export { applyFireDamage } from './fire/fireDamage';
+export { isKindled, applyKindled, clearKindled } from './fire/kindled';
+export { isValidKindlingPlacement, addKindlingPatch, runKindlingPatchStepEffects } from './fire/kindling';
+export { isOnWall, startImmolate, clearImmolate, isImmolating, onEnemyWallStep } from './fire/immolate';
+export { resetFireState, tickFireEffects } from './fire/tick';
 
 /** Spells shown on the attack-phase hotbar (manual cast only). */
-export const HOTBAR_SPELL_IDS = ['fireball'] as const;
+export const HOTBAR_SPELL_IDS = ['fireball', 'immolate', 'wallOfFlame', 'kindling'] as const;
 export const HOTBAR_SLOT_COUNT = 6;
 
-const SPELLS: SpellDef[] = [fireball, wandStrike];
+const SPELLS: SpellDef[] = [fireball, immolate, wallOfFlame, kindling, wandStrike];
 
 export function getSpell(id: string): SpellDef | undefined {
   return SPELLS.find((s) => s.id === id);
@@ -34,10 +48,16 @@ function gridDistance(from: { col: number; row: number }, cell: Cell): number {
   return Math.abs(from.col - cell.col) + Math.abs(from.row - cell.row);
 }
 
-function buildContext(state: GameState, spell: SpellDef): SpellCastContext {
-  return {
+export function enemyAtCell(state: GameState, cell: Cell): Enemy | undefined {
+  return state.enemies.find(
+    (e) => e.currentHp > 0 && e.pos.col === cell.col && e.pos.row === cell.row,
+  );
+}
+
+export function buildSpellContext(state: GameState, spellName: string): SpellCastContext {
+  const ctx: SpellCastContext = {
     state,
-    spellName: spell.name,
+    spellName,
     damageEnemy(enemy, damage, dexterity = 0) {
       const template = getEnemyTemplate(enemy.templateId);
       if (!template) return;
@@ -46,11 +66,14 @@ function buildContext(state: GameState, spell: SpellDef): SpellCastContext {
       const result = computeDamage(attacker, defender, state.rngState);
       state.rngState = result.rngState;
       if (result.dodged) {
-        addMessage(state, `${enemy.name} the ${template.type} dodges the ${spell.name}.`, 'combat');
+        addMessage(state, `${enemy.name} the ${template.type} dodges the ${spellName}.`, 'combat');
       } else {
         enemy.currentHp -= result.damage;
-        addMessage(state, `${spell.name} hits ${enemy.name} the ${template.type} for ${result.damage}.`, 'combat');
+        addMessage(state, `${spellName} hits ${enemy.name} the ${template.type} for ${result.damage}.`, 'combat');
       }
+    },
+    applyFireDamage(enemy, damage, dexterity = 0) {
+      applyFireDamage(ctx, enemy, damage, dexterity);
     },
     log(text, kind) {
       addMessage(state, text, kind);
@@ -58,12 +81,17 @@ function buildContext(state: GameState, spell: SpellDef): SpellCastContext {
     damageWizard(damage) {
       const wizard = state.player.wizard;
       wizard.hp = Math.max(0, wizard.hp - damage);
-      addMessage(state, `${spell.name} scorches the wizard for ${damage}!`, 'combat');
+      addMessage(state, `${spellName} scorches the wizard for ${damage}!`, 'combat');
       if (wizard.hp <= 0) {
         loseGame(state);
       }
     },
   };
+  return ctx;
+}
+
+function buildContext(state: GameState, spell: SpellDef): SpellCastContext {
+  return buildSpellContext(state, spell.name);
 }
 
 export function spellCooldownRemaining(state: GameState, spellId: string): number {
@@ -80,11 +108,50 @@ export function canCastSpell(state: GameState, spellId: string, target?: SpellTa
   if (state.player.mana < spell.manaCost) return { ok: false, reason: 'no_mana' };
   if (spellCooldownRemaining(state, spellId) > 0) return { ok: false, reason: 'on_cooldown' };
 
+  const wizardPos = getWizardPosition(state.tower);
+
   if (spell.targeting === 'gridPoint') {
     if (target?.kind !== 'cell') return { ok: false, reason: 'no_target' };
-    const wizardPos = getWizardPosition(state.tower);
     if (gridDistance(wizardPos, target.cell) > spell.range) {
       return { ok: false, reason: 'out_of_range' };
+    }
+  }
+
+  if (spell.targeting === 'trapAdjacent') {
+    if (target?.kind !== 'cell') return { ok: false, reason: 'no_target' };
+    if (gridDistance(wizardPos, target.cell) > spell.range) {
+      return { ok: false, reason: 'out_of_range' };
+    }
+    if (!isValidKindlingPlacement(state.tower, target.cell)) {
+      return { ok: false, reason: 'invalid_placement' };
+    }
+  }
+
+  if (spell.targeting === 'enemy') {
+    if (target?.kind !== 'enemy') return { ok: false, reason: 'no_target' };
+    const enemy = state.enemies.find((e) => e.id === target.enemyId);
+    if (!enemy || enemy.currentHp <= 0) return { ok: false, reason: 'no_target' };
+    if (gridDistance(wizardPos, enemy.pos) > spell.range) {
+      return { ok: false, reason: 'out_of_range' };
+    }
+  }
+
+  if (spell.targeting === 'segment') {
+    if (target?.kind === 'cell') {
+      if (gridDistance(wizardPos, target.cell) > spell.range) {
+        return { ok: false, reason: 'out_of_range' };
+      }
+      return { ok: true };
+    }
+    if (target?.kind !== 'segment') return { ok: false, reason: 'no_target' };
+    if (gridDistance(wizardPos, target.from) > spell.range || gridDistance(wizardPos, target.to) > spell.range) {
+      return { ok: false, reason: 'out_of_range' };
+    }
+    if (!sameFaceEndpoints(state.tower, target.from, target.to)) {
+      return { ok: false, reason: 'invalid_segment' };
+    }
+    if (!gridLine(target.from, target.to)) {
+      return { ok: false, reason: 'invalid_segment' };
     }
   }
 

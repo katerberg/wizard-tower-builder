@@ -6,7 +6,14 @@ import { getEnemyTemplate } from './enemies';
 import { addMessage } from './messages';
 import { findPath } from '../calculations/pathfinding';
 import { runEnemyStepEffects, runRoomEffects } from './modifications/effects';
-import { runAutoSpells, tickSpellCooldowns } from './spells';
+import {
+  buildSpellContext,
+  onEnemyWallStep,
+  runAutoSpells,
+  runKindlingPatchStepEffects,
+  tickFireEffects,
+  tickSpellCooldowns,
+} from './spells';
 import { endWave, loseGame, startRun, captureBuildBaseline } from './phases';
 import { seedFrom, shuffle } from '../calculations/rng';
 import { createStarterTower } from './starterTower';
@@ -44,6 +51,9 @@ export function createInitialState(seed: string | number = 'wizard'): GameState 
     devMode: false,
     roomEffectTimers: {},
     spellCooldowns: {},
+    kindlingPatches: [],
+    wallOfFlameSegments: [],
+    fireEnterDone: {},
     buildBaseline: null,
   };
   captureBuildBaseline(state);
@@ -187,12 +197,14 @@ export function step(state: GameState, dt: number): void {
       enemy.pos = enemy.path[enemy.pathIndex];
       enemy.moveCooldown = 1 / template.speed;
       runEnemyStepEffects(state, enemy);
+      runKindlingPatchStepEffects(state, enemy);
+      onEnemyWallStep(state, enemy);
     }
   }
 
-  // Wand Strike and other auto-cast spells tick on cooldown during the wave.
   tickSpellCooldowns(state, dt);
   runAutoSpells(state);
+  tickFireEffects(state, dt, (spellName) => buildSpellContext(state, spellName));
 
   // Room behaviors (turret rooms) and modifications (spikes) act on enemies this tick.
   runRoomEffects(state, dt);
