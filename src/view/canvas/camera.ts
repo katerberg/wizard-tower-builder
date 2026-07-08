@@ -54,6 +54,9 @@ export function subCellCenter(
 /** Pixel inset matching room fill stroke so climbers sit on the wall surface. */
 const SURFACE_INSET = 2;
 
+/** Height of the ground bar drawn along the floor of macro row 0. */
+export const GROUND_LINE_INSET = 4;
+
 /** Draw radius for one sub-cell (1×1 fine grid) enemy glyph. */
 export function enemyDrawRadius(tier: EnemySizeTier = 'swarm'): number {
   switch (tier) {
@@ -77,7 +80,11 @@ export function exteriorNodeDrawCenter(
   radius = 0,
 ): { x: number; y: number } {
   const { x: subX, y: subY } = subCellTopLeft(pos.col, pos.row, scrollY, viewportHeight);
-  const surfaceY = subY + SUB_CELL_SIZE - radius - SURFACE_INSET;
+  // Row 0 is the bottom sub-band; feet sit on its top edge (not the canvas bottom).
+  const surfaceY =
+    pos.row === 0
+      ? subY - radius - SURFACE_INSET
+      : subY + SUB_CELL_SIZE - radius - SURFACE_INSET;
 
   if (pos.face === 'right') {
     return { x: (pos.col + 1) * SUB_CELL_SIZE - radius - SURFACE_INSET, y: surfaceY };

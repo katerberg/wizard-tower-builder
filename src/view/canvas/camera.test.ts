@@ -87,6 +87,13 @@ describe('exteriorNodeDrawCenter', () => {
     const subBottom = viewportHeight - subRow * SUB_CELL_SIZE;
     expect(y + radius + 2).toBeCloseTo(subBottom, 5);
   });
+
+  it('rests ground-row units on the top edge of the ground sub-band', () => {
+    const { y } = exteriorNodeDrawCenter({ col: 0, row: 0, face: 'top' }, 0, viewportHeight, radius);
+    const groundSurface = viewportHeight - SUB_CELL_SIZE - 2;
+    expect(y + radius).toBeCloseTo(groundSurface, 5);
+    expect(y - radius).toBeGreaterThanOrEqual(0);
+  });
 });
 
 describe('enemyDrawRadius', () => {

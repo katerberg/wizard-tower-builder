@@ -7,7 +7,7 @@ import { computeRoomStats } from '@/calculations/combat';
 import { getUnstableRoomIds } from '@/model/tower';
 import { selectCastPreview, selectGhostPlacement, selectWizardPosition } from '@/store/selectors';
 import type { Snapshot } from '@/store/store';
-import { BOARD_WIDTH, cellCenter, cellTopLeft, enemyDrawRadius, exteriorNodeDrawCenter, visibleRowRange } from './camera';
+import { BOARD_WIDTH, cellCenter, cellTopLeft, enemyDrawRadius, exteriorNodeDrawCenter, GROUND_LINE_INSET, visibleRowRange } from './camera';
 
 export class Renderer {
   private canvas: HTMLCanvasElement;
@@ -99,10 +99,10 @@ export class Renderer {
 
   private drawGround(scrollY: number, viewportHeight: number): void {
     const { ctx } = this;
-    const { y } = cellTopLeft(0, 0, scrollY, viewportHeight);
-    if (y > viewportHeight || y + CELL_SIZE < 0) return;
+    const groundTop = viewportHeight + scrollY - SUB_CELL_SIZE;
+    if (groundTop > viewportHeight || groundTop + SUB_CELL_SIZE < 0) return;
     ctx.fillStyle = colors.ground;
-    ctx.fillRect(0, y + CELL_SIZE - 4, BOARD_WIDTH, 4);
+    ctx.fillRect(0, groundTop, BOARD_WIDTH, GROUND_LINE_INSET);
   }
 
   private drawRooms(snapshot: Snapshot, scrollY: number, viewportHeight: number): void {
