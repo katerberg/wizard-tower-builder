@@ -61,6 +61,8 @@ export interface MovementProfile {
   canTransferFaces: boolean;
 }
 
+export type EnemySizeTier = 'swarm' | 'elite' | 'boss';
+
 export interface EnemyTemplate {
   id: string;
   type: string;
@@ -70,6 +72,7 @@ export interface EnemyTemplate {
   speed: number;
   currencyReward: number;
   movement: MovementProfile;
+  sizeTier: EnemySizeTier;
   dropChance?: number;
   dropItemId?: string;
 }
@@ -88,9 +91,11 @@ export interface Enemy {
   kindledUntil?: number;
   /** Fire school: Immolate burn expires at this waveTimer. */
   immolateUntil?: number;
-  /** Cells traveled on wall while Immolating (ramp). */
+  /** Cells traveled on wall while Immolating (macro cells, for ramp). */
   immolateDistanceBurned?: number;
   immolateTickTimer?: number;
+  /** Last macro cell counted toward Immolate ramp. */
+  immolateLastMacroKey?: string;
   /** Wall of Flame segment keys the enemy is currently inside. */
   wallFlameInside?: string[];
 }
@@ -127,6 +132,8 @@ export interface WallOfFlameSegment {
   tickTimer: number;
 }
 
+export type SimSpeed = 1 | 2 | 4;
+
 export interface GameState {
   scene: Scene;
   phase: Phase;
@@ -136,6 +143,8 @@ export interface GameState {
   waveTimer: number;
   spawnTimer: number;
   spawnQueue: string[];
+  /** Simulation speed multiplier during attack (1 = normal). */
+  simSpeed: SimSpeed;
   player: Player;
   tower: Tower;
   enemies: Enemy[];

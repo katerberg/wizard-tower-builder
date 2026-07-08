@@ -1,3 +1,4 @@
+import { macroCellOfNode } from '../../../calculations/subGrid';
 import { getWizardPosition } from '../../tower';
 import type { GameState, WallOfFlameSegment } from '../../types';
 import type { SpellCastContext } from '../types';
@@ -49,7 +50,8 @@ function tickWallOfFlame(state: GameState, dt: number, buildCtx: (spellName: str
 
     for (const enemy of state.enemies) {
       if (enemy.currentHp <= 0) continue;
-      const inside = segmentContainsCell(segment, enemy.pos.col, enemy.pos.row);
+      const enemyMacro = macroCellOfNode(enemy.pos);
+      const inside = segmentContainsCell(segment, enemyMacro.col, enemyMacro.row);
       const insideKeys = enemy.wallFlameInside ?? [];
       const wasInside = insideKeys.includes(key);
 
@@ -65,7 +67,8 @@ function tickWallOfFlame(state: GameState, dt: number, buildCtx: (spellName: str
       }
     }
 
-    const wizardInside = segmentContainsCell(segment, wizardPos.col, wizardPos.row);
+    const wizardMacro = macroCellOfNode(wizardPos);
+    const wizardInside = segmentContainsCell(segment, wizardMacro.col, wizardMacro.row);
     const wizardEnterKey = `${key}:wizard`;
     if (wizardInside && !state.fireEnterDone[wizardEnterKey]) {
       state.fireEnterDone[wizardEnterKey] = true;
@@ -77,7 +80,8 @@ function tickWallOfFlame(state: GameState, dt: number, buildCtx: (spellName: str
 
     for (const enemy of state.enemies) {
       if (enemy.currentHp <= 0) continue;
-      if (!segmentContainsCell(segment, enemy.pos.col, enemy.pos.row)) continue;
+      const enemyMacro = macroCellOfNode(enemy.pos);
+      if (!segmentContainsCell(segment, enemyMacro.col, enemyMacro.row)) continue;
       applyFireDamage(ctx, enemy, WALL_OF_FLAME_TICK_DAMAGE);
     }
 

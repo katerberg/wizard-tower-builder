@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { CELL_SIZE } from '@/config/constants';
-import { cellCenter, cellTopLeft, screenToCell, visibleRowRange } from './camera';
+import { CELL_SIZE, SUB_CELL_SIZE } from '@/config/constants';
+import { cellCenter, cellTopLeft, enemyDrawRadius, exteriorNodeDrawCenter, screenToCell, visibleRowRange } from './camera';
 
 const TEST_VIEWPORT_HEIGHT = 12 * CELL_SIZE;
 
@@ -43,5 +43,60 @@ describe('visibleRowRange', () => {
     const short = visibleRowRange(0, TEST_VIEWPORT_HEIGHT);
     const tall = visibleRowRange(0, TEST_VIEWPORT_HEIGHT * 2);
     expect(tall.maxRow - tall.minRow).toBeGreaterThan(short.maxRow - short.minRow);
+  });
+});
+
+describe('exteriorNodeDrawCenter', () => {
+  const viewportHeight = TEST_VIEWPORT_HEIGHT;
+  const radius = enemyDrawRadius('swarm');
+
+  it('snaps climbers on the left exterior flush to the room edge per sub-cell', () => {
+    const subCol = 5 * 3 + 1;
+    const pos = { col: subCol, row: 4, face: 'right' as const };
+    const { x } = exteriorNodeDrawCenter(pos, 0, viewportHeight, radius);
+    const roomEdgeX = 6 * CELL_SIZE;
+    expect(x + radius).toBeLessThanOrEqual(roomEdgeX);
+    expect(x).toBe((subCol + 1) * SUB_CELL_SIZE - radius - 2);
+  });
+
+  it('snaps climbers on the right exterior flush to the room edge per sub-cell', () => {
+    const subCol = 7 * 3;
+    const pos = { col: subCol, row: 4, face: 'left' as const };
+    const { x } = exteriorNodeDrawCenter(pos, 0, viewportHeight, radius);
+    expect(x - radius).toBeGreaterThanOrEqual(7 * CELL_SIZE);
+  });
+
+  it('offsets horizontal position per sub-column on the same wall', () => {
+    const lowCol = 5 * 3;
+    const highCol = 5 * 3 + 2;
+    const low = exteriorNodeDrawCenter({ col: lowCol, row: 4, face: 'right' }, 0, viewportHeight, radius);
+    const high = exteriorNodeDrawCenter({ col: highCol, row: 4, face: 'right' }, 0, viewportHeight, radius);
+    expect(high.x - low.x).toBe(2 * SUB_CELL_SIZE);
+  });
+
+  it('keeps vertical motion on sub-rows while wall-hugging horizontally', () => {
+    const low = exteriorNodeDrawCenter({ col: 14, row: 2, face: 'right' }, 0, viewportHeight, radius);
+    const high = exteriorNodeDrawCenter({ col: 14, row: 8, face: 'right' }, 0, viewportHeight, radius);
+    expect(high.y).toBeLessThan(low.y);
+    expect(high.x).toBe(low.x);
+  });
+
+  it('places top-face units on the surface below their sub-cell, not above it', () => {
+    const subRow = 6;
+    const { y } = exteriorNodeDrawCenter({ col: 16, row: subRow, face: 'top' }, 0, viewportHeight, radius);
+    const subBottom = viewportHeight - subRow * SUB_CELL_SIZE;
+    expect(y + radius + 2).toBeCloseTo(subBottom, 5);
+  });
+});
+
+describe('enemyDrawRadius', () => {
+  it('fits swarm glyphs within one sub-cell', () => {
+    expect(enemyDrawRadius('swarm') * 2).toBeLessThanOrEqual(SUB_CELL_SIZE - 2);
+  });
+
+  it('scales elites and bosses up slightly but stays sub-cell sized', () => {
+    expect(enemyDrawRadius('elite')).toBeGreaterThan(enemyDrawRadius('swarm'));
+    expect(enemyDrawRadius('boss')).toBeGreaterThan(enemyDrawRadius('elite'));
+    expect(enemyDrawRadius('boss') * 2).toBeLessThanOrEqual(SUB_CELL_SIZE);
   });
 });

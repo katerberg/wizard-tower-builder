@@ -1,8 +1,13 @@
 export const CELL_SIZE = 48;
+/** Sub-cells per macro cell edge — movement uses the finer grid; build/spells stay macro. */
+export const SUB_CELLS_PER_MACRO = 3;
+export const SUB_CELL_SIZE = CELL_SIZE / SUB_CELLS_PER_MACRO;
+export const SUB_GRID_COLS = 16 * SUB_CELLS_PER_MACRO;
+
 export const FIXED_DT = 1 / 60;
 export const MAX_FRAME_TIME = 0.25;
-/** Keep visuals and log in 1:1 with simulation during attack (no catch-up bursts). */
-export const MAX_STEPS_PER_FRAME = 1;
+/** Attack-phase sim steps per frame (supports sim speed up to 4×). */
+export const MAX_STEPS_PER_FRAME = 4;
 
 export const GRID_COLS = 16;
 /** Minimum visible rows when the stage is very short (does not cap tower height). */
@@ -17,7 +22,11 @@ export const MAX_OVERHANG_STEP = 1;
 export const MIN_BUTTRESS_WIDTH = 2;
 
 // Gameplay tuning (attack phase).
-export const SPAWN_INTERVAL = 0.8;
+export const SPAWN_INTERVAL_SWARM = 0.45;
+export const SPAWN_INTERVAL_SKIRMISHER = 0.6;
+export const SPAWN_INTERVAL_ELITE = 7.5;
+export const SPAWN_INTERVAL_BRUTE = 10.5;
+export const MAX_LIVE_ENEMIES = 80;
 export const ENEMY_ATTACK_COOLDOWN = 1.0;
 
 export const WIZARD_DEFAULTS = {

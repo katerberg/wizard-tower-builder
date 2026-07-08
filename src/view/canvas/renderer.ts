@@ -1,4 +1,5 @@
-import { CELL_SIZE, GRID_COLS, colors } from '@/config/constants';
+import { CELL_SIZE, GRID_COLS, SUB_CELL_SIZE, SUB_CELLS_PER_MACRO, colors } from '@/config/constants';
+import { sameMacroCell } from '@/calculations/subGrid';
 import { getBlueprint } from '@/model/blueprints';
 import { getEnemyTemplate } from '@/model/enemies';
 import { getModification } from '@/model/modifications';
@@ -6,7 +7,7 @@ import { computeRoomStats } from '@/calculations/combat';
 import { getUnstableRoomIds } from '@/model/tower';
 import { selectCastPreview, selectGhostPlacement, selectWizardPosition } from '@/store/selectors';
 import type { Snapshot } from '@/store/store';
-import { BOARD_WIDTH, cellCenter, cellTopLeft, visibleRowRange } from './camera';
+import { BOARD_WIDTH, cellCenter, cellTopLeft, enemyDrawRadius, exteriorNodeDrawCenter, visibleRowRange } from './camera';
 
 export class Renderer {
   private canvas: HTMLCanvasElement;
@@ -52,8 +53,29 @@ export class Renderer {
   private drawGrid(scrollY: number, viewportHeight: number): void {
     const { ctx } = this;
     const { minRow, maxRow } = visibleRowRange(scrollY, viewportHeight);
+    const minSubRow = minRow * SUB_CELLS_PER_MACRO;
+    const maxSubRow = (maxRow + 1) * SUB_CELLS_PER_MACRO;
+
     ctx.strokeStyle = colors.grid;
     ctx.lineWidth = 1;
+    ctx.globalAlpha = 0.35;
+    for (let sc = 0; sc <= GRID_COLS * SUB_CELLS_PER_MACRO; sc++) {
+      ctx.beginPath();
+      ctx.moveTo(sc * SUB_CELL_SIZE, 0);
+      ctx.lineTo(sc * SUB_CELL_SIZE, viewportHeight);
+      ctx.stroke();
+    }
+    for (let sr = minSubRow; sr <= maxSubRow; sr++) {
+      const y = viewportHeight - (sr + 1) * SUB_CELL_SIZE + scrollY;
+      if (y < -SUB_CELL_SIZE || y > viewportHeight + SUB_CELL_SIZE) continue;
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(BOARD_WIDTH, y);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+
+    ctx.strokeStyle = colors.grid;
     for (let c = 0; c <= GRID_COLS; c++) {
       ctx.beginPath();
       ctx.moveTo(c * CELL_SIZE, 0);
@@ -251,21 +273,24 @@ export class Renderer {
   ): void {
     const { ctx } = this;
     for (const enemy of snapshot.game.enemies) {
-      const atWizard = enemy.pos.col === wizardPos.col && enemy.pos.row === wizardPos.row;
+      const atWizard = sameMacroCell(enemy.pos, wizardPos);
       if (layer === 'climbers' ? atWizard : !atWizard) continue;
 
       const template = getEnemyTemplate(enemy.templateId);
       const pos = this.interpolatedEnemyPos(enemy, snapshot);
-      const center = cellCenter(pos.col, pos.row, scrollY, viewportHeight);
-      let faceOffset =
-        pos.face === 'left' ? -CELL_SIZE * 0.25 : pos.face === 'right' ? CELL_SIZE * 0.25 : 0;
+      const tier = template?.sizeTier ?? 'swarm';
+      const r = enemyDrawRadius(tier);
+
+      let x: number;
+      let y: number;
       if (atWizard) {
+        const draw = exteriorNodeDrawCenter(pos, scrollY, viewportHeight, r);
         const stagger = enemy.id.charCodeAt(enemy.id.length - 1) % 2 === 0 ? 1 : -1;
-        faceOffset = stagger * CELL_SIZE * 0.42;
+        x = draw.x + stagger * SUB_CELL_SIZE * 0.55;
+        y = draw.y;
+      } else {
+        ({ x, y } = exteriorNodeDrawCenter(pos, scrollY, viewportHeight, r));
       }
-      const x = center.x + faceOffset;
-      const y = center.y;
-      const r = CELL_SIZE * 0.32;
 
       if (y + r < 0 || y - r > viewportHeight) continue;
 
@@ -275,13 +300,13 @@ export class Renderer {
       ctx.fill();
 
       ctx.fillStyle = '#1a202c';
-      ctx.font = `${Math.floor(CELL_SIZE * 0.4)}px monospace`;
+      ctx.font = `${Math.floor(r * 1.2)}px monospace`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(template?.glyph ?? 'e', x, y);
 
-      if (template) {
-        this.drawHpBar(x - r, y - r - 8, r * 2, enemy.currentHp / template.stats.maxHp);
+      if (template && tier !== 'swarm') {
+        this.drawHpBar(x - r, y - r - 6, r * 2, enemy.currentHp / template.stats.maxHp);
       }
     }
   }
@@ -304,7 +329,7 @@ export class Renderer {
     if (snapshot.game.scene === 'menu') return;
     const { ctx } = this;
     const pos = selectWizardPosition(snapshot);
-    const { x, y } = cellCenter(pos.col, pos.row, scrollY, viewportHeight);
+    const { x, y } = exteriorNodeDrawCenter(pos, scrollY, viewportHeight, CELL_SIZE * 0.36);
     const wizard = snapshot.game.player.wizard;
 
     if (y + CELL_SIZE * 0.36 < 0 || y - CELL_SIZE * 0.36 > viewportHeight) return;
@@ -331,7 +356,8 @@ export class Renderer {
       if (enemy.path.length < 2) continue;
       ctx.beginPath();
       for (let i = enemy.pathIndex; i < enemy.path.length; i++) {
-        const { x, y } = cellCenter(enemy.path[i].col, enemy.path[i].row, scrollY, viewportHeight);
+        const node = enemy.path[i];
+        const { x, y } = exteriorNodeDrawCenter(node, scrollY, viewportHeight, 4);
         if (i === enemy.pathIndex) ctx.moveTo(x, y);
         else ctx.lineTo(x, y);
       }

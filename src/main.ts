@@ -6,6 +6,7 @@ import { createLibrary } from './view/dom/library';
 import { createMessageLog } from './view/dom/messageLog';
 import { createModal } from './view/dom/modal';
 import { createOverlay } from './view/dom/overlay';
+import { createSpeedBar } from './view/dom/speedBar';
 import { createSpellBar } from './view/dom/spellBar';
 import { createTooltip } from './view/dom/tooltip';
 import { startLoop } from './view/loop';
@@ -37,6 +38,7 @@ const domViews = [
   createSpellBar(requireEl('spell-bar'), store),
   createLibrary(requireEl('library'), store),
   createMessageLog(requireEl('message-log'), store),
+  createSpeedBar(requireEl('speed-bar'), store),
   createModal(requireEl('modal-root'), store),
   createOverlay(requireEl('overlay-root'), store),
   createTooltip(requireEl('tooltip-root'), store, pointer, requireEl('sidebar')),

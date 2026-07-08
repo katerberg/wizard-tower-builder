@@ -1,3 +1,4 @@
+import { SUB_CELLS_PER_MACRO } from '@/config/constants';
 import { describe, expect, it } from 'vitest';
 import { netBuildCost, remainingBuildGold } from '@/calculations/buildCost';
 import { STARTING_CURRENCY } from '@/config/constants';
@@ -33,7 +34,7 @@ describe('createStarterTower', () => {
   it('places the wizard perch above the crown', () => {
     const tower = createStarterTower();
     const wizard = getWizardPosition(tower);
-    expect(wizard.row).toBe(6);
+    expect(wizard).toEqual({ col: 6 * SUB_CELLS_PER_MACRO + 1, row: 6 * SUB_CELLS_PER_MACRO, face: 'top' });
   });
 });
 

@@ -1,3 +1,4 @@
+import { macroCellOfNode } from '../../../calculations/subGrid';
 import { surfaceContacts } from '../../../calculations/exteriorGraph';
 import { getEnemyTemplate } from '../../enemies';
 import type { Enemy, GameState, Tower } from '../../types';
@@ -26,12 +27,15 @@ export function startImmolate(state: GameState, enemy: Enemy): void {
   enemy.immolateUntil = state.waveTimer + IMMOLATE_DURATION;
   enemy.immolateDistanceBurned = 0;
   enemy.immolateTickTimer = 0;
+  const macro = macroCellOfNode(enemy.pos);
+  enemy.immolateLastMacroKey = `${macro.col},${macro.row}`;
 }
 
 export function clearImmolate(enemy: Enemy): void {
   delete enemy.immolateUntil;
   delete enemy.immolateDistanceBurned;
   delete enemy.immolateTickTimer;
+  delete enemy.immolateLastMacroKey;
 }
 
 export function isImmolating(enemy: Enemy, state: GameState): boolean {
@@ -44,6 +48,10 @@ export function onEnemyWallStep(state: GameState, enemy: Enemy): void {
     clearImmolate(enemy);
     return;
   }
+  const macro = macroCellOfNode(enemy.pos);
+  const key = `${macro.col},${macro.row}`;
+  if (enemy.immolateLastMacroKey === key) return;
+  enemy.immolateLastMacroKey = key;
   enemy.immolateDistanceBurned = (enemy.immolateDistanceBurned ?? 0) + 1;
 }
 

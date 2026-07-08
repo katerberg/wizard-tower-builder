@@ -1,3 +1,4 @@
+import { macroCellOfNode } from '@/calculations/subGrid';
 import type { SpellCastContext, SpellDef } from './types';
 import type { Cell } from '../types';
 import { getWizardPosition } from '../tower';
@@ -14,9 +15,11 @@ function cellsInAoE(center: Cell, radius: number): Cell[] {
 
 function enemiesInCells(ctx: SpellCastContext, cells: Cell[]) {
   const keys = new Set(cells.map((c) => `${c.col},${c.row}`));
-  return ctx.state.enemies.filter(
-    (enemy) => enemy.currentHp > 0 && keys.has(`${enemy.pos.col},${enemy.pos.row}`),
-  );
+  return ctx.state.enemies.filter((enemy) => {
+    if (enemy.currentHp <= 0) return false;
+    const macro = macroCellOfNode(enemy.pos);
+    return keys.has(`${macro.col},${macro.row}`);
+  });
 }
 
 export function aoeCells(center: Cell, radius: number): Cell[] {
@@ -29,7 +32,8 @@ export function enemiesInFireballBlast(ctx: SpellCastContext, center: Cell): Ret
 
 function wizardInCells(ctx: SpellCastContext, cells: Cell[]): boolean {
   const wizardPos = getWizardPosition(ctx.state.tower);
-  return cells.some((c) => c.col === wizardPos.col && c.row === wizardPos.row);
+  const wizardMacro = macroCellOfNode(wizardPos);
+  return cells.some((c) => c.col === wizardMacro.col && c.row === wizardMacro.row);
 }
 
 export const fireball: SpellDef = {

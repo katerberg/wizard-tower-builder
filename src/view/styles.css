@@ -47,10 +47,70 @@ body {
   min-height: 0;
 }
 
+#stage-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  max-height: 100%;
+}
+
 #board {
   background: var(--bg);
   border: 1px solid var(--panel-2);
   flex-shrink: 0;
+}
+
+#speed-bar {
+  width: 100%;
+  max-width: 768px;
+}
+
+.speed-bar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: var(--panel);
+  border: 1px solid var(--panel-2);
+  border-radius: 6px;
+}
+
+.speed-bar-inner.dimmed {
+  opacity: 0.45;
+}
+
+.speed-label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.speed-buttons {
+  display: flex;
+  gap: 4px;
+}
+
+.speed-btn {
+  padding: 6px 14px;
+  font-size: 13px;
+  border: 1px solid var(--panel-2);
+  border-radius: 4px;
+  background: var(--panel-2);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.speed-btn.active {
+  background: var(--accent);
+  border-color: var(--accent-bright);
+  color: #fff;
+}
+
+.speed-btn:disabled {
+  cursor: default;
 }
 
 h1 {

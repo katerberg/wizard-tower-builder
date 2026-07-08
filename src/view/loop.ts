@@ -2,8 +2,8 @@ import { FIXED_DT, MAX_FRAME_TIME, MAX_STEPS_PER_FRAME } from '@/config/constant
 import type { Store } from '@/store/store';
 
 /**
- * Fixed-timestep loop with one sim step per frame so canvas motion, combat log
- * ticks, and model state stay aligned. Positions interpolate between steps.
+ * Fixed-timestep loop with sim-speed multiplier during attack so longer waves
+ * can be fast-forwarded. Positions interpolate between steps.
  */
 export function startLoop(store: Store, render: () => void): void {
   let accumulator = 0;
@@ -15,11 +15,13 @@ export function startLoop(store: Store, render: () => void): void {
     accumulator += frameTime;
 
     let steps = 0;
+    const simSpeed = store.getSimSpeed();
     while (accumulator >= FIXED_DT && steps < MAX_STEPS_PER_FRAME) {
       store.captureForRender();
       store.advance(FIXED_DT);
       accumulator -= FIXED_DT;
       steps += 1;
+      if (steps >= simSpeed) break;
     }
 
     store.setRenderAlpha(Math.min(1, accumulator / FIXED_DT));

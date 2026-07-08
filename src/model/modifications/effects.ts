@@ -1,4 +1,5 @@
 import { computeDamage, type Combatant } from '../../calculations/combat';
+import { macroCellOfNode } from '../../calculations/subGrid';
 import { reward as rewardCurrency } from '../../calculations/economy';
 import { roomCells } from '../../calculations/grid';
 import { getEnemyTemplate } from '../enemies';
@@ -14,18 +15,20 @@ function livingEnemies(state: GameState): Enemy[] {
 }
 
 function minDistanceToFootprint(enemy: Enemy, cells: Cell[]): number {
+  const em = macroCellOfNode(enemy.pos);
   let best = Infinity;
   for (const c of cells) {
-    const d = Math.hypot(enemy.pos.col - c.col, enemy.pos.row - c.row);
+    const d = Math.hypot(em.col - c.col, em.row - c.row);
     if (d < best) best = d;
   }
   return best;
 }
 
 function minManhattanToFootprint(enemy: Enemy, cells: Cell[]): number {
+  const em = macroCellOfNode(enemy.pos);
   let best = Infinity;
   for (const c of cells) {
-    const d = Math.abs(enemy.pos.col - c.col) + Math.abs(enemy.pos.row - c.row);
+    const d = Math.abs(em.col - c.col) + Math.abs(em.row - c.row);
     if (d < best) best = d;
   }
   return best;

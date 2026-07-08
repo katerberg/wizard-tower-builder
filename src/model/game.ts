@@ -1,4 +1,11 @@
-import { ENEMY_ATTACK_COOLDOWN, MAX_MANA, SPAWN_INTERVAL, STARTING_CURRENCY, WIZARD_DEFAULTS } from '@/config/constants';
+import {
+  ENEMY_ATTACK_COOLDOWN,
+  MAX_LIVE_ENEMIES,
+  MAX_MANA,
+  STARTING_CURRENCY,
+  WIZARD_DEFAULTS,
+} from '@/config/constants';
+import { sameMacroCell } from '@/calculations/subGrid';
 import { STARTING_BLUEPRINT_IDS } from './blueprints';
 import { computeDamage, type Combatant } from '../calculations/combat';
 import { spawnNode } from '../calculations/exteriorGraph';
@@ -19,10 +26,13 @@ import { seedFrom, shuffle } from '../calculations/rng';
 import { createStarterTower } from './starterTower';
 import { getWizardPosition } from './tower';
 import { goblinNames, bruteNames, wispNames } from '@/static/names';
-import type { Enemy, EnemyTemplate, ExteriorNode, GameState } from './types';
+import { spawnIntervalFor } from './waves';
+import type { Enemy, EnemyTemplate, ExteriorNode, GameState, SimSpeed } from './types';
 
 let enemyCounter = 0;
 let waveNamePools: Record<string, string[]> = {};
+
+const DEFAULT_SIM_SPEED: SimSpeed = 1;
 
 export function createInitialState(seed: string | number = 'wizard'): GameState {
   enemyCounter = 0;
@@ -36,6 +46,7 @@ export function createInitialState(seed: string | number = 'wizard'): GameState 
     waveTimer: 0,
     spawnTimer: 0,
     spawnQueue: [],
+    simSpeed: loadSimSpeed(),
     player: {
       currency: STARTING_CURRENCY,
       unlockedBlueprints: [...STARTING_BLUEPRINT_IDS],
@@ -60,13 +71,31 @@ export function createInitialState(seed: string | number = 'wizard'): GameState 
   return state;
 }
 
+function loadSimSpeed(): SimSpeed {
+  if (typeof localStorage === 'undefined') return DEFAULT_SIM_SPEED;
+  const raw = localStorage.getItem('wizard-tower-sim-speed');
+  if (raw === '2') return 2;
+  if (raw === '4') return 4;
+  return 1;
+}
+
+export function persistSimSpeed(speed: SimSpeed): void {
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem('wizard-tower-sim-speed', String(speed));
+  }
+}
+
 export function beginRun(state: GameState): void {
   startRun(state);
 }
 
 const namePools: Record<string, readonly string[]> = {
-  goblin: goblinNames,
+  swarm: goblinNames,
+  skirmisher: wispNames,
+  elite: bruteNames,
   brute: bruteNames,
+  // Legacy ids for tests / saves
+  goblin: goblinNames,
   wisp: wispNames,
 };
 
@@ -126,7 +155,7 @@ function spawnEnemy(state: GameState, template: EnemyTemplate, side: 'left' | 'r
 }
 
 function reached(a: ExteriorNode, b: ExteriorNode): boolean {
-  return a.col === b.col && a.row === b.row;
+  return sameMacroCell(a, b);
 }
 
 function enemyCombatant(template: EnemyTemplate): Combatant {
@@ -143,16 +172,20 @@ export function step(state: GameState, dt: number): void {
   const wizardPos = getWizardPosition(state.tower);
   const wizard = state.player.wizard;
 
-  // Spawn from the queue, alternating sides.
+  // Spawn from the queue, alternating sides (paused when at live cap).
   state.spawnTimer -= dt;
-  if (state.spawnTimer <= 0 && state.spawnQueue.length > 0) {
+  if (
+    state.spawnTimer <= 0 &&
+    state.spawnQueue.length > 0 &&
+    state.enemies.length < MAX_LIVE_ENEMIES
+  ) {
     const templateId = state.spawnQueue.shift()!;
     const template = getEnemyTemplate(templateId);
     if (template) {
       const side = state.enemies.length % 2 === 0 ? 'left' : 'right';
       spawnEnemy(state, template, side);
     }
-    state.spawnTimer = SPAWN_INTERVAL;
+    state.spawnTimer = spawnIntervalFor(templateId);
   }
 
   for (const enemy of state.enemies) {

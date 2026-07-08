@@ -1,3 +1,4 @@
+import { SUB_CELLS_PER_MACRO } from '@/config/constants';
 import { faceOf } from '../../../calculations/exteriorGraph';
 import type { Cell, GameState, Tower, WallOfFlameSegment } from '../../types';
 import { WALL_OF_FLAME_MAX_CELLS } from './constants';
@@ -27,7 +28,12 @@ export function gridLine(from: Cell, to: Cell): Cell[] | null {
 }
 
 export function sameFaceEndpoints(tower: Tower, from: Cell, to: Cell): boolean {
-  return faceOf(tower, from.col, from.row) === faceOf(tower, to.col, to.row);
+  const offset = Math.floor(SUB_CELLS_PER_MACRO / 2);
+  const fromSubCol = from.col * SUB_CELLS_PER_MACRO + offset;
+  const fromSubRow = from.row * SUB_CELLS_PER_MACRO + offset;
+  const toSubCol = to.col * SUB_CELLS_PER_MACRO + offset;
+  const toSubRow = to.row * SUB_CELLS_PER_MACRO + offset;
+  return faceOf(tower, fromSubCol, fromSubRow) === faceOf(tower, toSubCol, toSubRow);
 }
 
 export function segmentContainsCell(segment: WallOfFlameSegment, col: number, row: number): boolean {

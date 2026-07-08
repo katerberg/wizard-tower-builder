@@ -1,6 +1,6 @@
 import { createInitialState, step } from '@/model/game';
 import { MIN_VIEWPORT_HEIGHT } from '@/calculations/camera';
-import type { ExteriorNode, Phase } from '@/model/types';
+import type { ExteriorNode, Phase, SimSpeed } from '@/model/types';
 import type { Intent, ViewState } from './intents';
 import type { HandlerContext, StoreRefs } from './context';
 import { applyIntent } from './handlers';
@@ -65,6 +65,10 @@ export class Store {
 
   setRenderAlpha(alpha: number): void {
     this.renderAlpha = alpha;
+  }
+
+  getSimSpeed(): SimSpeed {
+    return this.refs.game.simSpeed;
   }
 
   subscribe(listener: Listener): () => void {

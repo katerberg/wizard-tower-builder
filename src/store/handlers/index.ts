@@ -5,6 +5,7 @@ import { handleCameraIntent } from './camera';
 import { handleDevIntent } from './dev';
 import { handleInspectIntent } from './inspect';
 import { handleModificationsIntent } from './modifications';
+import { handleSpeedIntent } from './speed';
 import { handleSpellIntent } from './spells';
 import { handleWaveIntent } from './wave';
 
@@ -51,6 +52,10 @@ export function applyIntent(ctx: HandlerContext, intent: Intent): void {
     case 'castSpellAt':
     case 'cancelCast':
       handleSpellIntent(ctx, intent);
+      break;
+
+    case 'setSimSpeed':
+      handleSpeedIntent(ctx, intent);
       break;
   }
 }

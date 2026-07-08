@@ -11,7 +11,8 @@ import {
   spellCooldownRemaining,
 } from '@/model/spells';
 import { createRoom, createTower, placeRoom } from '@/model/tower';
-import type { Enemy, GameState } from '@/model/types';
+import type { GameState } from '@/model/types';
+import { makeTestEnemy } from '@/test/subCells';
 
 function towerWithStem(state: GameState): GameState {
   const stem = getBlueprint('stem')!;
@@ -19,18 +20,8 @@ function towerWithStem(state: GameState): GameState {
   return state;
 }
 
-function makeEnemy(col: number, row: number, hp = 34): Enemy {
-  return {
-    id: `e-${col}-${row}`,
-    templateId: 'brute',
-    name: 'Test',
-    pos: { col, row, face: 'left' },
-    path: [],
-    pathIndex: 0,
-    currentHp: hp,
-    moveCooldown: 0,
-    attackCooldown: 0,
-  };
+function makeEnemy(macroCol: number, macroRow: number, hp = 28) {
+  return makeTestEnemy(macroCol, macroRow, { hp });
 }
 
 describe('mana', () => {
@@ -97,7 +88,7 @@ describe('fireball casting', () => {
     state.enemies = [enemy];
 
     castSpell(state, 'fireball', { kind: 'cell', cell: { col: 8, row: 1 } });
-    expect(enemy.currentHp).toBeLessThan(34);
+    expect(enemy.currentHp).toBeLessThan(28);
   });
 
   it('does not damage enemies outside the blast', () => {
@@ -107,7 +98,7 @@ describe('fireball casting', () => {
     state.enemies = [far];
 
     castSpell(state, 'fireball', { kind: 'cell', cell: { col: 8, row: 1 } });
-    expect(far.currentHp).toBe(34);
+    expect(far.currentHp).toBe(28);
   });
 
   it('damages the wizard when the blast includes their perch', () => {

@@ -19,7 +19,8 @@ import {
   tickFireEffects,
 } from '@/model/spells';
 import { createRoom, createTower, placeRoom } from '@/model/tower';
-import type { Enemy, GameState } from '@/model/types';
+import type { GameState } from '@/model/types';
+import { makeTestEnemy, subAt } from '@/test/subCells';
 import { KINDLED_BURST, KINDLED_DURATION } from '@/model/spells/fire/constants';
 
 function towerWithStem(state: GameState): GameState {
@@ -28,18 +29,8 @@ function towerWithStem(state: GameState): GameState {
   return state;
 }
 
-function makeEnemy(col: number, row: number, hp = 40): Enemy {
-  return {
-    id: `e-${col}-${row}`,
-    templateId: 'brute',
-    name: 'Test',
-    pos: { col, row, face: 'left' },
-    path: [],
-    pathIndex: 0,
-    currentHp: hp,
-    moveCooldown: 0,
-    attackCooldown: 0,
-  };
+function makeEnemy(macroCol: number, macroRow: number, hp = 40) {
+  return makeTestEnemy(macroCol, macroRow, { templateId: 'elite', hp });
 }
 
 describe('Kindled', () => {
@@ -106,7 +97,7 @@ describe('Immolate', () => {
     state.phase = 'attack';
     const enemy = makeEnemy(8, 1);
     startImmolate(state, enemy);
-    enemy.pos = { col: 12, row: 4, face: 'top' };
+    enemy.pos = { ...subAt(12, 4), face: 'top' };
     onEnemyWallStep(state, enemy);
     expect(enemy.immolateUntil).toBeUndefined();
   });

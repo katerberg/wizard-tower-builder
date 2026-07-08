@@ -22,7 +22,8 @@ export type Intent =
   | { type: 'revertBuild' }
   | { type: 'selectSpell'; spellId: string | null }
   | { type: 'castSpellAt'; spellId: string; cell: Cell }
-  | { type: 'cancelCast' };
+  | { type: 'cancelCast' }
+  | { type: 'setSimSpeed'; speed: 1 | 2 | 4 };
 
 export type ModalData = { kind: 'room'; roomId: string } | { kind: 'help' };
 

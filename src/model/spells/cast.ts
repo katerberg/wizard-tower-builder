@@ -1,4 +1,5 @@
 import { computeDamage, type Combatant } from '../../calculations/combat';
+import { macroCellOfNode, macroGridDistance } from '../../calculations/subGrid';
 import { getEnemyTemplate } from '../enemies';
 import { addMessage } from '../messages';
 import { loseGame } from '../phases';
@@ -45,13 +46,21 @@ export function listAutoSpells(): SpellDef[] {
 }
 
 function gridDistance(from: { col: number; row: number }, cell: Cell): number {
-  return Math.abs(from.col - cell.col) + Math.abs(from.row - cell.row);
+  return macroGridDistance(from, cell);
+}
+
+function enemyGridDistance(a: { col: number; row: number }, b: { col: number; row: number }): number {
+  const am = macroCellOfNode(a);
+  const bm = macroCellOfNode(b);
+  return Math.abs(am.col - bm.col) + Math.abs(am.row - bm.row);
 }
 
 export function enemyAtCell(state: GameState, cell: Cell): Enemy | undefined {
-  return state.enemies.find(
-    (e) => e.currentHp > 0 && e.pos.col === cell.col && e.pos.row === cell.row,
-  );
+  return state.enemies.find((e) => {
+    if (e.currentHp <= 0) return false;
+    const macro = macroCellOfNode(e.pos);
+    return macro.col === cell.col && macro.row === cell.row;
+  });
 }
 
 export function buildSpellContext(state: GameState, spellName: string): SpellCastContext {
@@ -131,7 +140,7 @@ export function canCastSpell(state: GameState, spellId: string, target?: SpellTa
     if (target?.kind !== 'enemy') return { ok: false, reason: 'no_target' };
     const enemy = state.enemies.find((e) => e.id === target.enemyId);
     if (!enemy || enemy.currentHp <= 0) return { ok: false, reason: 'no_target' };
-    if (gridDistance(wizardPos, enemy.pos) > spell.range) {
+    if (enemyGridDistance(wizardPos, enemy.pos) > spell.range) {
       return { ok: false, reason: 'out_of_range' };
     }
   }

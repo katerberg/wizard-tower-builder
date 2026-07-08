@@ -35,7 +35,7 @@ describe('attack-phase simulation', () => {
 
     let sawEnemy = false;
     let steps = 0;
-    const maxSteps = 60 * 60; // 60 simulated seconds
+    const maxSteps = 75 * 60; // 75 simulated seconds (sub-cell paths are longer)
     while (steps < maxSteps) {
       step(state, FIXED_DT);
       steps += 1;

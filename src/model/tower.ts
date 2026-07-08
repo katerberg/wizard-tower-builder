@@ -1,4 +1,5 @@
-import { GRID_COLS, MAX_OVERHANG_STEP } from '@/config/constants';
+import { GRID_COLS, MAX_OVERHANG_STEP, SUB_CELLS_PER_MACRO } from '@/config/constants';
+import { perchSubRow } from '../calculations/subGrid';
 import { cellKey, inBounds, parseKey, roomCells } from '../calculations/grid';
 import type { Blueprint, Cell, ExteriorNode, PlacementReason, PlacementResult, Room, Tower } from './types';
 
@@ -478,8 +479,13 @@ export function towersEqual(a: Tower, b: Tower): boolean {
  * disconnected towers share that row, the wizard stands on the left-most one.
  */
 export function getWizardPosition(tower: Tower): ExteriorNode {
+  const center = Math.floor(GRID_COLS / 2);
   if (tower.rooms.length === 0) {
-    return { col: Math.floor(GRID_COLS / 2), row: 0, face: 'top' };
+    return {
+      col: center * SUB_CELLS_PER_MACRO + Math.floor(SUB_CELLS_PER_MACRO / 2),
+      row: 0,
+      face: 'top',
+    };
   }
 
   let topRow = 0;
@@ -489,8 +495,9 @@ export function getWizardPosition(tower: Tower): ExteriorNode {
   }
 
   const spans = topRowSpans(tower, topRow);
-  const span = spans[0] ?? { min: Math.floor(GRID_COLS / 2), max: Math.floor(GRID_COLS / 2) };
+  const span = spans[0] ?? { min: center, max: center };
   const centerCol = Math.round((span.min + span.max) / 2);
+  const subCol = centerCol * SUB_CELLS_PER_MACRO + Math.floor(SUB_CELLS_PER_MACRO / 2);
 
-  return { col: centerCol, row: topRow + 1, face: 'top' };
+  return { col: subCol, row: perchSubRow(topRow), face: 'top' };
 }
