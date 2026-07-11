@@ -57,6 +57,16 @@ A replacement UI only needs `Store`, `Intent`, `Snapshot`, and functions from `s
 2. Add behavior in [`src/model/roomBehaviors/`](../src/model/roomBehaviors/) and register in `index.ts`.
 3. Test in `effects.test.ts`. Library lists the blueprint automatically via selectors.
 
+### Infrastructure feature (barracks, slots, stairs, …)
+
+Read [`docs/INFRASTRUCTURE.md`](../docs/INFRASTRUCTURE.md) first. Follow the phased roadmap there. Key rules:
+
+- Infra shares the macro grid; **one** infra kind per cell.
+- Soldiers are `GameState` entities; movement runs in **attack phase** only.
+- Interior pathfinding is separate from enemy exterior pathfinding.
+- Slot staffing uses per-slot headcount + auto-assign at wave start.
+- Reuse the **modifications** system for barracks/slot capacity upgrades.
+
 ### Add an intent and UI control
 
 1. Add variant to `Intent` in [`src/store/intents.ts`](../src/store/intents.ts).

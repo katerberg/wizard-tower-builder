@@ -165,8 +165,11 @@ Mount points: `#board`, `#stage`, `#hud`, `#library`, `#message-log`, `#modal-ro
 |------|---------|
 | **Tower** | Collection of rooms + occupancy grid |
 | **Room** | Placed blueprint instance (origin, size, hp, modifications) |
-| **Blueprint** | Room type definition (cost, size, base hp) — includes structure rooms and specialty rooms (Turret, Gold Mine) |
-| **Modification** | Leveled add-on on any room (spikes only today) |
+| **Blueprint** | Room type definition (cost, size, base hp) — structure rooms and specialty rooms (Turret, Gold Mine, Barracks, Slot) |
+| **Modification** | Leveled add-on on any room (spikes, barracks/slot expansions, …) |
+| **Infra layer** | Per-cell overlay (stair, pipe, elevator) on the same grid as rooms; one kind per cell |
+| **Soldier** | Mobile unit recruited into barracks; routes to slots during attack phase |
+| **Layer** | Visibility/edit plane: `rooms`, `infra`, or `soldiers` (Maps-style toggles) |
 | **Phase** | `build` or `attack` within a run |
 | **Scene** | `menu`, `run`, `gameOver`, `victory` |
 | **Intent** | Typed action dispatched to the store |
@@ -201,9 +204,52 @@ Key model entry points:
 - `game.ts` — `GameState`, `step(dt)` during attack
 - `phases.ts` — build/attack lifecycle, `buildBaseline`
 
+### Infrastructure & logistics (core loop)
+
+This game is primarily an **economy and infrastructure** puzzler: mundane structures and soldier routing matter more than auto-turrets. Turrets and the wizard supplement slot defenses.
+
+**Full design:** [`docs/INFRASTRUCTURE.md`](docs/INFRASTRUCTURE.md)
+
+```mermaid
+flowchart TB
+  subgraph layers [Tower layers same cell grid]
+    R[rooms - structure occupancy]
+    I[infra - stair or pipe per cell]
+    S[soldiers - attack-phase positions]
+  end
+  subgraph build [Build phase - untimed]
+    P[Place rooms and infra]
+    Rec[Recruit soldiers into barracks]
+    Alloc[Set headcount per slot]
+  end
+  subgraph attack [Attack phase]
+    Pay[Wave-start soldier upkeep]
+    Route[Auto-assign closest paths]
+    Move[Move via interior graph]
+    Fire[Slot volleys when stationed]
+  end
+  P --> Rec --> Alloc
+  Alloc --> Pay --> Route --> Move --> Fire
+```
+
+| Concept | Behavior |
+|---------|----------|
+| **Layers** | `rooms`, `infra`, `soldiers` — toggled for display; tool selection drives editing |
+| **Infra granularity** | Same `(col, row)` as rooms; **one** of stair *or* pipe per cell (forces wider towers) |
+| **Barracks** | Houses soldiers (5→10 via mod); recruit in build; upkeep charged at wave start |
+| **Slot** | Player sets headcount; auto-assign closest; fires during attack (2→4 via mod) |
+| **Stairs** | Cheap ad-hoc infra; **only** way to move vertically; one soldier per column |
+| **Movement** | Soldiers start in barracks each wave; **attack phase only** |
+| **Pathfinding** | Interior/infra graph for soldiers; exterior graph for enemies (unchanged) |
+| **Connectivity** | Warn-only before wave; hover/click shows broken routes |
+
+**Implementation status:** Barracks blueprint exists (no behavior). Slot, stairs, soldiers, and infra layer are planned per phased roadmap in `docs/INFRASTRUCTURE.md`.
+
 ## Deferred / not in v1
 
-- Multiple currencies, build constraints, roguelike map branching
+- Mana economy (turret operating cost)
+- Elevators, pipe logistics gameplay, soldier death/targeting
+- Multiple currencies beyond gold, roguelike map branching
 - Alternative enemy movement modes (fly, attack overhangs, etc.) — default is `under_overhang` exterior climb
 - Visual polish beyond ASCII-style glyphs on canvas
 
