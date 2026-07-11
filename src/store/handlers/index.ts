@@ -3,8 +3,10 @@ import type { Intent } from '../intents';
 import { handleBuildIntent } from './build';
 import { handleCameraIntent } from './camera';
 import { handleDevIntent } from './dev';
+import { handleInfraIntent } from './infra';
 import { handleInspectIntent } from './inspect';
 import { handleModificationsIntent } from './modifications';
+import { handleSoldiersIntent } from './soldiers';
 import { handleWaveIntent } from './wave';
 
 export function applyIntent(ctx: HandlerContext, intent: Intent): void {
@@ -18,16 +20,30 @@ export function applyIntent(ctx: HandlerContext, intent: Intent): void {
     case 'selectBlueprint':
     case 'hoverCell':
     case 'inspectRoomAt':
+    case 'toggleLayer':
     case 'closeModal':
       handleInspectIntent(ctx, intent);
       break;
 
     case 'placeSelectedAt':
+      handleInfraIntent(ctx, intent);
+      handleBuildIntent(ctx, intent);
+      break;
     case 'removeRoomAt':
+    case 'removeInfraAt':
+      handleInfraIntent(ctx, intent);
+      handleBuildIntent(ctx, intent);
+      break;
+
     case 'sellRoom':
     case 'undoBuild':
     case 'revertBuild':
       handleBuildIntent(ctx, intent);
+      break;
+
+    case 'recruitSoldier':
+    case 'setSlotAllocation':
+      handleSoldiersIntent(ctx, intent);
       break;
 
     case 'addModification':

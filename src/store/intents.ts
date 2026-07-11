@@ -1,15 +1,21 @@
 import type { Cell } from '@/model/types';
 
+export type TowerLayer = 'rooms' | 'infra' | 'soldiers';
+
 export type Intent =
   | { type: 'beginRun' }
   | { type: 'selectBlueprint'; blueprintId: string | null }
   | { type: 'hoverCell'; cell: Cell | null }
   | { type: 'placeSelectedAt'; cell: Cell }
   | { type: 'removeRoomAt'; cell: Cell }
+  | { type: 'removeInfraAt'; cell: Cell }
   | { type: 'inspectRoomAt'; cell: Cell }
   | { type: 'addModification'; roomId: string; modId: string }
   | { type: 'upgradeModification'; roomId: string; modId: string }
   | { type: 'sellRoom'; roomId: string }
+  | { type: 'recruitSoldier'; barracksRoomId: string }
+  | { type: 'setSlotAllocation'; slotRoomId: string; count: number }
+  | { type: 'toggleLayer'; layer: TowerLayer }
   | { type: 'closeModal' }
   | { type: 'startWave' }
   | { type: 'restart' }
@@ -31,4 +37,7 @@ export interface ViewState {
   cameraScrollY: number;
   /** Canvas height in pixels (snapped to whole cell rows). */
   viewportHeight: number;
+  layerVisibility: Record<TowerLayer, boolean>;
+  /** Slot room id highlighted for connectivity (hover/inspect). */
+  connectivityFocusSlotId: string | null;
 }

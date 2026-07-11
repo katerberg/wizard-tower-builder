@@ -2,6 +2,10 @@ export interface Cell { col: number; row: number }
 
 export interface Modifier { attack?: number; defense?: number; hp?: number }
 
+export type BlueprintCategory = 'structure' | 'infra';
+
+export type InfraKind = 'stair' | 'pipe';
+
 export interface Blueprint {
   id: string;
   name: string;
@@ -10,6 +14,14 @@ export interface Blueprint {
   size: { w: number; h: number };
   cost: number;
   baseHp: number;
+  category?: BlueprintCategory;
+  infraKind?: InfraKind;
+  /** Soldiers may path through structure cells when true (default). */
+  passable?: boolean;
+}
+
+export interface InfraCell {
+  kind: InfraKind;
 }
 
 /** A modification instance attached to a room (one per type, leveled in place). */
@@ -29,6 +41,23 @@ export interface RoomStats { maxHp: number; attack: number; defense: number }
 export interface Tower {
   rooms: Room[];
   occupancy: Record<string, string>;
+  /** Per-cell infrastructure overlay (stair or pipe, never both). */
+  infra: Record<string, InfraCell>;
+}
+
+export type SoldierStatus = 'moving' | 'stationed';
+
+export interface Soldier {
+  id: string;
+  homeBarracksId: string;
+  targetSlotId: string;
+  pos: Cell;
+  path: Cell[];
+  pathIndex: number;
+  moveCooldown: number;
+  status: SoldierStatus;
+  /** Column locked while traversing stairs vertically. */
+  stairColumn: number | null;
 }
 
 /** Snapshot of tower + gold at the start of a build phase (planning baseline). */
@@ -119,6 +148,15 @@ export interface GameState {
   rngState: number;
   devMode: boolean;
   roomEffectTimers: Record<string, number>;
+  soldiers: Soldier[];
+  /** Recruited soldier count per barracks room (build phase). */
+  barracksRecruited: Record<string, number>;
+  /** Headcount allocated per slot room for the upcoming wave (build phase). */
+  slotAllocations: Record<string, number>;
+  /** Gold spent recruiting soldiers this build phase (commits on wave start). */
+  buildRecruitSpend: number;
+  /** Stair columns currently in use for vertical movement. */
+  stairColumnLocks: Record<number, string>;
   /** Tower + gold at build-phase start; edits commit on wave start. */
   buildBaseline: BuildBaseline | null;
 }

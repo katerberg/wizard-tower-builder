@@ -243,7 +243,7 @@ flowchart TB
 | **Pathfinding** | Interior/infra graph for soldiers; exterior graph for enemies (unchanged) |
 | **Connectivity** | Warn-only before wave; hover/click shows broken routes |
 
-**Implementation status:** Barracks blueprint exists (no behavior). Slot, stairs, soldiers, and infra layer are planned per phased roadmap in `docs/INFRASTRUCTURE.md`.
+**Implementation status:** Phases 0–6 implemented (barracks, slots, stairs, soldiers, layers, connectivity warnings). Elevators, pipe logistics gameplay, and mana economy remain deferred.
 
 ## Deferred / not in v1
 

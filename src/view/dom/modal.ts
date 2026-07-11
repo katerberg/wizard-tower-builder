@@ -1,3 +1,4 @@
+import { SOLDIER_RECRUIT_COST } from '@/config/constants';
 import { selectRoomInspector, type RoomInspector } from '@/store/selectors';
 import type { Store } from '@/store/store';
 
@@ -19,6 +20,26 @@ export function createModal(root: HTMLElement, store: Store): () => void {
       store.dispatch({ type: 'addModification', roomId: target.dataset.room, modId: target.dataset.mod });
     } else if (action === 'upgradeModification' && target?.dataset.room && target.dataset.mod) {
       store.dispatch({ type: 'upgradeModification', roomId: target.dataset.room, modId: target.dataset.mod });
+    } else if (action === 'recruitSoldier' && target?.dataset.room) {
+      store.dispatch({ type: 'recruitSoldier', barracksRoomId: target.dataset.room });
+    } else if (action === 'slotMinus' && target?.dataset.room) {
+      const inspector = selectRoomInspector(store.getSnapshot(), target.dataset.room);
+      if (inspector?.slotAllocated !== undefined) {
+        store.dispatch({
+          type: 'setSlotAllocation',
+          slotRoomId: target.dataset.room,
+          count: inspector.slotAllocated - 1,
+        });
+      }
+    } else if (action === 'slotPlus' && target?.dataset.room) {
+      const inspector = selectRoomInspector(store.getSnapshot(), target.dataset.room);
+      if (inspector?.slotAllocated !== undefined) {
+        store.dispatch({
+          type: 'setSlotAllocation',
+          slotRoomId: target.dataset.room,
+          count: inspector.slotAllocated + 1,
+        });
+      }
     }
   });
 
@@ -73,6 +94,39 @@ function roomBody(inspector: RoomInspector): string {
     })
     .join('');
 
+  let specialty = '';
+  if (inspector.barracksCapacity !== undefined && inspector.barracksRecruited !== undefined) {
+    const full = inspector.barracksRecruited >= inspector.barracksCapacity;
+    specialty = `
+      <h4>Soldiers</h4>
+      <div class="stat"><span>Recruited</span><strong>${inspector.barracksRecruited} / ${inspector.barracksCapacity}</strong></div>
+      ${
+        isBuildPhase
+          ? `<button class="mod-btn ${full ? 'disabled' : ''}" data-action="recruitSoldier" data-room="${room.id}">Recruit · ${SOLDIER_RECRUIT_COST}g</button>`
+          : ''
+      }`;
+  }
+
+  if (inspector.slotCapacity !== undefined && inspector.slotAllocated !== undefined) {
+    const warn =
+      inspector.slotConnected === false
+        ? '<p class="warning">No path from barracks — soldiers cannot reach this slot.</p>'
+        : '';
+    specialty += `
+      <h4>Slot staffing</h4>
+      <div class="stat"><span>Allocated</span><strong>${inspector.slotAllocated} / ${inspector.slotCapacity}</strong></div>
+      ${
+        isBuildPhase
+          ? `<div class="slot-stepper">
+               <button data-action="slotMinus" data-room="${room.id}">−</button>
+               <span>${inspector.slotAllocated}</span>
+               <button data-action="slotPlus" data-room="${room.id}">+</button>
+             </div>`
+          : ''
+      }
+      ${warn}`;
+  }
+
   const remove = canRemove
     ? `<button class="danger" data-action="sellRoom" data-room="${room.id}">Remove room</button>`
     : '';
@@ -82,6 +136,7 @@ function roomBody(inspector: RoomInspector): string {
     <div class="stat"><span>Size</span><strong>${room.size.w}x${room.size.h}</strong></div>
     <div class="stat"><span>HP</span><strong>${room.hp} / ${stats.maxHp}</strong></div>
     <div class="stat"><span>Origin</span><strong>(${room.origin.col}, ${room.origin.row})</strong></div>
+    ${specialty}
     <h4>Modifications</h4>
     <div class="mod-list">${rows}</div>
     ${isBuildPhase ? '' : '<p class="hint">Modifications can only be changed during the build phase.</p>'}
@@ -92,14 +147,12 @@ function helpBody(): string {
   return `
     <h3>How to play</h3>
     <ul class="help-list">
+      <li>Recruit soldiers in barracks, allocate slot headcounts, connect with stairs (infra layer).</li>
+      <li>Soldiers move during the attack phase; slots fire when troops arrive.</li>
       <li>Use the Select tool and click a room to add modifications or remove it.</li>
       <li>Pick a blueprint to place or replace rooms; Esc cancels the blueprint.</li>
       <li>Enemies climb the outside toward your wizard at the top.</li>
-      <li>The wizard auto-zaps the nearest climber in range.</li>
       <li>Rearrange freely until you start the wave.</li>
-      <li>Spire blocks need ground or a room directly below; they cannot overhang.</li>
-      <li>Buttress rooms (2 or 3 wide) can cantilever at most one step.</li>
-      <li>The whole tower must stay one connected structure — no second base elsewhere.</li>
       <li>Clear all 10 waves before the wizard's HP runs out.</li>
     </ul>`;
 }

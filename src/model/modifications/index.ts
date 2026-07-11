@@ -1,5 +1,7 @@
 import type { Room, RoomStats, Tower } from '../types';
 import type { ModificationDef } from './types';
+import { barracksExpansion } from './barracksExpansion';
+import { slotExpansion } from './slotExpansion';
 import { spikes } from './spikes';
 
 export type { ModificationDef, ModEffectContext } from './types';
@@ -7,7 +9,7 @@ export type { ModificationDef, ModEffectContext } from './types';
 const DEFAULT_REFUND_RATE = 0.5;
 
 /** Every modification the game knows about. Add new types here. */
-export const MODIFICATIONS: ModificationDef[] = [spikes];
+export const MODIFICATIONS: ModificationDef[] = [spikes, barracksExpansion, slotExpansion];
 
 export function getModification(id: string): ModificationDef | undefined {
   return MODIFICATIONS.find((m) => m.id === id);

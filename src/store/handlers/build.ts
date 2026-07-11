@@ -1,6 +1,8 @@
 import { getBlueprint } from '@/model/blueprints';
+import { isInfraBlueprint } from '@/model/infraBlueprints';
 import { canAffordBuild } from '@/calculations/buildCost';
 import { addMessage } from '@/model/messages';
+import { pruneBarracksState } from '@/model/soldiers';
 import { canPlace, createRoom, placeRoomReplacing, removeRoom, roomAt, towersEqual } from '@/model/tower';
 import type { HandlerContext } from '../context';
 import type { Intent } from '../intents';
@@ -30,6 +32,8 @@ function placeSelected(ctx: HandlerContext, cell: { col: number; row: number }):
   if (game.phase !== 'build' || !game.buildBaseline) return;
   const id = view.selectedBlueprintId;
   if (!id) return;
+  if (isInfraBlueprint(id)) return; // handled by infra handler
+
   const blueprint = getBlueprint(id);
   if (!blueprint) return;
 
@@ -45,7 +49,7 @@ function placeSelected(ctx: HandlerContext, cell: { col: number; row: number }):
     addMessage(game, `Cannot build here: ${placed.reason.replace(/_/g, ' ')}.`, 'info');
     return;
   }
-  if (!canAffordBuild(game.buildBaseline, placed.tower)) {
+  if (!canAffordBuild(game.buildBaseline, placed.tower, 0, game.buildRecruitSpend)) {
     addMessage(game, `Not enough gold for ${blueprint.name} (${blueprint.cost}).`, 'economy');
     return;
   }
@@ -71,6 +75,7 @@ function sellRoomById(ctx: HandlerContext, roomId: string): void {
   const blueprint = getBlueprint(room.blueprintId);
   ctx.recordBuildStep();
   game.tower = removeRoom(game.tower, room.id);
+  pruneBarracksState(game, roomId);
   addMessage(game, `Removed ${blueprint?.name ?? 'room'}.`, 'info');
 
   if (view.modal?.kind === 'room' && view.modal.roomId === roomId) {

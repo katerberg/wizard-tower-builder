@@ -2,6 +2,7 @@ import { Renderer } from './view/canvas/renderer';
 import { snapViewportHeight } from '@/calculations/camera';
 import { attachInput, type PointerTracker } from './view/input';
 import { createHud } from './view/dom/hud';
+import { createLayersPanel } from './view/dom/layers';
 import { createLibrary } from './view/dom/library';
 import { createMessageLog } from './view/dom/messageLog';
 import { createModal } from './view/dom/modal';
@@ -34,6 +35,7 @@ new ResizeObserver(() => syncViewportHeight()).observe(stage);
 const domViews = [
   createHud(requireEl('hud'), store),
   createLibrary(requireEl('library'), store),
+  createLayersPanel(requireEl('layers'), store),
   createMessageLog(requireEl('message-log'), store),
   createModal(requireEl('modal-root'), store),
   createOverlay(requireEl('overlay-root'), store),

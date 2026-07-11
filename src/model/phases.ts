@@ -1,4 +1,5 @@
 import { addMessage } from './messages';
+import { clearSoldiersAfterWave, deploySoldiersForWave } from './soldiers';
 import { reward } from '../calculations/economy';
 import { runWaveClearedEffects } from './modifications/effects';
 import { linearProgression } from './waves';
@@ -10,6 +11,9 @@ export function captureBuildBaseline(state: GameState): void {
     tower: structuredClone(state.tower),
     currency: state.player.currency,
   };
+  state.buildRecruitSpend = 0;
+  state.barracksRecruited = {};
+  state.slotAllocations = {};
 }
 
 export function startRun(state: GameState): void {
@@ -27,6 +31,7 @@ export function beginWave(state: GameState): void {
   state.spawnTimer = 0;
   state.waveTimer = 0;
   state.roomEffectTimers = {};
+  deploySoldiersForWave(state);
   addMessage(state, `Wave ${state.levelIndex + 1} incoming: ${state.spawnQueue.length} foes.`, 'combat');
 }
 
@@ -44,6 +49,7 @@ export function endWave(state: GameState): void {
   state.levelIndex += 1;
   state.waveIndex += 1;
   state.phase = 'build';
+  clearSoldiersAfterWave(state);
   captureBuildBaseline(state);
   addMessage(state, `Reinforce the tower for wave ${state.levelIndex + 1}.`, 'info');
 }

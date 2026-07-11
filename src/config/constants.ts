@@ -20,6 +20,21 @@ export const MIN_BUTTRESS_WIDTH = 2;
 export const SPAWN_INTERVAL = 0.8;
 export const ENEMY_ATTACK_COOLDOWN = 1.0;
 
+// Infrastructure & soldiers.
+export const BARRACKS_BASE_CAPACITY = 5;
+export const BARRACKS_EXPANDED_CAPACITY = 10;
+export const SLOT_BASE_CAPACITY = 2;
+export const SLOT_EXPANDED_CAPACITY = 4;
+export const SOLDIER_RECRUIT_COST = 4;
+export const SOLDIER_UPKEEP_COST = 2;
+export const SOLDIER_HORIZONTAL_SPEED = 2;
+export const SOLDIER_STAIR_SPEED = 0.4;
+export const SLOT_BASE_DAMAGE = 5;
+export const SLOT_ATTACK_COOLDOWN = 0.9;
+export const SLOT_ATTACK_RANGE = 3;
+/** Fire contribution by soldier index (1-based) in a slot. */
+export const SLOT_FIRE_EFFICIENCY = [1, 0.8, 0.7, 0.6] as const;
+
 export const WIZARD_DEFAULTS = {
   maxHp: 30,
   attack: 6,
@@ -49,4 +64,8 @@ export const colors = {
   hpBarBg: '#2d3748',
   text: '#e2e8f0',
   pathDebug: '#63b3ed',
+  infraStair: '#a0aec0',
+  infraPipe: '#4299e1',
+  soldier: '#68d391',
+  connectivityWarn: '#ed8936',
 } as const;

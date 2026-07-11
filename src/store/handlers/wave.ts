@@ -30,7 +30,7 @@ function startWave(ctx: HandlerContext): void {
   }
   if (game.buildBaseline) {
     const net = netBuildCost(game.buildBaseline, game.tower);
-    game.player.currency = game.buildBaseline.currency - net;
+    game.player.currency = game.buildBaseline.currency - net - game.buildRecruitSpend;
   }
   ctx.clearBuildHistory();
   beginWave(game);
@@ -47,5 +47,7 @@ function restart(ctx: HandlerContext): void {
     modal: null,
     cameraScrollY: 0,
     viewportHeight,
+    layerVisibility: { rooms: true, infra: true, soldiers: true },
+    connectivityFocusSlotId: null,
   };
 }

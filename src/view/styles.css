@@ -387,3 +387,40 @@ button.danger {
   z-index: 10;
   white-space: nowrap;
 }
+
+.layer-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.layer-btn {
+  font-size: 12px;
+  padding: 4px 8px;
+}
+
+.layer-btn.on {
+  border-color: var(--accent-bright);
+  background: #2d3748;
+}
+
+.layer-btn.off {
+  opacity: 0.5;
+}
+
+.slot-stepper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.slot-stepper button {
+  width: 32px;
+  padding: 4px;
+}
+
+.connectivity-warn p {
+  margin: 4px 0;
+  font-size: 12px;
+}

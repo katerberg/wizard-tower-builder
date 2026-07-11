@@ -54,6 +54,19 @@ export const BLUEPRINTS: Blueprint[] = [
     size: { w: 1, h: 1 },
     cost: 9,
     baseHp: 20,
+    category: 'structure',
+    passable: true,
+  },
+  {
+    id: 'slotRoom',
+    name: 'Slot',
+    glyph: 'S',
+    color: '#e53e3e',
+    size: { w: 1, h: 1 },
+    cost: 11,
+    baseHp: 18,
+    category: 'structure',
+    passable: true,
   },
 ];
 

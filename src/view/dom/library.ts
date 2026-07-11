@@ -39,11 +39,13 @@ export function createLibrary(root: HTMLElement, store: Store): () => void {
       .map((b) => {
         const selected = b.selected ? 'selected' : '';
         const poor = b.affordable ? '' : 'unaffordable';
+        const tag = b.category === 'infra' ? 'infra' : 'structure';
+        const hp = b.category === 'infra' ? 'utility' : `${b.baseHp} hp`;
         return `
-        <button class="blueprint ${selected} ${poor}" data-tool="blueprint" data-blueprint="${b.id}">
+        <button class="blueprint ${selected} ${poor}" data-tool="blueprint" data-blueprint="${b.id}" data-category="${tag}">
           <span class="bp-glyph">${b.glyph}</span>
           <span class="bp-name">${b.name}</span>
-          <span class="bp-meta">${b.sizeW}x${b.sizeH} · ${b.cost} gold · ${b.baseHp} hp</span>
+          <span class="bp-meta">${b.sizeW}x${b.sizeH} · ${b.cost} gold · ${hp}</span>
         </button>`;
       })
       .join('');
@@ -52,6 +54,6 @@ export function createLibrary(root: HTMLElement, store: Store): () => void {
       <h2>Build</h2>
       ${hand}
       <div class="blueprint-list">${items}</div>
-      <p class="hint">Select tool: click rooms to modify · Blueprint: click or drag to place · right-click to remove · Esc cancels blueprint.</p>`;
+      <p class="hint">Select: inspect rooms · Structure/Infra blueprints: click or drag · right-click removes room or infra · Esc cancels.</p>`;
   };
 }

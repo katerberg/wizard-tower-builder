@@ -32,7 +32,7 @@ function addModificationTo(ctx: HandlerContext, roomId: string, modId: string): 
     return;
   }
   const cost = modificationCost(def, 1);
-  if (!canAffordBuild(game.buildBaseline, game.tower, cost)) {
+  if (!canAffordBuild(game.buildBaseline, game.tower, cost, game.buildRecruitSpend)) {
     addMessage(game, `Not enough gold for ${def.name} (${cost}).`, 'economy');
     return;
   }
@@ -54,7 +54,7 @@ function upgradeModificationOn(ctx: HandlerContext, roomId: string, modId: strin
     return;
   }
   const cost = modificationCost(def, mod.level + 1);
-  if (!canAffordBuild(game.buildBaseline, game.tower, cost)) {
+  if (!canAffordBuild(game.buildBaseline, game.tower, cost, game.buildRecruitSpend)) {
     addMessage(game, `Not enough gold to upgrade ${def.name} (${cost}).`, 'economy');
     return;
   }

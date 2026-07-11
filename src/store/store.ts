@@ -37,6 +37,8 @@ export class Store {
         modal: null,
         cameraScrollY: 0,
         viewportHeight: MIN_VIEWPORT_HEIGHT,
+        layerVisibility: { rooms: true, infra: true, soldiers: true },
+        connectivityFocusSlotId: null,
       },
       buildHistory: [],
     };

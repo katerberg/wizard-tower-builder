@@ -1,3 +1,4 @@
+import { getInfraAt } from '@/model/infra';
 import { roomAt } from '@/model/tower';
 import type { Store } from '@/store/store';
 import { screenToCell } from './canvas/camera';
@@ -88,7 +89,13 @@ export function attachInput(
 
   canvas.addEventListener('contextmenu', (e) => {
     e.preventDefault();
-    store.dispatch({ type: 'removeRoomAt', cell: cellFromEvent(e) });
+    const cell = cellFromEvent(e);
+    const { game } = store.getSnapshot();
+    if (roomAt(game.tower, cell.col, cell.row)) {
+      store.dispatch({ type: 'removeRoomAt', cell });
+    } else if (getInfraAt(game.tower, cell.col, cell.row)) {
+      store.dispatch({ type: 'removeInfraAt', cell });
+    }
   });
 
   stage.addEventListener(

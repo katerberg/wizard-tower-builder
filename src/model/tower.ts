@@ -1,9 +1,10 @@
+import { clearInfraInCells, infraEqual } from './infra';
 import { GRID_COLS, MAX_OVERHANG_STEP } from '@/config/constants';
 import { cellKey, inBounds, parseKey, roomCells } from '../calculations/grid';
 import type { Blueprint, Cell, ExteriorNode, PlacementReason, PlacementResult, Room, Tower } from './types';
 
 export function createTower(): Tower {
-  return { rooms: [], occupancy: {} };
+  return { rooms: [], occupancy: {}, infra: {} };
 }
 
 export function isOccupied(tower: Tower, col: number, row: number): boolean {
@@ -164,6 +165,7 @@ export function clearReplaceableFootprint(
   for (const roomId of roomIds) {
     cleared = removeRoom(cleared, roomId);
   }
+  cleared = clearInfraInCells(cleared, footprint);
   return { ok: true, tower: cleared };
 }
 
@@ -264,17 +266,21 @@ export function placeRoom(tower: Tower, room: Room): Tower {
   for (const c of roomCells(room.origin, room.size)) {
     occupancy[cellKey(c.col, c.row)] = room.id;
   }
-  return { rooms: [...tower.rooms, room], occupancy };
+  return { rooms: [...tower.rooms, room], occupancy, infra: tower.infra ?? {} };
 }
 
 export function removeRoom(tower: Tower, roomId: string): Tower {
   const occupancy: Record<string, string> = {};
+  const cellsToClear: Cell[] = [];
   for (const [key, id] of Object.entries(tower.occupancy)) {
     if (id !== roomId) {
       occupancy[key] = id;
+    } else {
+      cellsToClear.push(parseKey(key));
     }
   }
-  return { rooms: tower.rooms.filter((r) => r.id !== roomId), occupancy };
+  const infra = clearInfraInCells({ ...tower, occupancy }, cellsToClear).infra;
+  return { rooms: tower.rooms.filter((r) => r.id !== roomId), occupancy, infra };
 }
 
 export function roomAt(tower: Tower, col: number, row: number): Room | undefined {
@@ -465,6 +471,7 @@ export function towersEqual(a: Tower, b: Tower): boolean {
     if (keysA[i] !== keysB[i] || a.occupancy[keysA[i]] !== b.occupancy[keysB[i]]) return false;
   }
   if (a.rooms.length !== b.rooms.length) return false;
+  if (!infraEqual(a.infra, b.infra)) return false;
   const byIdA = new Map(a.rooms.map((r) => [r.id, r]));
   for (const room of b.rooms) {
     const other = byIdA.get(room.id);

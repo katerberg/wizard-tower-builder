@@ -1,4 +1,5 @@
 import { ENEMY_ATTACK_COOLDOWN, SPAWN_INTERVAL, STARTING_CURRENCY, WIZARD_DEFAULTS } from '@/config/constants';
+import { resetSoldierCounter, stepSoldiers } from './soldiers';
 import { STARTING_BLUEPRINT_IDS } from './blueprints';
 import { computeDamage, type Combatant } from '../calculations/combat';
 import { spawnNode } from '../calculations/exteriorGraph';
@@ -38,8 +39,14 @@ export function createInitialState(seed: string | number = 'wizard'): GameState 
     rngState: seedFrom(seed),
     devMode: false,
     roomEffectTimers: {},
+    soldiers: [],
+    barracksRecruited: {},
+    slotAllocations: {},
+    buildRecruitSpend: 0,
+    stairColumnLocks: {},
     buildBaseline: null,
   };
+  resetSoldierCounter();
   captureBuildBaseline(state);
   return state;
 }
@@ -186,7 +193,10 @@ export function step(state: GameState, dt: number): void {
     }
   }
 
-  // Room behaviors (turret rooms) and modifications (spikes) act on enemies this tick.
+  // Soldier movement during attack.
+  stepSoldiers(state, dt);
+
+  // Room behaviors (turret rooms, slot volleys) and modifications (spikes) act on enemies this tick.
   runRoomEffects(state, dt);
 
   // Reap dead enemies and award currency.

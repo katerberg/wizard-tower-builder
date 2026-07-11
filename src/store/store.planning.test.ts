@@ -146,7 +146,8 @@ describe('build mode vs select mode', () => {
     store.dispatch({ type: 'inspectRoomAt', cell: { col: 8, row: 0 } });
 
     const { view } = store.getSnapshot();
-    expect(view.modal).toEqual({ kind: 'room', roomId: expect.any(String) });
+    expect(view.modal?.kind).toBe('room');
+    expect(typeof (view.modal as { roomId?: string } | null)?.roomId).toBe('string');
     expect(view.selectedBlueprintId).toBeNull();
   });
 

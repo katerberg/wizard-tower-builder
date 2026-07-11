@@ -1,5 +1,7 @@
 import { CELL_SIZE, GRID_COLS, colors } from '@/config/constants';
+import { parseKey } from '@/calculations/grid';
 import { getBlueprint } from '@/model/blueprints';
+import { getInfraBlueprint } from '@/model/infraBlueprints';
 import { getEnemyTemplate } from '@/model/enemies';
 import { getModification } from '@/model/modifications';
 import { computeRoomStats } from '@/calculations/combat';
@@ -37,11 +39,19 @@ export class Renderer {
 
     this.drawGrid(scrollY, viewportHeight);
     this.drawGround(scrollY, viewportHeight);
-    this.drawRooms(snapshot, scrollY, viewportHeight);
+    if (snapshot.view.layerVisibility.rooms) {
+      this.drawRooms(snapshot, scrollY, viewportHeight);
+    }
+    if (snapshot.view.layerVisibility.infra) {
+      this.drawInfra(snapshot, scrollY, viewportHeight);
+    }
     this.drawGhost(snapshot, scrollY, viewportHeight);
     if (snapshot.game.devMode) this.drawPaths(snapshot, scrollY, viewportHeight);
     const wizardPos = selectWizardPosition(snapshot);
     this.drawEnemies(snapshot, wizardPos, scrollY, viewportHeight, 'climbers');
+    if (snapshot.view.layerVisibility.soldiers) {
+      this.drawSoldiers(snapshot, scrollY, viewportHeight);
+    }
     this.drawWizard(snapshot, scrollY, viewportHeight);
     this.drawEnemies(snapshot, wizardPos, scrollY, viewportHeight, 'atWizard');
   }
@@ -155,6 +165,43 @@ export class Renderer {
       ctx.fillStyle = def.color;
       ctx.fillText(label, cursorX + padX, badgeBottom - padY);
       cursorX += badgeW + size * 0.35;
+    }
+  }
+
+  private drawInfra(snapshot: Snapshot, scrollY: number, viewportHeight: number): void {
+    const { ctx } = this;
+    const { minRow, maxRow } = visibleRowRange(scrollY, viewportHeight);
+    for (const [key, cell] of Object.entries(snapshot.game.tower.infra)) {
+      const { col, row } = parseKey(key);
+      if (row < minRow || row > maxRow) continue;
+      const blueprint = getInfraBlueprint(cell.kind === 'stair' ? 'staircase' : 'pipe');
+      const { x, y } = cellTopLeft(col, row, scrollY, viewportHeight);
+      ctx.globalAlpha = 0.85;
+      ctx.fillStyle = blueprint?.color ?? colors.infraStair;
+      ctx.fillRect(x + 6, y + 6, CELL_SIZE - 12, CELL_SIZE - 12);
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = colors.text;
+      ctx.font = `${Math.floor(CELL_SIZE * 0.35)}px monospace`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(blueprint?.glyph ?? '.', x + CELL_SIZE / 2, y + CELL_SIZE / 2);
+    }
+  }
+
+  private drawSoldiers(snapshot: Snapshot, scrollY: number, viewportHeight: number): void {
+    const { ctx } = this;
+    for (const soldier of snapshot.game.soldiers) {
+      const { x, y } = cellCenter(soldier.pos.col, soldier.pos.row, scrollY, viewportHeight);
+      if (y + CELL_SIZE * 0.2 < 0 || y - CELL_SIZE * 0.2 > viewportHeight) continue;
+      ctx.beginPath();
+      ctx.arc(x, y, CELL_SIZE * 0.18, 0, Math.PI * 2);
+      ctx.fillStyle = soldier.status === 'stationed' ? colors.soldier : '#9ae6b4';
+      ctx.fill();
+      ctx.fillStyle = '#1a202c';
+      ctx.font = `${Math.floor(CELL_SIZE * 0.22)}px monospace`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('s', x, y);
     }
   }
 
