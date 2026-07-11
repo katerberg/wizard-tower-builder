@@ -12,6 +12,13 @@ export function createHud(root: HTMLElement, store: Store): () => void {
     if (!target || (target instanceof HTMLButtonElement && target.disabled)) return;
     const action = target.dataset.action as Intent['type'] | undefined;
     if (!action) return;
+    if (action === 'devSetSpellSchool') {
+      const school = target.dataset.school;
+      if (school === 'fire' || school === 'air') {
+        store.dispatch({ type: 'devSetSpellSchool', school });
+      }
+      return;
+    }
     store.dispatch({ type: action } as Intent);
   }
 
@@ -71,6 +78,10 @@ export function createHud(root: HTMLElement, store: Store): () => void {
       ? `<div class="dev-row">
            <button data-action="devAddCurrency">+50 gold</button>
            <button data-action="devSkipWave">Skip wave</button>
+         </div>
+         <div class="dev-row">
+           <button data-action="devSetSpellSchool" data-school="fire" ${game.activeSpellSchool === 'fire' ? 'disabled' : ''}>Fire school</button>
+           <button data-action="devSetSpellSchool" data-school="air" ${game.activeSpellSchool === 'air' ? 'disabled' : ''}>Air school</button>
          </div>`
       : '';
 

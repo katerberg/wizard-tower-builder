@@ -1,4 +1,5 @@
 import { roomAt } from '@/model/tower';
+import { getSpell } from '@/model/spells';
 import { selectSpellBar } from '@/store/selectors';
 import type { Store } from '@/store/store';
 import { screenToCell } from './canvas/camera';
@@ -115,7 +116,12 @@ export function attachInput(
       if (!slot?.id || !slot.enabled) return;
       e.preventDefault();
       if (view.selectedSpellId === slot.id) {
-        store.dispatch({ type: 'cancelCast' });
+        const spell = getSpell(slot.id);
+        if (spell?.targeting === 'self') {
+          store.dispatch({ type: 'castSpellAt', spellId: slot.id, cell: { col: 0, row: 0 } });
+        } else {
+          store.dispatch({ type: 'cancelCast' });
+        }
       } else {
         store.dispatch({ type: 'selectSpell', spellId: slot.id });
       }

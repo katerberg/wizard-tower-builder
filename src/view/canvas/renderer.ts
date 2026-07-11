@@ -3,6 +3,7 @@ import { sameMacroCell } from '@/calculations/subGrid';
 import { getBlueprint } from '@/model/blueprints';
 import { getEnemyTemplate } from '@/model/enemies';
 import { getModification } from '@/model/modifications';
+import { blizzardZoneCells } from '@/model/spells';
 import { computeRoomStats } from '@/calculations/combat';
 import { getUnstableRoomIds } from '@/model/tower';
 import { selectCastPreview, selectGhostPlacement, selectWizardPosition } from '@/store/selectors';
@@ -42,6 +43,7 @@ export class Renderer {
     this.drawGhost(snapshot, scrollY, viewportHeight);
     this.drawCastPreview(snapshot, scrollY, viewportHeight);
     this.drawFireEffects(snapshot, scrollY, viewportHeight);
+    this.drawAirEffects(snapshot, scrollY, viewportHeight);
     if (snapshot.game.devMode) this.drawPaths(snapshot, scrollY, viewportHeight);
     const wizardPos = selectWizardPosition(snapshot);
     this.drawEnemies(snapshot, wizardPos, scrollY, viewportHeight, 'climbers');
@@ -259,6 +261,35 @@ export class Renderer {
       for (const cell of segment.cells) {
         const { x, y } = cellTopLeft(cell.col, cell.row, scrollY, viewportHeight);
         ctx.fillRect(x + 2, y + 2, CELL_SIZE - 4, CELL_SIZE - 4);
+      }
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  private drawAirEffects(snapshot: Snapshot, scrollY: number, viewportHeight: number): void {
+    const { game } = snapshot;
+    const { ctx } = this;
+
+    for (const zone of game.blizzardZones ?? []) {
+      if (zone.expiresAt <= game.waveTimer) continue;
+      ctx.globalAlpha = 0.4;
+      ctx.fillStyle = colors.blizzardZone;
+      for (const cell of blizzardZoneCells(zone.center, zone.radius)) {
+        const { x, y } = cellTopLeft(cell.col, cell.row, scrollY, viewportHeight);
+        ctx.fillRect(x + 2, y + 2, CELL_SIZE - 4, CELL_SIZE - 4);
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    for (const segment of game.tornadoSegments ?? []) {
+      if (segment.expiresAt <= game.waveTimer) continue;
+      ctx.globalAlpha = 0.55;
+      ctx.fillStyle = colors.tornadoLane;
+      for (const cell of segment.macroCells) {
+        for (const row of [cell.row, cell.row + 1]) {
+          const { x, y } = cellTopLeft(cell.col, row, scrollY, viewportHeight);
+          ctx.fillRect(x + 2, y + 2, CELL_SIZE - 4, CELL_SIZE - 4);
+        }
       }
       ctx.globalAlpha = 1;
     }

@@ -1,5 +1,6 @@
 import { reward } from '@/calculations/economy';
 import { addMessage } from '@/model/messages';
+import { setActiveSpellSchool } from '@/model/spells';
 import type { HandlerContext } from '../context';
 import type { Intent } from '../intents';
 
@@ -21,6 +22,12 @@ export function handleDevIntent(ctx: HandlerContext, intent: Intent): void {
         ctx.game.enemies = [];
         ctx.game.spawnQueue = [];
         addMessage(ctx.game, 'Dev: wave skipped.', 'info');
+      }
+      break;
+    case 'devSetSpellSchool':
+      if (ctx.game.devMode) {
+        setActiveSpellSchool(ctx.game, intent.school);
+        addMessage(ctx.game, `Dev: spell school set to ${intent.school}.`, 'info');
       }
       break;
   }

@@ -30,7 +30,18 @@ function handleCastAt(ctx: HandlerContext, spellId: string, cell: { col: number;
   const spell = getSpell(spellId);
   if (!spell) return;
 
-  if (spell.targeting === 'segment') {
+  if (spell.targeting === 'self') {
+    const result = castSpell(ctx.game, spellId, { kind: 'self' });
+    if (!result.ok) {
+      addMessage(ctx.game, `Cannot cast: ${result.reason.replace(/_/g, ' ')}.`, 'info');
+    } else {
+      ctx.view.selectedSpellId = null;
+      ctx.view.castAnchor = null;
+    }
+    return;
+  }
+
+  if (spell.targeting === 'segment' || spell.targeting === 'airSegment') {
     if (!ctx.view.castAnchor) {
       const check = canCastSpell(ctx.game, spellId, { kind: 'cell', cell });
       if (!check.ok) {

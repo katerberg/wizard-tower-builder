@@ -1,3 +1,4 @@
+import { getSpell } from '@/model/spells';
 import { selectMana, selectSpellBar } from '@/store/selectors';
 import type { Store } from '@/store/store';
 
@@ -49,7 +50,12 @@ export function createSpellBar(root: HTMLElement, store: Store): () => void {
     const spellId = target.dataset.spell;
     const { view } = store.getSnapshot();
     if (view.selectedSpellId === spellId) {
-      store.dispatch({ type: 'cancelCast' });
+      const spell = getSpell(spellId);
+      if (spell?.targeting === 'self') {
+        store.dispatch({ type: 'castSpellAt', spellId, cell: { col: 0, row: 0 } });
+      } else {
+        store.dispatch({ type: 'cancelCast' });
+      }
     } else {
       store.dispatch({ type: 'selectSpell', spellId });
     }

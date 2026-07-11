@@ -10,9 +10,21 @@ import {
   modificationCost,
 } from '@/model/modifications';
 import { getRoomBehavior } from '@/model/roomBehaviors';
-import { canCastSpell, enemyAtCell, getSpell, gridLine, HOTBAR_SLOT_COUNT, listHotbarSpells, spellCooldownRemaining } from '@/model/spells';
+import {
+  canCastSpell,
+  enemyAtCell,
+  getSpell,
+  gridLine,
+  tornadoGridLine,
+  HOTBAR_SLOT_COUNT,
+  listHotbarSpells,
+  spellCooldownRemaining,
+  gustAffectedCells,
+  getEffectiveWizardPosition,
+  blizzardZoneCells,
+} from '@/model/spells';
 import { aoeCells } from '@/model/spells/fireball';
-import { canPlace, getUnstableRoomIds, getWizardPosition, towersEqual } from '@/model/tower';
+import { canPlace, getUnstableRoomIds, towersEqual } from '@/model/tower';
 import { getBuildTool } from '@/static/buildTools';
 import type { Blueprint, Cell, ExteriorNode, PlacementReason, Room, RoomStats } from '@/model/types';
 import type { Snapshot } from './store';
@@ -63,7 +75,7 @@ export function selectBuildUndoState(snapshot: Snapshot): BuildUndoState {
 }
 
 export function selectWizardPosition(snapshot: Snapshot): ExteriorNode {
-  return getWizardPosition(snapshot.game.tower);
+  return getEffectiveWizardPosition(snapshot.game);
 }
 
 export interface TowerStability { stable: boolean; unstableRoomIds: Set<string> }
@@ -289,7 +301,7 @@ export function selectSpellBar(snapshot: Snapshot): SpellBarSlot[] {
   if (game.scene !== 'run') return [];
 
   const inAttack = game.phase === 'attack';
-  const spells = listHotbarSpells();
+  const spells = listHotbarSpells(game);
   const slots: SpellBarSlot[] = [];
 
   for (let i = 0; i < HOTBAR_SLOT_COUNT; i++) {
@@ -367,9 +379,14 @@ export function selectCastPreview(snapshot: Snapshot): CastPreview | null {
 
   if (spell.targeting === 'gridPoint') {
     const result = canCastSpell(game, spellId, { kind: 'cell', cell: view.hoveredCell });
-    const radius = spell.aoeRadius ?? 0;
+    const cells =
+      spell.id === 'gust'
+        ? gustAffectedCells(view.hoveredCell)
+        : spell.id === 'blizzard'
+          ? blizzardZoneCells(view.hoveredCell)
+          : aoeCells(view.hoveredCell, spell.aoeRadius ?? 0);
     return {
-      cells: aoeCells(view.hoveredCell, radius),
+      cells,
       valid: result.ok,
       reason: result.ok ? 'ok' : result.reason,
     };
@@ -411,6 +428,29 @@ export function selectCastPreview(snapshot: Snapshot): CastPreview | null {
       : { ok: false as const, reason: 'invalid_segment' as const };
     return {
       cells: line ?? [view.castAnchor, view.hoveredCell],
+      valid: result.ok,
+      reason: result.ok ? 'ok' : result.reason,
+    };
+  }
+
+  if (spell.targeting === 'airSegment') {
+    if (!view.castAnchor) {
+      const result = canCastSpell(game, spellId, { kind: 'cell', cell: view.hoveredCell });
+      return {
+        cells: [view.hoveredCell, { col: view.hoveredCell.col, row: view.hoveredCell.row + 1 }],
+        valid: result.ok,
+        reason: result.ok ? 'ok' : result.reason,
+      };
+    }
+    const line = tornadoGridLine(view.castAnchor, view.hoveredCell);
+    const previewCells = line
+      ? line.flatMap((c) => [c, { col: c.col, row: c.row + 1 }])
+      : [view.castAnchor, view.hoveredCell];
+    const result = line
+      ? canCastSpell(game, spellId, { kind: 'segment', from: view.castAnchor, to: view.hoveredCell })
+      : { ok: false as const, reason: 'invalid_segment' as const };
+    return {
+      cells: previewCells,
       valid: result.ok,
       reason: result.ok ? 'ok' : result.reason,
     };
@@ -465,7 +505,7 @@ function selectSpellTooltip(snapshot: Snapshot, spellId: string): UiTooltipConte
 
   const { game } = snapshot;
   const inAttack = game.scene === 'run' && game.phase === 'attack';
-  const hotkey = listHotbarSpells().findIndex((s) => s.id === spellId) + 1;
+  const hotkey = listHotbarSpells(game).findIndex((s) => s.id === spellId) + 1;
   const stats: UiTooltipStat[] = [
     { label: 'Mana', value: String(spell.manaCost), accent: true },
     { label: 'Cooldown', value: `${spell.cooldown}s` },
@@ -473,7 +513,9 @@ function selectSpellTooltip(snapshot: Snapshot, spellId: string): UiTooltipConte
     { label: 'Damage', value: String(spell.damage) },
   ];
 
-  if (spell.aoeRadius != null && spell.aoeRadius > 0) {
+  if (spell.id === 'blizzard') {
+    stats.push({ label: 'Area', value: 'Diamond, radius 2' });
+  } else if (spell.aoeRadius != null && spell.aoeRadius > 0) {
     const size = spell.aoeRadius * 2 + 1;
     stats.push({ label: 'Area', value: `${size}×${size} blast` });
   }

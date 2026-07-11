@@ -98,6 +98,18 @@ export interface Enemy {
   immolateLastMacroKey?: string;
   /** Wall of Flame segment keys the enemy is currently inside. */
   wallFlameInside?: string[];
+  /** Air school: permanent attachment tax. */
+  discombobulated?: boolean;
+  /** Next attachment transition is allowed through. */
+  discombobulatedAttachReady?: boolean;
+  /** Falling after detach. */
+  airborne?: boolean;
+  /** Sub-row where the enemy was knocked loose. */
+  airborneFromRow?: number;
+  fallSubRows?: number;
+  airborneTimer?: number;
+  /** Tornado segment keys inside. */
+  tornadoInside?: string[];
 }
 
 export type GameMessageKind = 'info' | 'combat' | 'economy';
@@ -132,6 +144,28 @@ export interface WallOfFlameSegment {
   tickTimer: number;
 }
 
+export interface TornadoSegment {
+  macroCells: Cell[];
+  expiresAt: number;
+  tickTimer: number;
+}
+
+export interface BlizzardZone {
+  center: Cell;
+  radius: number;
+  expiresAt: number;
+  tickTimer: number;
+}
+
+export interface WizardFlight {
+  pos: ExteriorNode;
+  until: number;
+  descending: boolean;
+  descendTimer?: number;
+}
+
+export type SpellSchool = 'fire' | 'air';
+
 export type SimSpeed = 1 | 2 | 4;
 
 export interface GameState {
@@ -160,6 +194,14 @@ export interface GameState {
   wallOfFlameSegments: WallOfFlameSegment[];
   /** Tracks enter-damage already dealt per segment+entity. */
   fireEnterDone: Record<string, true>;
+  /** Air school: blocking tornado lanes. */
+  tornadoSegments: TornadoSegment[];
+  /** Air school: slowing blizzard zones. */
+  blizzardZones: BlizzardZone[];
+  tornadoEnterDone: Record<string, true>;
+  wizardFlight?: WizardFlight;
+  /** Dev playtest: which spell kit is on the hotbar. */
+  activeSpellSchool: SpellSchool;
   /** Tower + gold at build-phase start; edits commit on wave start. */
   buildBaseline: BuildBaseline | null;
 }

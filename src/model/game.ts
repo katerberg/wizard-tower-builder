@@ -5,7 +5,7 @@ import {
   STARTING_CURRENCY,
   WIZARD_DEFAULTS,
 } from '@/config/constants';
-import { sameMacroCell } from '@/calculations/subGrid';
+import { sameMacroCell, macroCellOfNode } from '@/calculations/subGrid';
 import { STARTING_BLUEPRINT_IDS } from './blueprints';
 import { computeDamage, type Combatant } from '../calculations/combat';
 import { spawnNode } from '../calculations/exteriorGraph';
@@ -15,16 +15,20 @@ import { findPath } from '../calculations/pathfinding';
 import { runEnemyStepEffects, runRoomEffects } from './modifications/effects';
 import {
   buildSpellContext,
+  blizzardSlowMultiplier,
+  getEffectiveWizardPosition,
+  isMacroCellBlockedByTornado,
   onEnemyWallStep,
   runAutoSpells,
   runKindlingPatchStepEffects,
+  shouldStubDiscombobulatedStep,
+  tickAirEffects,
   tickFireEffects,
   tickSpellCooldowns,
 } from './spells';
 import { endWave, loseGame, startRun, captureBuildBaseline } from './phases';
 import { seedFrom, shuffle } from '../calculations/rng';
 import { createStarterTower } from './starterTower';
-import { getWizardPosition } from './tower';
 import { goblinNames, bruteNames, wispNames } from '@/static/names';
 import { spawnIntervalFor } from './waves';
 import type { Enemy, EnemyTemplate, ExteriorNode, GameState, SimSpeed } from './types';
@@ -65,6 +69,10 @@ export function createInitialState(seed: string | number = 'wizard'): GameState 
     kindlingPatches: [],
     wallOfFlameSegments: [],
     fireEnterDone: {},
+    tornadoSegments: [],
+    blizzardZones: [],
+    tornadoEnterDone: {},
+    activeSpellSchool: 'fire',
     buildBaseline: null,
   };
   captureBuildBaseline(state);
@@ -169,7 +177,7 @@ export function step(state: GameState, dt: number): void {
   }
   state.waveTimer += dt;
 
-  const wizardPos = getWizardPosition(state.tower);
+  const wizardPos = getEffectiveWizardPosition(state);
   const wizard = state.player.wizard;
 
   // Spawn from the queue, alternating sides (paused when at live cap).
@@ -192,6 +200,8 @@ export function step(state: GameState, dt: number): void {
     if (enemy.currentHp <= 0) continue;
     const template = getEnemyTemplate(enemy.templateId);
     if (!template) continue;
+
+    if (enemy.airborne) continue;
 
     if (enemy.path.length === 0) {
       enemy.path = findPath(state.tower, enemy.pos, wizardPos, template.movement);
@@ -226,9 +236,19 @@ export function step(state: GameState, dt: number): void {
 
     enemy.moveCooldown -= dt;
     if (enemy.moveCooldown <= 0 && enemy.pathIndex < enemy.path.length - 1) {
+      const nextPos = enemy.path[enemy.pathIndex + 1];
+      const nextMacro = macroCellOfNode(nextPos);
+      if (isMacroCellBlockedByTornado(state, nextMacro.col, nextMacro.row)) {
+        enemy.moveCooldown = 0.2;
+        continue;
+      }
+      if (shouldStubDiscombobulatedStep(state.tower, enemy, nextPos)) {
+        enemy.moveCooldown = (1 / template.speed) * blizzardSlowMultiplier(state, enemy);
+        continue;
+      }
       enemy.pathIndex += 1;
-      enemy.pos = enemy.path[enemy.pathIndex];
-      enemy.moveCooldown = 1 / template.speed;
+      enemy.pos = nextPos;
+      enemy.moveCooldown = (1 / template.speed) * blizzardSlowMultiplier(state, enemy);
       runEnemyStepEffects(state, enemy);
       runKindlingPatchStepEffects(state, enemy);
       onEnemyWallStep(state, enemy);
@@ -238,6 +258,7 @@ export function step(state: GameState, dt: number): void {
   tickSpellCooldowns(state, dt);
   runAutoSpells(state);
   tickFireEffects(state, dt, (spellName) => buildSpellContext(state, spellName));
+  tickAirEffects(state, dt, (spellName) => buildSpellContext(state, spellName));
 
   // Room behaviors (turret rooms) and modifications (spikes) act on enemies this tick.
   runRoomEffects(state, dt);

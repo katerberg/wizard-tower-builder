@@ -40,6 +40,7 @@ export function applyIntent(ctx: HandlerContext, intent: Intent): void {
     case 'toggleDevMode':
     case 'devAddCurrency':
     case 'devSkipWave':
+    case 'devSetSpellSchool':
       handleDevIntent(ctx, intent);
       break;
 

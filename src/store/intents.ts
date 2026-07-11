@@ -16,6 +16,7 @@ export type Intent =
   | { type: 'toggleDevMode' }
   | { type: 'devAddCurrency' }
   | { type: 'devSkipWave' }
+  | { type: 'devSetSpellSchool'; school: 'fire' | 'air' }
   | { type: 'scrollCamera'; deltaY: number }
   | { type: 'setViewportHeight'; height: number }
   | { type: 'undoBuild' }

@@ -4,16 +4,23 @@ import { getEnemyTemplate } from '../enemies';
 import { addMessage } from '../messages';
 import { loseGame } from '../phases';
 import { getWizardPosition } from '../tower';
+import { getEffectiveWizardPosition } from './air/flight';
+import { applyWindDamage } from './air/windDamage';
+import { tornadoGridLine } from './air/tornado';
 import { applyFireDamage } from './fire/fireDamage';
 import { isValidKindlingPlacement } from './fire/kindling';
 import { gridLine, sameFaceEndpoints } from './fire/wall';
+import { blizzard } from './blizzard';
 import { fireball } from './fireball';
+import { flight } from './flight';
+import { gust } from './gust';
 import { immolate } from './immolate';
 import { kindling } from './kindling';
+import { tornado } from './tornado';
 import { wandStrike } from './wandStrike';
 import { wallOfFlame } from './wallOfFlame';
 import type { CastCheckResult, SpellCastContext, SpellDef, SpellTarget } from './types';
-import type { Cell, Enemy, GameState } from '../types';
+import type { Cell, Enemy, GameState, SpellSchool } from '../types';
 
 export type { CastCheckResult, SpellCastContext, SpellDef, SpellTarget } from './types';
 export { fireball, aoeCells, enemiesInFireballBlast } from './fireball';
@@ -21,32 +28,59 @@ export { wandStrike } from './wandStrike';
 export { immolate } from './immolate';
 export { kindling } from './kindling';
 export { wallOfFlame, gridLine, sameFaceEndpoints } from './wallOfFlame';
+export { gust } from './gust';
+export { tornado, tornadoGridLine } from './tornado';
+export { flight } from './flight';
+export { blizzard } from './blizzard';
 export { applyFireDamage } from './fire/fireDamage';
 export { isKindled, applyKindled, clearKindled } from './fire/kindled';
 export { isValidKindlingPlacement, addKindlingPatch, runKindlingPatchStepEffects } from './fire/kindling';
 export { isOnWall, startImmolate, clearImmolate, isImmolating, onEnemyWallStep } from './fire/immolate';
 export { resetFireState, tickFireEffects } from './fire/tick';
+export { applyDiscombobulated, isDiscombobulated, shouldStubDiscombobulatedStep } from './air/discombobulated';
+export { applyWindDamage } from './air/windDamage';
+export { resetAirState, tickAirEffects, blizzardSlowMultiplier, isMacroCellBlockedByTornado, addTornadoSegment } from './air/tick';
+export { getEffectiveWizardPosition } from './air/flight';
+export { blizzardZoneCells, isInBlizzardZone } from './air/blizzard';
+export { gustAffectedCells } from './air/push';
 
-/** Spells shown on the attack-phase hotbar (manual cast only). */
-export const HOTBAR_SPELL_IDS = ['fireball', 'immolate', 'wallOfFlame', 'kindling'] as const;
+export const FIRE_HOTBAR_SPELL_IDS = ['fireball', 'immolate', 'wallOfFlame', 'kindling'] as const;
+export const AIR_HOTBAR_SPELL_IDS = ['gust', 'tornado', 'flight', 'blizzard'] as const;
 export const HOTBAR_SLOT_COUNT = 6;
 
-const SPELLS: SpellDef[] = [fireball, immolate, wallOfFlame, kindling, wandStrike];
+const SPELLS: SpellDef[] = [
+  fireball,
+  immolate,
+  wallOfFlame,
+  kindling,
+  gust,
+  tornado,
+  flight,
+  blizzard,
+  wandStrike,
+];
 
 export function getSpell(id: string): SpellDef | undefined {
   return SPELLS.find((s) => s.id === id);
 }
 
-export function listHotbarSpells(): SpellDef[] {
-  return HOTBAR_SPELL_IDS.map((id) => getSpell(id)).filter((s): s is SpellDef => !!s);
+export function hotbarSpellIdsForSchool(school: SpellSchool): readonly string[] {
+  return school === 'air' ? AIR_HOTBAR_SPELL_IDS : FIRE_HOTBAR_SPELL_IDS;
+}
+
+export function listHotbarSpells(state: GameState): SpellDef[] {
+  return hotbarSpellIdsForSchool(state.activeSpellSchool)
+    .map((id) => getSpell(id))
+    .filter((s): s is SpellDef => !!s);
 }
 
 export function listAutoSpells(): SpellDef[] {
   return SPELLS.filter((s) => s.autoCast);
 }
 
-function gridDistance(from: { col: number; row: number }, cell: Cell): number {
-  return macroGridDistance(from, cell);
+function gridDistance(state: GameState, _from: { col: number; row: number }, cell: Cell): number {
+  const wizardPos = getEffectiveWizardPosition(state);
+  return macroGridDistance(wizardPos, cell);
 }
 
 function enemyGridDistance(a: { col: number; row: number }, b: { col: number; row: number }): number {
@@ -84,13 +118,16 @@ export function buildSpellContext(state: GameState, spellName: string): SpellCas
     applyFireDamage(enemy, damage, dexterity = 0) {
       applyFireDamage(ctx, enemy, damage, dexterity);
     },
+    applyWindDamage(enemy, damage) {
+      applyWindDamage(ctx, enemy, damage);
+    },
     log(text, kind) {
       addMessage(state, text, kind);
     },
     damageWizard(damage) {
       const wizard = state.player.wizard;
       wizard.hp = Math.max(0, wizard.hp - damage);
-      addMessage(state, `${spellName} scorches the wizard for ${damage}!`, 'combat');
+      addMessage(state, `${spellName} batters the wizard for ${damage}!`, 'combat');
       if (wizard.hp <= 0) {
         loseGame(state);
       }
@@ -117,18 +154,20 @@ export function canCastSpell(state: GameState, spellId: string, target?: SpellTa
   if (state.player.mana < spell.manaCost) return { ok: false, reason: 'no_mana' };
   if (spellCooldownRemaining(state, spellId) > 0) return { ok: false, reason: 'on_cooldown' };
 
-  const wizardPos = getWizardPosition(state.tower);
+  if (spell.targeting === 'self') {
+    return { ok: true };
+  }
 
   if (spell.targeting === 'gridPoint') {
     if (target?.kind !== 'cell') return { ok: false, reason: 'no_target' };
-    if (gridDistance(wizardPos, target.cell) > spell.range) {
+    if (gridDistance(state, getWizardPosition(state.tower), target.cell) > spell.range) {
       return { ok: false, reason: 'out_of_range' };
     }
   }
 
   if (spell.targeting === 'trapAdjacent') {
     if (target?.kind !== 'cell') return { ok: false, reason: 'no_target' };
-    if (gridDistance(wizardPos, target.cell) > spell.range) {
+    if (gridDistance(state, getWizardPosition(state.tower), target.cell) > spell.range) {
       return { ok: false, reason: 'out_of_range' };
     }
     if (!isValidKindlingPlacement(state.tower, target.cell)) {
@@ -140,6 +179,7 @@ export function canCastSpell(state: GameState, spellId: string, target?: SpellTa
     if (target?.kind !== 'enemy') return { ok: false, reason: 'no_target' };
     const enemy = state.enemies.find((e) => e.id === target.enemyId);
     if (!enemy || enemy.currentHp <= 0) return { ok: false, reason: 'no_target' };
+    const wizardPos = getEffectiveWizardPosition(state);
     if (enemyGridDistance(wizardPos, enemy.pos) > spell.range) {
       return { ok: false, reason: 'out_of_range' };
     }
@@ -147,19 +187,37 @@ export function canCastSpell(state: GameState, spellId: string, target?: SpellTa
 
   if (spell.targeting === 'segment') {
     if (target?.kind === 'cell') {
-      if (gridDistance(wizardPos, target.cell) > spell.range) {
+      if (gridDistance(state, getWizardPosition(state.tower), target.cell) > spell.range) {
         return { ok: false, reason: 'out_of_range' };
       }
       return { ok: true };
     }
     if (target?.kind !== 'segment') return { ok: false, reason: 'no_target' };
-    if (gridDistance(wizardPos, target.from) > spell.range || gridDistance(wizardPos, target.to) > spell.range) {
+    if (gridDistance(state, getWizardPosition(state.tower), target.from) > spell.range
+      || gridDistance(state, getWizardPosition(state.tower), target.to) > spell.range) {
       return { ok: false, reason: 'out_of_range' };
     }
     if (!sameFaceEndpoints(state.tower, target.from, target.to)) {
       return { ok: false, reason: 'invalid_segment' };
     }
     if (!gridLine(target.from, target.to)) {
+      return { ok: false, reason: 'invalid_segment' };
+    }
+  }
+
+  if (spell.targeting === 'airSegment') {
+    if (target?.kind === 'cell') {
+      if (gridDistance(state, getEffectiveWizardPosition(state), target.cell) > spell.range) {
+        return { ok: false, reason: 'out_of_range' };
+      }
+      return { ok: true };
+    }
+    if (target?.kind !== 'segment') return { ok: false, reason: 'no_target' };
+    if (gridDistance(state, getEffectiveWizardPosition(state), target.from) > spell.range
+      || gridDistance(state, getEffectiveWizardPosition(state), target.to) > spell.range) {
+      return { ok: false, reason: 'out_of_range' };
+    }
+    if (!tornadoGridLine(target.from, target.to)) {
       return { ok: false, reason: 'invalid_segment' };
     }
   }
@@ -211,7 +269,10 @@ export function resetSpellCooldowns(state: GameState): void {
   state.spellCooldowns = {};
 }
 
-/** Test helper: direct damage without cooldown/mana checks. */
+export function setActiveSpellSchool(state: GameState, school: SpellSchool): void {
+  state.activeSpellSchool = school;
+}
+
 export function castSpellUnchecked(state: GameState, spellId: string, target: SpellTarget): void {
   const spell = getSpell(spellId);
   if (!spell) return;

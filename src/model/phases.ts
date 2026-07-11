@@ -2,7 +2,7 @@ import { prepareWaveNames } from './game';
 import { addMessage } from './messages';
 import { reward } from '../calculations/economy';
 import { runWaveClearedEffects } from './modifications/effects';
-import { refillMana, resetFireState, resetSpellCooldowns } from './spells';
+import { refillMana, resetAirState, resetFireState, resetSpellCooldowns } from './spells';
 import { linearProgression } from './waves';
 import { buildSpawnQueue } from './waves';
 import type { GameState } from './types';
@@ -33,6 +33,7 @@ export function beginWave(state: GameState): void {
   refillMana(state);
   resetSpellCooldowns(state);
   resetFireState(state);
+  resetAirState(state);
   addMessage(state, `Wave ${state.levelIndex + 1} incoming: ${state.spawnQueue.length} foes.`, 'combat');
 }
 
