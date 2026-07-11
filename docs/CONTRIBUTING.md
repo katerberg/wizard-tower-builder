@@ -67,6 +67,15 @@ Read [`docs/INFRASTRUCTURE.md`](../docs/INFRASTRUCTURE.md) first. Follow the pha
 - Slot staffing uses per-slot headcount + auto-assign at wave start.
 - Reuse the **modifications** system for barracks/slot capacity upgrades.
 
+### Pipe / boiler / steam feature
+
+Read [`docs/PIPES.md`](../docs/PIPES.md) first. Key rules:
+
+- Generic pipe with **preview typing** (water = row 0, steam = steam turret); **locks at wave start**.
+- **Reject** placement that merges water and steam networks.
+- Boiler **2×1**; no pipes through boiler cells — water/steam on **adjacent** cells only.
+- Shared **mana** pool; mana springs (2×2) and boilers consume/produce per spec.
+
 ### Add an intent and UI control
 
 1. Add variant to `Intent` in [`src/store/intents.ts`](../src/store/intents.ts).

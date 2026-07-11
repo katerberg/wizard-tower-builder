@@ -98,13 +98,20 @@ interface InfraCell {
 | Throughput | **One soldier per stair column** at a time; parallel adjacent columns alleviate blocking |
 | Speed | **0.2×** horizontal baseline (tunable in constants) |
 
-### Pipe (`pipe`) — logistics slice (after barracks/slot/stairs)
+### Pipe (`pipe`) — water & steam logistics
+
+**Full design:** [`docs/PIPES.md`](docs/PIPES.md)
 
 | Property | Value |
 |----------|--------|
-| Directions | **Orthogonal** segments only |
-| Purpose | Logistics only (water, steam, etc.) — **no movement effect** |
-| Exclusion | Cannot share a cell with stairs or elevators |
+| Tool | Generic pipe; **fluid preview** (gray → blue water / orange steam) |
+| Water seed | Any pipe on **row 0** |
+| Steam seed | Pipes touching **steam turret** |
+| Merge | **Reject** placement that would mix water + steam (Factorio-style) |
+| Lock | Fluid type frozen at **wave start** |
+| Crossover | **Not planned** — use parallel adjacent columns |
+
+**Implementation status:** Untyped pipe paint only. Boilers, steam turrets, mana springs, and mana economy are specified in `docs/PIPES.md`.
 
 ### Elevator (`elevator`) — future
 

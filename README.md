@@ -247,8 +247,9 @@ flowchart TB
 
 ## Deferred / not in v1
 
-- Mana economy (turret operating cost)
-- Elevators, pipe logistics gameplay, soldier death/targeting
+- Elevators, dynamic pipe/network breaks on room destruction
+- Spells (magic turret mana cost is planned — see `docs/PIPES.md`)
+- Soldier death/targeting, pipe damage
 - Multiple currencies beyond gold, roguelike map branching
 - Alternative enemy movement modes (fly, attack overhangs, etc.) — default is `under_overhang` exterior climb
 - Visual polish beyond ASCII-style glyphs on canvas
