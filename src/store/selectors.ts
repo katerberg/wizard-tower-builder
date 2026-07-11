@@ -9,10 +9,27 @@ import { roomCells } from '@/calculations/grid';
 import {
   canApplyModification,
   canUpgradeModification,
+  formatModificationMechanics,
   listModifications,
   modificationCost,
 } from '@/model/modifications';
-import { canPlace, getUnstableRoomIds, getWizardPosition, towersEqual } from '@/model/tower';
+import { getRoomBehavior } from '@/model/roomBehaviors';
+import {
+  canCastSpell,
+  enemyAtCell,
+  getSpell,
+  gridLine,
+  tornadoGridLine,
+  HOTBAR_SLOT_COUNT,
+  listHotbarSpells,
+  spellCooldownRemaining,
+  gustAffectedCells,
+  getEffectiveWizardPosition,
+  blizzardZoneCells,
+} from '@/model/spells';
+import { aoeCells } from '@/model/spells/fireball';
+import { canPlace, getUnstableRoomIds, towersEqual } from '@/model/tower';
+import { getBuildTool } from '@/static/buildTools';
 import type { Blueprint, Cell, ExteriorNode, PlacementReason, Room, RoomStats } from '@/model/types';
 import type { Snapshot } from './store';
 
@@ -62,7 +79,7 @@ export function selectBuildUndoState(snapshot: Snapshot): BuildUndoState {
 }
 
 export function selectWizardPosition(snapshot: Snapshot): ExteriorNode {
-  return getWizardPosition(snapshot.game.tower);
+  return getEffectiveWizardPosition(snapshot.game);
 }
 
 export interface TowerStability { stable: boolean; unstableRoomIds: Set<string> }
@@ -169,12 +186,24 @@ export interface RoomModificationOption {
   glyph: string;
   color: string;
   description: string;
+  mechanics: string;
   level: number;
   maxLevel: number;
   levelText: string;
   action: 'none' | 'add' | 'upgrade' | 'max';
   cost: number;
   enabled: boolean;
+}
+
+function modOptionFields(
+  def: ReturnType<typeof listModifications>[number],
+  level: number,
+  action: RoomModificationOption['action'],
+): Pick<RoomModificationOption, 'description' | 'mechanics'> {
+  return {
+    description: def.description,
+    mechanics: formatModificationMechanics(def, level, action),
+  };
 }
 
 export interface RoomInspector {
@@ -220,7 +249,7 @@ export function selectRoomInspector(snapshot: Snapshot, roomId: string): RoomIns
         name: def.name,
         glyph: def.glyph,
         color: def.color,
-        description: def.description,
+        ...modOptionFields(def, level, 'none'),
         level,
         maxLevel: def.maxLevel,
         levelText,
@@ -238,7 +267,7 @@ export function selectRoomInspector(snapshot: Snapshot, roomId: string): RoomIns
         name: def.name,
         glyph: def.glyph,
         color: def.color,
-        description: def.description,
+        ...modOptionFields(def, level, 'add'),
         level,
         maxLevel: def.maxLevel,
         levelText,
@@ -256,7 +285,7 @@ export function selectRoomInspector(snapshot: Snapshot, roomId: string): RoomIns
         name: def.name,
         glyph: def.glyph,
         color: def.color,
-        description: def.description,
+        ...modOptionFields(def, level, 'upgrade'),
         level,
         maxLevel: def.maxLevel,
         levelText,
@@ -271,7 +300,7 @@ export function selectRoomInspector(snapshot: Snapshot, roomId: string): RoomIns
       name: def.name,
       glyph: def.glyph,
       color: def.color,
-      description: def.description,
+      ...modOptionFields(def, level, 'max'),
       level,
       maxLevel: def.maxLevel,
       levelText,
@@ -295,5 +324,317 @@ export function selectRoomInspector(snapshot: Snapshot, roomId: string): RoomIns
     slotConnected: isSlotRoom(room)
       ? selectConnectivityReport(game).slots.find((s) => s.slotId === room.id)?.connected ?? true
       : undefined,
+  };
+}
+
+export interface ManaState {
+  current: number;
+  max: number;
+}
+
+export function selectMana(snapshot: Snapshot): ManaState {
+  const { player } = snapshot.game;
+  return { current: player.mana, max: player.maxMana };
+}
+
+export interface SpellBarSlot {
+  hotkey: number;
+  id: string | null;
+  name: string | null;
+  glyph: string | null;
+  manaCost: number | null;
+  cooldownRemaining: number;
+  selected: boolean;
+  enabled: boolean;
+  disabledReason: string | null;
+  empty: boolean;
+}
+
+export function selectSpellBar(snapshot: Snapshot): SpellBarSlot[] {
+  const { game, view } = snapshot;
+  if (game.scene !== 'run') return [];
+
+  const inAttack = game.phase === 'attack';
+  const spells = listHotbarSpells(game);
+  const slots: SpellBarSlot[] = [];
+
+  for (let i = 0; i < HOTBAR_SLOT_COUNT; i++) {
+    const spell = spells[i];
+    const hotkey = i + 1;
+    if (!spell) {
+      slots.push({
+        hotkey,
+        id: null,
+        name: null,
+        glyph: null,
+        manaCost: null,
+        cooldownRemaining: 0,
+        selected: false,
+        enabled: false,
+        disabledReason: null,
+        empty: true,
+      });
+      continue;
+    }
+
+    if (!inAttack) {
+      slots.push({
+        hotkey,
+        id: spell.id,
+        name: spell.name,
+        glyph: spell.glyph,
+        manaCost: spell.manaCost,
+        cooldownRemaining: 0,
+        selected: false,
+        enabled: false,
+        disabledReason: null,
+        empty: false,
+      });
+      continue;
+    }
+
+    const onCooldown = spellCooldownRemaining(game, spell.id) > 0;
+    const noMana = game.player.mana < spell.manaCost;
+    let disabledReason: string | null = null;
+    if (onCooldown) disabledReason = 'cooldown';
+    else if (noMana) disabledReason = 'no mana';
+
+    slots.push({
+      hotkey,
+      id: spell.id,
+      name: spell.name,
+      glyph: spell.glyph,
+      manaCost: spell.manaCost,
+      cooldownRemaining: spellCooldownRemaining(game, spell.id),
+      selected: view.selectedSpellId === spell.id,
+      enabled: !onCooldown && !noMana,
+      disabledReason,
+      empty: false,
+    });
+  }
+
+  return slots;
+}
+
+export interface CastPreview {
+  cells: Cell[];
+  valid: boolean;
+  reason: string;
+}
+
+export function selectCastPreview(snapshot: Snapshot): CastPreview | null {
+  const { game, view } = snapshot;
+  if (game.scene !== 'run' || game.phase !== 'attack') return null;
+  const spellId = view.selectedSpellId;
+  if (!spellId || !view.hoveredCell) return null;
+
+  const spell = getSpell(spellId);
+  if (!spell || spell.autoCast) return null;
+
+  if (spell.targeting === 'gridPoint') {
+    const result = canCastSpell(game, spellId, { kind: 'cell', cell: view.hoveredCell });
+    const cells =
+      spell.id === 'gust'
+        ? gustAffectedCells(view.hoveredCell)
+        : spell.id === 'blizzard'
+          ? blizzardZoneCells(view.hoveredCell)
+          : aoeCells(view.hoveredCell, spell.aoeRadius ?? 0);
+    return {
+      cells,
+      valid: result.ok,
+      reason: result.ok ? 'ok' : result.reason,
+    };
+  }
+
+  if (spell.targeting === 'trapAdjacent') {
+    const result = canCastSpell(game, spellId, { kind: 'cell', cell: view.hoveredCell });
+    return {
+      cells: [view.hoveredCell],
+      valid: result.ok,
+      reason: result.ok ? 'ok' : result.reason,
+    };
+  }
+
+  if (spell.targeting === 'enemy') {
+    const enemy = enemyAtCell(game, view.hoveredCell);
+    const result = enemy
+      ? canCastSpell(game, spellId, { kind: 'enemy', enemyId: enemy.id })
+      : { ok: false as const, reason: 'no_target' as const };
+    return {
+      cells: enemy ? [view.hoveredCell] : [],
+      valid: result.ok,
+      reason: result.ok ? 'ok' : result.reason,
+    };
+  }
+
+  if (spell.targeting === 'segment') {
+    if (!view.castAnchor) {
+      const result = canCastSpell(game, spellId, { kind: 'cell', cell: view.hoveredCell });
+      return {
+        cells: [view.hoveredCell],
+        valid: result.ok,
+        reason: result.ok ? 'ok' : result.reason,
+      };
+    }
+    const line = gridLine(view.castAnchor, view.hoveredCell);
+    const result = line
+      ? canCastSpell(game, spellId, { kind: 'segment', from: view.castAnchor, to: view.hoveredCell })
+      : { ok: false as const, reason: 'invalid_segment' as const };
+    return {
+      cells: line ?? [view.castAnchor, view.hoveredCell],
+      valid: result.ok,
+      reason: result.ok ? 'ok' : result.reason,
+    };
+  }
+
+  if (spell.targeting === 'airSegment') {
+    if (!view.castAnchor) {
+      const result = canCastSpell(game, spellId, { kind: 'cell', cell: view.hoveredCell });
+      return {
+        cells: [view.hoveredCell, { col: view.hoveredCell.col, row: view.hoveredCell.row + 1 }],
+        valid: result.ok,
+        reason: result.ok ? 'ok' : result.reason,
+      };
+    }
+    const line = tornadoGridLine(view.castAnchor, view.hoveredCell);
+    const previewCells = line
+      ? line.flatMap((c) => [c, { col: c.col, row: c.row + 1 }])
+      : [view.castAnchor, view.hoveredCell];
+    const result = line
+      ? canCastSpell(game, spellId, { kind: 'segment', from: view.castAnchor, to: view.hoveredCell })
+      : { ok: false as const, reason: 'invalid_segment' as const };
+    return {
+      cells: previewCells,
+      valid: result.ok,
+      reason: result.ok ? 'ok' : result.reason,
+    };
+  }
+
+  return null;
+}
+
+export function selectCanCastSpell(
+  snapshot: Snapshot,
+  spellId: string,
+  cell: Cell,
+): { valid: boolean; reason: string } {
+  const result = canCastSpell(snapshot.game, spellId, { kind: 'cell', cell });
+  return { valid: result.ok, reason: result.ok ? 'ok' : result.reason };
+}
+
+export interface UiTooltipStat {
+  label: string;
+  value: string;
+  accent?: boolean;
+}
+
+export interface UiTooltipContent {
+  title: string;
+  glyph: string;
+  glyphColor?: string;
+  description: string;
+  stats: UiTooltipStat[];
+  footer?: string;
+}
+
+export type UiTooltipTarget =
+  | { kind: 'spell'; id: string }
+  | { kind: 'blueprint'; id: string }
+  | { kind: 'tool'; id: string };
+
+export function selectUiTooltip(snapshot: Snapshot, target: UiTooltipTarget): UiTooltipContent | null {
+  switch (target.kind) {
+    case 'spell':
+      return selectSpellTooltip(snapshot, target.id);
+    case 'blueprint':
+      return selectBlueprintTooltip(snapshot, target.id);
+    case 'tool':
+      return selectBuildToolTooltip(snapshot, target.id);
+  }
+}
+
+function selectSpellTooltip(snapshot: Snapshot, spellId: string): UiTooltipContent | null {
+  const spell = getSpell(spellId);
+  if (!spell || spell.autoCast) return null;
+
+  const { game } = snapshot;
+  const inAttack = game.scene === 'run' && game.phase === 'attack';
+  const hotkey = listHotbarSpells(game).findIndex((s) => s.id === spellId) + 1;
+  const stats: UiTooltipStat[] = [
+    { label: 'Mana', value: String(spell.manaCost), accent: true },
+    { label: 'Cooldown', value: `${spell.cooldown}s` },
+    { label: 'Range', value: `${spell.range} cells` },
+    { label: 'Damage', value: String(spell.damage) },
+  ];
+
+  if (spell.id === 'blizzard') {
+    stats.push({ label: 'Area', value: 'Diamond, radius 2' });
+  } else if (spell.aoeRadius != null && spell.aoeRadius > 0) {
+    const size = spell.aoeRadius * 2 + 1;
+    stats.push({ label: 'Area', value: `${size}×${size} blast` });
+  }
+
+  stats.push({ label: 'Targeting', value: 'Click grid cell' });
+
+  let footer: string | undefined;
+  if (!inAttack) {
+    footer = 'Available during attack · mana refills each wave';
+  } else if (spellCooldownRemaining(game, spellId) > 0) {
+    footer = `On cooldown (${spellCooldownRemaining(game, spellId).toFixed(1)}s)`;
+  } else if (game.player.mana < spell.manaCost) {
+    footer = 'Not enough mana';
+  } else if (hotkey > 0) {
+    footer = `Press ${hotkey} or click slot, then click the grid to cast`;
+  }
+
+  return {
+    title: spell.name,
+    glyph: spell.glyph,
+    glyphColor: '#f6ad55',
+    description: spell.description,
+    stats,
+    footer,
+  };
+}
+
+function selectBlueprintTooltip(snapshot: Snapshot, blueprintId: string): UiTooltipContent | null {
+  const blueprint = getBlueprint(blueprintId);
+  if (!blueprint) return null;
+
+  const { remainingGold } = selectBuildEconomy(snapshot);
+  const affordable = remainingGold >= blueprint.cost;
+  const behavior = getRoomBehavior(blueprintId);
+  const stats: UiTooltipStat[] = [
+    { label: 'Cost', value: `${blueprint.cost} gold`, accent: true },
+    { label: 'HP', value: String(blueprint.baseHp) },
+    { label: 'Size', value: `${blueprint.size.w}×${blueprint.size.h}` },
+    { label: 'Affordable', value: affordable ? 'Yes' : 'No' },
+  ];
+  if (behavior) {
+    stats.push({ label: 'Effect', value: behavior.mechanics, accent: true });
+  }
+
+  return {
+    title: blueprint.name,
+    glyph: blueprint.glyph,
+    glyphColor: blueprint.color,
+    description: blueprint.description,
+    stats,
+    footer: affordable ? 'Click to select · drag to place' : 'Not enough gold remaining',
+  };
+}
+
+function selectBuildToolTooltip(snapshot: Snapshot, toolId: string): UiTooltipContent | null {
+  const tool = getBuildTool(toolId);
+  if (!tool) return null;
+
+  const inSelect = snapshot.view.selectedBlueprintId === null;
+
+  return {
+    title: tool.name,
+    glyph: tool.glyph,
+    description: tool.description,
+    stats: [{ label: 'Mode', value: inSelect ? 'Active' : 'Inactive', accent: inSelect }],
+    footer: 'Click to enter select mode',
   };
 }

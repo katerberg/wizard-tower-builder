@@ -1,5 +1,7 @@
 import { getInfraAt } from '@/model/infra';
 import { roomAt } from '@/model/tower';
+import { getSpell } from '@/model/spells';
+import { selectSpellBar } from '@/store/selectors';
 import type { Store } from '@/store/store';
 import { screenToCell } from './canvas/camera';
 
@@ -72,9 +74,11 @@ export function attachInput(
     const cell = cellFromEvent(e);
     if (dragStart && !isDragging) {
       const { game, view } = store.getSnapshot();
-      if (game.phase === 'build' && view.selectedBlueprintId) {
+      if (game.phase === 'attack' && view.selectedSpellId) {
+        store.dispatch({ type: 'castSpellAt', spellId: view.selectedSpellId, cell });
+      } else if (game.phase === 'build' && view.selectedBlueprintId) {
         store.dispatch({ type: 'placeSelectedAt', cell });
-      } else if (roomAt(game.tower, cell.col, cell.row)) {
+      } else if (game.phase === 'build' && roomAt(game.tower, cell.col, cell.row)) {
         store.dispatch({ type: 'inspectRoomAt', cell });
       }
     }
@@ -89,8 +93,9 @@ export function attachInput(
 
   canvas.addEventListener('contextmenu', (e) => {
     e.preventDefault();
-    const cell = cellFromEvent(e);
     const { game } = store.getSnapshot();
+    if (game.phase !== 'build') return;
+    const cell = cellFromEvent(e);
     if (roomAt(game.tower, cell.col, cell.row)) {
       store.dispatch({ type: 'removeRoomAt', cell });
     } else if (getInfraAt(game.tower, cell.col, cell.row)) {
@@ -108,9 +113,35 @@ export function attachInput(
   );
 
   window.addEventListener('keydown', (e) => {
+    const snapshot = store.getSnapshot();
+    const { game, view } = snapshot;
+
+    if (e.key >= '1' && e.key <= '6') {
+      if (game.scene !== 'run' || game.phase !== 'attack') return;
+      const slot = selectSpellBar(snapshot)[Number(e.key) - 1];
+      if (!slot?.id || !slot.enabled) return;
+      e.preventDefault();
+      if (view.selectedSpellId === slot.id) {
+        const spell = getSpell(slot.id);
+        if (spell?.targeting === 'self') {
+          store.dispatch({ type: 'castSpellAt', spellId: slot.id, cell: { col: 0, row: 0 } });
+        } else {
+          store.dispatch({ type: 'cancelCast' });
+        }
+      } else {
+        store.dispatch({ type: 'selectSpell', spellId: slot.id });
+      }
+      return;
+    }
+
     if (e.key !== 'Escape') return;
-    const { view } = store.getSnapshot();
-    if (view.selectedBlueprintId) {
+    if (view.modal) {
+      e.preventDefault();
+      store.dispatch({ type: 'closeModal' });
+    } else if (view.selectedSpellId) {
+      e.preventDefault();
+      store.dispatch({ type: 'cancelCast' });
+    } else if (view.selectedBlueprintId) {
       e.preventDefault();
       store.dispatch({ type: 'selectBlueprint', blueprintId: null });
     }

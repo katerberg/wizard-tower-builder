@@ -9,6 +9,7 @@ export const BLUEPRINTS: Blueprint[] = [
     size: { w: 1, h: 1 },
     cost: 3,
     baseHp: 20,
+    description: 'A 1×1 core block. Stack upward to reach the wizard perch. Must sit on ground or a room directly below — no overhang.',
   },
   {
     id: 'buttress2',
@@ -18,6 +19,7 @@ export const BLUEPRINTS: Blueprint[] = [
     size: { w: 2, h: 1 },
     cost: 6,
     baseHp: 35,
+    description: 'A wide 2×1 platform. Can cantilever one step beyond support for flexible tower shapes.',
   },
   {
     id: 'buttress3',
@@ -27,6 +29,7 @@ export const BLUEPRINTS: Blueprint[] = [
     size: { w: 3, h: 1 },
     cost: 8,
     baseHp: 45,
+    description: 'A wide 3×1 platform. Same cantilever rules as the smaller buttress, with more HP.',
   },
   {
     id: 'turretRoom',
@@ -36,6 +39,7 @@ export const BLUEPRINTS: Blueprint[] = [
     size: { w: 1, h: 1 },
     cost: 10,
     baseHp: 18,
+    description: 'Auto-fires at nearby climbers during attack.',
   },
   {
     id: 'goldMineRoom',
@@ -45,6 +49,7 @@ export const BLUEPRINTS: Blueprint[] = [
     size: { w: 1, h: 1 },
     cost: 8,
     baseHp: 15,
+    description: 'Passive income when you survive a wave.',
   },
   {
     id: 'barracksRoom',
@@ -56,6 +61,7 @@ export const BLUEPRINTS: Blueprint[] = [
     baseHp: 20,
     category: 'structure',
     passable: true,
+    description: 'Recruit soldiers during build. They deploy through stairs to slots when the wave starts.',
   },
   {
     id: 'slotRoom',
@@ -67,6 +73,7 @@ export const BLUEPRINTS: Blueprint[] = [
     baseHp: 18,
     category: 'structure',
     passable: true,
+    description: 'Station soldiers here during attack. Allocate headcount from barracks in build phase.',
   },
 ];
 

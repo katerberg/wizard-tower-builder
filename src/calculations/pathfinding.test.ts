@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { macroCenterSubCell } from './subGrid';
 import { ENEMY_TEMPLATES } from '../model/enemies';
 import { findPath } from './pathfinding';
 import { isWalkable, spawnNode } from './exteriorGraph';
@@ -6,7 +7,7 @@ import { createRoom, createTower, getWizardPosition, placeRoom } from '../model/
 import { getBlueprint } from '../model/blueprints';
 import type { ExteriorNode, Tower } from '../model/types';
 
-const profile = ENEMY_TEMPLATES.goblin.movement;
+const profile = ENEMY_TEMPLATES.swarm.movement;
 
 // stem (5,0) -> stem (5,1) -> buttress3 (4,2): cap overhangs cols 4 and 6.
 function buildTShapedTower(): Tower {
@@ -75,13 +76,14 @@ describe('findPath on a T-shaped tower', () => {
     const path = findPath(tower, start, goal, profile);
 
     // An air cell high above and away from the tower must not appear on the path.
-    expect(path.some((n) => n.col === 0 && n.row === 6)).toBe(false);
+    const air = macroCenterSubCell(0, 6);
+    expect(path.some((n) => n.col === air.col && n.row === air.row)).toBe(false);
   });
 
   it('returns an empty path when the goal is inside a room', () => {
     const tower = buildTShapedTower();
     const start = spawnNode(tower, 'left');
-    const blockedGoal: ExteriorNode = { col: 5, row: 0, face: 'top' };
+    const blockedGoal: ExteriorNode = { ...macroCenterSubCell(5, 0), face: 'top' };
     expect(findPath(tower, start, blockedGoal, profile)).toEqual([]);
   });
 });

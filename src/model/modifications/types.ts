@@ -38,6 +38,8 @@ export interface ModificationDef {
   glyph: string;
   color: string;
   description: string;
+  /** Literal per-level effect text for UI (damage, income, etc.). */
+  mechanicsAtLevel: (level: number) => string;
   /** Highest level this modification can reach. */
   maxLevel: number;
   /** Gold cost to bring the modification to `level` (cost(1) adds it). */

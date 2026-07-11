@@ -1,5 +1,12 @@
 import { FINAL_LEVEL_INDEX } from '@/model/waves';
-import { selectBuildEconomy, selectBuildUndoState, selectConnectivityWarnings, selectSelectedBlueprint, selectTowerStability } from '@/store/selectors';
+import {
+  selectBuildEconomy,
+  selectBuildUndoState,
+  selectConnectivityWarnings,
+  selectMana,
+  selectSelectedBlueprint,
+  selectTowerStability,
+} from '@/store/selectors';
 import type { Intent } from '@/store/intents';
 import type { Store } from '@/store/store';
 
@@ -12,6 +19,13 @@ export function createHud(root: HTMLElement, store: Store): () => void {
     if (!target || (target instanceof HTMLButtonElement && target.disabled)) return;
     const action = target.dataset.action as Intent['type'] | undefined;
     if (!action) return;
+    if (action === 'devSetSpellSchool') {
+      const school = target.dataset.school;
+      if (school === 'fire' || school === 'air') {
+        store.dispatch({ type: 'devSetSpellSchool', school });
+      }
+      return;
+    }
     store.dispatch({ type: action } as Intent);
   }
 
@@ -70,13 +84,18 @@ export function createHud(root: HTMLElement, store: Store): () => void {
 
     const attackInfo =
       game.scene === 'run' && game.phase === 'attack'
-        ? `<div class="stat"><span>Enemies</span><strong>${enemiesLeft}</strong></div>`
+        ? `<div class="stat"><span>Enemies</span><strong>${enemiesLeft}</strong></div>
+           <div class="stat"><span>Mana</span><strong>${selectMana(snapshot).current} / ${selectMana(snapshot).max}</strong></div>`
         : '';
 
     const devControls = game.devMode
       ? `<div class="dev-row">
            <button data-action="devAddCurrency">+50 gold</button>
            <button data-action="devSkipWave">Skip wave</button>
+         </div>
+         <div class="dev-row">
+           <button data-action="devSetSpellSchool" data-school="fire" ${game.activeSpellSchool === 'fire' ? 'disabled' : ''}>Fire school</button>
+           <button data-action="devSetSpellSchool" data-school="air" ${game.activeSpellSchool === 'air' ? 'disabled' : ''}>Air school</button>
          </div>`
       : '';
 

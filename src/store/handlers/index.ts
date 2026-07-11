@@ -7,6 +7,8 @@ import { handleInfraIntent } from './infra';
 import { handleInspectIntent } from './inspect';
 import { handleModificationsIntent } from './modifications';
 import { handleSoldiersIntent } from './soldiers';
+import { handleSpeedIntent } from './speed';
+import { handleSpellIntent } from './spells';
 import { handleWaveIntent } from './wave';
 
 export function applyIntent(ctx: HandlerContext, intent: Intent): void {
@@ -54,12 +56,23 @@ export function applyIntent(ctx: HandlerContext, intent: Intent): void {
     case 'toggleDevMode':
     case 'devAddCurrency':
     case 'devSkipWave':
+    case 'devSetSpellSchool':
       handleDevIntent(ctx, intent);
       break;
 
     case 'scrollCamera':
     case 'setViewportHeight':
       handleCameraIntent(ctx, intent);
+      break;
+
+    case 'selectSpell':
+    case 'castSpellAt':
+    case 'cancelCast':
+      handleSpellIntent(ctx, intent);
+      break;
+
+    case 'setSimSpeed':
+      handleSpeedIntent(ctx, intent);
       break;
   }
 }

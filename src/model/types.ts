@@ -14,6 +14,7 @@ export interface Blueprint {
   size: { w: number; h: number };
   cost: number;
   baseHp: number;
+  description: string;
   category?: BlueprintCategory;
   infraKind?: InfraKind;
   /** Soldiers may path through structure cells when true (default). */
@@ -89,6 +90,8 @@ export interface MovementProfile {
   canTransferFaces: boolean;
 }
 
+export type EnemySizeTier = 'swarm' | 'elite' | 'boss';
+
 export interface EnemyTemplate {
   id: string;
   type: string;
@@ -98,6 +101,7 @@ export interface EnemyTemplate {
   speed: number;
   currencyReward: number;
   movement: MovementProfile;
+  sizeTier: EnemySizeTier;
   dropChance?: number;
   dropItemId?: string;
 }
@@ -112,17 +116,42 @@ export interface Enemy {
   currentHp: number;
   moveCooldown: number;
   attackCooldown: number;
+  /** Fire school: Kindled mark expires at this waveTimer. */
+  kindledUntil?: number;
+  /** Fire school: Immolate burn expires at this waveTimer. */
+  immolateUntil?: number;
+  /** Cells traveled on wall while Immolating (macro cells, for ramp). */
+  immolateDistanceBurned?: number;
+  immolateTickTimer?: number;
+  /** Last macro cell counted toward Immolate ramp. */
+  immolateLastMacroKey?: string;
+  /** Wall of Flame segment keys the enemy is currently inside. */
+  wallFlameInside?: string[];
+  /** Air school: permanent attachment tax. */
+  discombobulated?: boolean;
+  /** Next attachment transition is allowed through. */
+  discombobulatedAttachReady?: boolean;
+  /** Falling after detach. */
+  airborne?: boolean;
+  /** Sub-row where the enemy was knocked loose. */
+  airborneFromRow?: number;
+  fallSubRows?: number;
+  airborneTimer?: number;
+  /** Tornado segment keys inside. */
+  tornadoInside?: string[];
 }
 
 export type GameMessageKind = 'info' | 'combat' | 'economy';
 
-export interface GameMessage { tick: number; text: string; kind: GameMessageKind }
+export interface GameMessage { text: string; kind: GameMessageKind }
 
 export interface Player {
   currency: number;
   unlockedBlueprints: string[];
   levelIndex: number;
   wizard: Wizard;
+  mana: number;
+  maxMana: number;
 }
 
 export type ProgressionMode = 'linear' | 'branching';
@@ -130,6 +159,43 @@ export type ProgressionMode = 'linear' | 'branching';
 export type Phase = 'build' | 'attack';
 
 export type Scene = 'menu' | 'run' | 'gameOver' | 'victory';
+
+export interface KindlingPatch {
+  col: number;
+  row: number;
+  expiresAt: number;
+}
+
+export interface WallOfFlameSegment {
+  cells: Cell[];
+  face: ExteriorFace;
+  expiresAt: number;
+  tickTimer: number;
+}
+
+export interface TornadoSegment {
+  macroCells: Cell[];
+  expiresAt: number;
+  tickTimer: number;
+}
+
+export interface BlizzardZone {
+  center: Cell;
+  radius: number;
+  expiresAt: number;
+  tickTimer: number;
+}
+
+export interface WizardFlight {
+  pos: ExteriorNode;
+  until: number;
+  descending: boolean;
+  descendTimer?: number;
+}
+
+export type SpellSchool = 'fire' | 'air';
+
+export type SimSpeed = 1 | 2 | 4;
 
 export interface GameState {
   scene: Scene;
@@ -140,7 +206,8 @@ export interface GameState {
   waveTimer: number;
   spawnTimer: number;
   spawnQueue: string[];
-  tick: number;
+  /** Simulation speed multiplier during attack (1 = normal). */
+  simSpeed: SimSpeed;
   player: Player;
   tower: Tower;
   enemies: Enemy[];
@@ -157,6 +224,22 @@ export interface GameState {
   buildRecruitSpend: number;
   /** Stair columns currently in use for vertical movement. */
   stairColumnLocks: Record<number, string>;
+  /** Seconds remaining before each spell can be cast again. */
+  spellCooldowns: Record<string, number>;
+  /** Active Kindling trap patches (fire school). */
+  kindlingPatches: KindlingPatch[];
+  /** Timed Wall of Flame damage zones. */
+  wallOfFlameSegments: WallOfFlameSegment[];
+  /** Tracks enter-damage already dealt per segment+entity. */
+  fireEnterDone: Record<string, true>;
+  /** Air school: blocking tornado lanes. */
+  tornadoSegments: TornadoSegment[];
+  /** Air school: slowing blizzard zones. */
+  blizzardZones: BlizzardZone[];
+  tornadoEnterDone: Record<string, true>;
+  wizardFlight?: WizardFlight;
+  /** Dev playtest: which spell kit is on the hotbar. */
+  activeSpellSchool: SpellSchool;
   /** Tower + gold at build-phase start; edits commit on wave start. */
   buildBaseline: BuildBaseline | null;
 }

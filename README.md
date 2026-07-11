@@ -26,23 +26,23 @@ Unstable towers (floating rooms or illegal cantilevers) are highlighted on the b
 
 ### Controls
 
-| Action | Input |
-|--------|-------|
-| Select / inspect | **Select** tool (default), then click a room |
-| Place / replace | Pick a blueprint, click or drag on grid |
-| Deselect blueprint | **Esc**, Select tool, or click same blueprint again |
-| Remove room | Right-click grid (build phase) |
-| Undo / revert layout | HUD buttons (build phase) |
-| Start wave | HUD button (when tower is stable) |
-| Scroll tower | Mouse wheel on board |
+| Action               | Input                                               |
+| -------------------- | --------------------------------------------------- |
+| Select / inspect     | **Select** tool (default), then click a room        |
+| Place / replace      | Pick a blueprint, click or drag on grid             |
+| Deselect blueprint   | **Esc**, Select tool, or click same blueprint again |
+| Remove room          | Right-click grid (build phase)                      |
+| Undo / revert layout | HUD buttons (build phase)                           |
+| Start wave           | HUD button (when tower is stable)                   |
+| Scroll tower         | Mouse wheel on board                                |
 
 Dev mode toggles are available via intents (`toggleDevMode`, `devAddCurrency`, `devSkipWave`) for local testing.
 
 ### Enemy movement
 
-Enemies are surface crawlers, not fliers. Pathfinding (`src/calculations/`) builds a one-cell-thick "shell" of empty cells that hug the tower on a **flat** surface: the ground (row 0), the left and right walls of rooms, ledges on top of rooms, and the pockets beneath overhangs. A cell that only touches a room diagonally is clinging to a bare corner — it is *not* a surface, so enemies never perch there. Cells out in open air are never walkable, so enemies must follow the structure up to the wizard.
+Enemies are surface crawlers, not fliers. Pathfinding (`src/calculations/`) builds a one-cell-thick "shell" of empty cells that hug the tower on a **flat** surface: the ground (row 0), the left and right walls of rooms, ledges on top of rooms, and the pockets beneath overhangs. A cell that only touches a room diagonally is clinging to a bare corner — it is _not_ a surface, so enemies never perch there. Cells out in open air are never walkable, so enemies must follow the structure up to the wizard.
 
-Most steps are orthogonal: enemies climb flat walls and ledges one cell at a time. The single exception is a constrained **corner-wrap** — a diagonal step that wraps the outer corner of one solid block (exactly one of the two cells flanking the diagonal is a room, the other open). This lets a crawler move flat-to-flat *around* a convex corner (e.g. from a wall onto the roof above it) without ever standing on the corner, while still forbidding free-air leaps (no room between the cells) and squeezing through a diagonal gap (a room on both sides). A* uses a Manhattan metric with a uniform step cost.
+Most steps are orthogonal: enemies climb flat walls and ledges one cell at a time. The single exception is a constrained **corner-wrap** — a diagonal step that wraps the outer corner of one solid block (exactly one of the two cells flanking the diagonal is a room, the other open). This lets a crawler move flat-to-flat _around_ a convex corner (e.g. from a wall onto the roof above it) without ever standing on the corner, while still forbidding free-air leaps (no room between the cells) and squeezing through a diagonal gap (a room on both sides). A\* uses a Manhattan metric with a uniform step cost.
 
 A `MovementProfile` gates which surfaces a given enemy may use. The only profile implemented today is `under_overhang`, which may pass through the pockets beneath protruding rooms. Other kinds (`surface_climb`, `attack_overhang`, `fly`, `face_transfer`) are defined in the types and partially gated (for example, `surface_climb` cannot enter cells beneath an overhang) but are not yet assigned to any enemy.
 
@@ -96,12 +96,12 @@ flowchart LR
 
 **UI contract** (all a replacement shell needs):
 
-| Export | Role |
-|--------|------|
-| `Store` | `dispatch`, `getSnapshot`, `subscribe`, `advance`, `flush` |
-| `Intent` | Typed user/system actions |
-| `Snapshot` | `game` + `view` + render interpolation |
-| `selectors.ts` | Affordances and derived display state |
+| Export         | Role                                                       |
+| -------------- | ---------------------------------------------------------- |
+| `Store`        | `dispatch`, `getSnapshot`, `subscribe`, `advance`, `flush` |
+| `Intent`       | Typed user/system actions                                  |
+| `Snapshot`     | `game` + `view` + render interpolation                     |
+| `selectors.ts` | Affordances and derived display state                      |
 
 ### Data flow
 
@@ -132,12 +132,12 @@ flowchart TB
 
 ### Layer dependency rules
 
-| Layer | May import | Must not import |
-|-------|------------|-----------------|
-| `model/` | `calculations/`, `config/` | `store/`, `view/` |
-| `calculations/` | `config/`, `model/` | `store/`, `view/` |
-| `store/` | `model/`, `calculations/`, `config/` | **`view/`** |
-| `view/` | `store/`, presentation metadata from `model/` | Rule predicates — use **selectors** |
+| Layer           | May import                                    | Must not import                     |
+| --------------- | --------------------------------------------- | ----------------------------------- |
+| `model/`        | `calculations/`, `config/`                    | `store/`, `view/`                   |
+| `calculations/` | `config/`, `model/`                           | `store/`, `view/`                   |
+| `store/`        | `model/`, `calculations/`, `config/`          | **`view/`**                         |
+| `view/`         | `store/`, presentation metadata from `model/` | Rule predicates — use **selectors** |
 
 ESLint enforces these boundaries (`npm run lint`).
 
@@ -165,7 +165,7 @@ Mount points: `#board`, `#stage`, `#hud`, `#library`, `#message-log`, `#modal-ro
 |------|---------|
 | **Tower** | Collection of rooms + occupancy grid |
 | **Room** | Placed blueprint instance (origin, size, hp, modifications) |
-| **Blueprint** | Room type definition (cost, size, base hp) — structure rooms and specialty rooms (Turret, Gold Mine, Barracks, Slot) |
+| **Blueprint** | Room type definition (cost, size, base hp, description) — structure rooms and specialty rooms (Turret, Gold Mine, Barracks, Slot) |
 | **Modification** | Leveled add-on on any room (spikes, barracks/slot expansions, …) |
 | **Infra layer** | Per-cell overlay (stair, pipe, elevator) on the same grid as rooms; one kind per cell |
 | **Soldier** | Mobile unit recruited into barracks; routes to slots during attack phase |
@@ -253,6 +253,14 @@ flowchart TB
 - Multiple currencies beyond gold, roguelike map branching
 - Alternative enemy movement modes (fly, attack overhangs, etc.) — default is `under_overhang` exterior climb
 - Visual polish beyond ASCII-style glyphs on canvas
+- Training rooms (troops of certain types that are then required to populate rooms of other types)
+- Housing rooms of various types
+- Economy rooms of various types
+- Research rooms ()
+- Movement-controlling structures (e.g. moats, parapets, cornices)
+- Structures (crenels, turrets, murderholes)
+- Way more spells
+- Way more turret types
 
 ## License
 

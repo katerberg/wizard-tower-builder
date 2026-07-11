@@ -24,6 +24,24 @@ export function modificationCost(def: ModificationDef, level: number): number {
   return def.cost(level);
 }
 
+/** Mechanical detail line(s) for the room inspector and tooltips. */
+export function formatModificationMechanics(
+  def: ModificationDef,
+  level: number,
+  action: 'none' | 'add' | 'upgrade' | 'max',
+): string {
+  if (action === 'add') {
+    return `Lv1: ${def.mechanicsAtLevel(1)}`;
+  }
+  if (action === 'upgrade') {
+    return `Lv${level}: ${def.mechanicsAtLevel(level)} → Lv${level + 1}: ${def.mechanicsAtLevel(level + 1)}`;
+  }
+  if (level > 0) {
+    return `Lv${level}: ${def.mechanicsAtLevel(level)}`;
+  }
+  return '';
+}
+
 function modificationLevelOn(room: Room, id: string): number {
   return room.modifications.find((m) => m.id === id)?.level ?? 0;
 }

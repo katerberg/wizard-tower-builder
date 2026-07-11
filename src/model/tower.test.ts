@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { SUB_CELLS_PER_MACRO } from '@/config/constants';
 import { getBlueprint } from './blueprints';
 import type { Cell, Tower } from './types';
 import {
@@ -212,8 +213,7 @@ describe('canPlace - connectivity', () => {
 describe('getWizardPosition', () => {
   it('sits at center-top of an empty tower at the ground', () => {
     const pos = getWizardPosition(createTower());
-    expect(pos.row).toBe(0);
-    expect(pos.face).toBe('top');
+    expect(pos).toEqual({ col: 8 * SUB_CELLS_PER_MACRO + 1, row: 0, face: 'top' });
   });
 
   it('sits just above the highest occupied row', () => {
@@ -222,7 +222,7 @@ describe('getWizardPosition', () => {
     tower = place(tower, 'buttress2', { col: 5, row: 1 });
     tower = place(tower, 'stem', { col: 5, row: 2 });
     const pos = getWizardPosition(tower);
-    expect(pos).toEqual({ col: 5, row: 3, face: 'top' });
+    expect(pos).toEqual({ col: 5 * SUB_CELLS_PER_MACRO + 1, row: 3 * SUB_CELLS_PER_MACRO, face: 'top' });
   });
 
   it('stands on the left-most peak when the top row has two spires on one buttress', () => {
@@ -232,7 +232,7 @@ describe('getWizardPosition', () => {
     tower = place(tower, 'stem', { col: 0, row: 2 });
     tower = place(tower, 'stem', { col: 2, row: 2 });
     const pos = getWizardPosition(tower);
-    expect(pos).toEqual({ col: 0, row: 3, face: 'top' });
+    expect(pos).toEqual({ col: 1, row: 3 * SUB_CELLS_PER_MACRO, face: 'top' });
   });
 
   it('centers on a wide buttress when the top row is one contiguous span', () => {
@@ -240,7 +240,7 @@ describe('getWizardPosition', () => {
     tower = place(tower, 'stem', { col: 5, row: 0 });
     tower = place(tower, 'buttress3', { col: 4, row: 1 });
     const pos = getWizardPosition(tower);
-    expect(pos).toEqual({ col: 5, row: 2, face: 'top' });
+    expect(pos).toEqual({ col: 5 * SUB_CELLS_PER_MACRO + 1, row: 2 * SUB_CELLS_PER_MACRO, face: 'top' });
   });
 });
 
@@ -362,7 +362,7 @@ describe('unbounded height', () => {
       tower = place(tower, 'stem', { col: 8, row });
     }
     expect(tower.rooms).toHaveLength(16);
-    expect(getWizardPosition(tower).row).toBe(16);
+    expect(getWizardPosition(tower).row).toBe(16 * SUB_CELLS_PER_MACRO);
   });
 
   it('reports towerExtents for a tall stack', () => {

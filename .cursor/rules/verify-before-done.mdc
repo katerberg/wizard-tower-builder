@@ -1,0 +1,50 @@
+---
+description: Require lint and tests to pass before finishing any code change
+alwaysApply: true
+---
+
+# Verify Before Done
+
+No code change is complete until **lint and tests pass**. This matches CI (`.github/workflows/ci.yml`).
+
+## Required verification
+
+After any change to source, config, or tests, run from the repo root:
+
+```bash
+npm run lint && npm test
+```
+
+Do not tell the user the task is done until both commands exit 0.
+
+## When to run
+
+- After implementing a feature, fix, or refactor
+- After updating or adding tests
+- After fixing review or CI feedback
+- Before suggesting a commit or PR
+
+Skip only when the task is **read-only** (questions, explanations, reviews with no edits).
+
+## On failure
+
+1. Read the full error output — do not guess.
+2. Fix the root cause in the changed files.
+3. Re-run `npm run lint && npm test`.
+4. Repeat until both pass.
+
+Never leave the repo in a broken state. Never claim success without running the commands.
+
+## Scope of changes
+
+- Do not add files that fail lint or typecheck.
+- Do not modify tests to pass while breaking intended behavior.
+- If a pre-existing failure is unrelated, say so explicitly and fix it if it blocks verification.
+
+## Completion checklist
+
+Before ending your turn on a code task:
+
+- [ ] `npm run lint` — exit 0
+- [ ] `npm test` — exit 0
+- [ ] Any new failures from your edits are fixed

@@ -1,4 +1,11 @@
-import { ENEMY_ATTACK_COOLDOWN, SPAWN_INTERVAL, STARTING_CURRENCY, WIZARD_DEFAULTS } from '@/config/constants';
+import {
+  ENEMY_ATTACK_COOLDOWN,
+  MAX_LIVE_ENEMIES,
+  MAX_MANA,
+  STARTING_CURRENCY,
+  WIZARD_DEFAULTS,
+} from '@/config/constants';
+import { sameMacroCell, macroCellOfNode } from '@/calculations/subGrid';
 import { resetSoldierCounter, stepSoldiers } from './soldiers';
 import { STARTING_BLUEPRINT_IDS } from './blueprints';
 import { computeDamage, type Combatant } from '../calculations/combat';
@@ -7,16 +14,34 @@ import { getEnemyTemplate } from './enemies';
 import { addMessage } from './messages';
 import { findPath } from '../calculations/pathfinding';
 import { runEnemyStepEffects, runRoomEffects } from './modifications/effects';
+import {
+  buildSpellContext,
+  blizzardSlowMultiplier,
+  getEffectiveWizardPosition,
+  isMacroCellBlockedByTornado,
+  onEnemyWallStep,
+  runAutoSpells,
+  runKindlingPatchStepEffects,
+  shouldStubDiscombobulatedStep,
+  tickAirEffects,
+  tickFireEffects,
+  tickSpellCooldowns,
+} from './spells';
 import { endWave, loseGame, startRun, captureBuildBaseline } from './phases';
-import { seedFrom } from '../calculations/rng';
-import { createTower, getWizardPosition } from './tower';
+import { seedFrom, shuffle } from '../calculations/rng';
+import { createStarterTower } from './starterTower';
 import { goblinNames, bruteNames, wispNames } from '@/static/names';
-import type { Enemy, EnemyTemplate, ExteriorNode, GameState } from './types';
+import { spawnIntervalFor } from './waves';
+import type { Enemy, EnemyTemplate, ExteriorNode, GameState, SimSpeed } from './types';
 
 let enemyCounter = 0;
+let waveNamePools: Record<string, string[]> = {};
+
+const DEFAULT_SIM_SPEED: SimSpeed = 1;
 
 export function createInitialState(seed: string | number = 'wizard'): GameState {
   enemyCounter = 0;
+  waveNamePools = {};
   const state: GameState = {
     scene: 'run',
     phase: 'build',
@@ -26,14 +51,16 @@ export function createInitialState(seed: string | number = 'wizard'): GameState 
     waveTimer: 0,
     spawnTimer: 0,
     spawnQueue: [],
-    tick: 0,
+    simSpeed: loadSimSpeed(),
     player: {
       currency: STARTING_CURRENCY,
       unlockedBlueprints: [...STARTING_BLUEPRINT_IDS],
       levelIndex: 0,
       wizard: { ...WIZARD_DEFAULTS, hp: WIZARD_DEFAULTS.maxHp, glyph: '@' },
+      mana: MAX_MANA,
+      maxMana: MAX_MANA,
     },
-    tower: createTower(),
+    tower: createStarterTower(),
     enemies: [],
     messages: [],
     rngState: seedFrom(seed),
@@ -44,6 +71,14 @@ export function createInitialState(seed: string | number = 'wizard'): GameState 
     slotAllocations: {},
     buildRecruitSpend: 0,
     stairColumnLocks: {},
+    spellCooldowns: {},
+    kindlingPatches: [],
+    wallOfFlameSegments: [],
+    fireEnterDone: {},
+    tornadoSegments: [],
+    blizzardZones: [],
+    tornadoEnterDone: {},
+    activeSpellSchool: 'fire',
     buildBaseline: null,
   };
   resetSoldierCounter();
@@ -51,28 +86,79 @@ export function createInitialState(seed: string | number = 'wizard'): GameState 
   return state;
 }
 
+function loadSimSpeed(): SimSpeed {
+  if (typeof localStorage === 'undefined') return DEFAULT_SIM_SPEED;
+  const raw = localStorage.getItem('wizard-tower-sim-speed');
+  if (raw === '2') return 2;
+  if (raw === '4') return 4;
+  return 1;
+}
+
+export function persistSimSpeed(speed: SimSpeed): void {
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem('wizard-tower-sim-speed', String(speed));
+  }
+}
+
 export function beginRun(state: GameState): void {
   startRun(state);
 }
 
 const namePools: Record<string, readonly string[]> = {
-  goblin: goblinNames,
+  swarm: goblinNames,
+  skirmisher: wispNames,
+  elite: bruteNames,
   brute: bruteNames,
+  // Legacy ids for tests / saves
+  goblin: goblinNames,
   wisp: wispNames,
 };
 
-function pickName(templateId: string, spawnIndex: number): string {
+/** Build shuffled, without-replacement name queues for each enemy type in the wave. */
+export function prepareWaveNames(state: GameState): void {
+  waveNamePools = {};
+  const counts = new Map<string, number>();
+  for (const templateId of state.spawnQueue) {
+    counts.set(templateId, (counts.get(templateId) ?? 0) + 1);
+  }
+
+  let rngState = state.rngState;
+  for (const [templateId, count] of counts) {
+    const source = namePools[templateId] ?? ['Foe'];
+    const assigned: string[] = [];
+    while (assigned.length < count) {
+      const shuffled = shuffle(rngState, source);
+      rngState = shuffled.state;
+      for (const name of shuffled.items) {
+        if (assigned.length >= count) break;
+        assigned.push(name);
+      }
+    }
+    waveNamePools[templateId] = assigned;
+  }
+  state.rngState = rngState;
+}
+
+function pickName(templateId: string): string {
+  const queue = waveNamePools[templateId];
+  if (queue && queue.length > 0) {
+    return queue.shift()!;
+  }
   const pool = namePools[templateId] ?? ['Foe'];
-  return pool[spawnIndex % pool.length];
+  return pool[0];
+}
+
+/** Test and debug helper for dequeuing a wave name without spawning. */
+export function takeEnemyName(templateId: string): string {
+  return pickName(templateId);
 }
 
 function spawnEnemy(state: GameState, template: EnemyTemplate, side: 'left' | 'right'): void {
   const pos = spawnNode(state.tower, side);
-  const spawnIndex = enemyCounter;
   const enemy: Enemy = {
     id: `enemy-${enemyCounter++}`,
     templateId: template.id,
-    name: pickName(template.id, spawnIndex),
+    name: pickName(template.id),
     pos,
     path: [],
     pathIndex: 0,
@@ -84,11 +170,7 @@ function spawnEnemy(state: GameState, template: EnemyTemplate, side: 'left' | 'r
 }
 
 function reached(a: ExteriorNode, b: ExteriorNode): boolean {
-  return a.col === b.col && a.row === b.row;
-}
-
-function distance(a: ExteriorNode, b: ExteriorNode): number {
-  return Math.hypot(a.col - b.col, a.row - b.row);
+  return sameMacroCell(a, b);
 }
 
 function enemyCombatant(template: EnemyTemplate): Combatant {
@@ -100,28 +182,33 @@ export function step(state: GameState, dt: number): void {
   if (state.scene !== 'run' || state.phase !== 'attack') {
     return;
   }
-  state.tick += 1;
   state.waveTimer += dt;
 
-  const wizardPos = getWizardPosition(state.tower);
+  const wizardPos = getEffectiveWizardPosition(state);
   const wizard = state.player.wizard;
 
-  // Spawn from the queue, alternating sides.
+  // Spawn from the queue, alternating sides (paused when at live cap).
   state.spawnTimer -= dt;
-  if (state.spawnTimer <= 0 && state.spawnQueue.length > 0) {
+  if (
+    state.spawnTimer <= 0 &&
+    state.spawnQueue.length > 0 &&
+    state.enemies.length < MAX_LIVE_ENEMIES
+  ) {
     const templateId = state.spawnQueue.shift()!;
     const template = getEnemyTemplate(templateId);
     if (template) {
       const side = state.enemies.length % 2 === 0 ? 'left' : 'right';
       spawnEnemy(state, template, side);
     }
-    state.spawnTimer = SPAWN_INTERVAL;
+    state.spawnTimer = spawnIntervalFor(templateId);
   }
 
   for (const enemy of state.enemies) {
     if (enemy.currentHp <= 0) continue;
     const template = getEnemyTemplate(enemy.templateId);
     if (!template) continue;
+
+    if (enemy.airborne) continue;
 
     if (enemy.path.length === 0) {
       enemy.path = findPath(state.tower, enemy.pos, wizardPos, template.movement);
@@ -156,42 +243,29 @@ export function step(state: GameState, dt: number): void {
 
     enemy.moveCooldown -= dt;
     if (enemy.moveCooldown <= 0 && enemy.pathIndex < enemy.path.length - 1) {
+      const nextPos = enemy.path[enemy.pathIndex + 1];
+      const nextMacro = macroCellOfNode(nextPos);
+      if (isMacroCellBlockedByTornado(state, nextMacro.col, nextMacro.row)) {
+        enemy.moveCooldown = 0.2;
+        continue;
+      }
+      if (shouldStubDiscombobulatedStep(state.tower, enemy, nextPos)) {
+        enemy.moveCooldown = (1 / template.speed) * blizzardSlowMultiplier(state, enemy);
+        continue;
+      }
       enemy.pathIndex += 1;
-      enemy.pos = enemy.path[enemy.pathIndex];
-      enemy.moveCooldown = 1 / template.speed;
+      enemy.pos = nextPos;
+      enemy.moveCooldown = (1 / template.speed) * blizzardSlowMultiplier(state, enemy);
       runEnemyStepEffects(state, enemy);
+      runKindlingPatchStepEffects(state, enemy);
+      onEnemyWallStep(state, enemy);
     }
   }
 
-  // Wizard auto-attacks the nearest enemy in range (v1 stand-in for room turrets).
-  wizard.attackCooldown -= dt;
-  if (wizard.attackCooldown <= 0) {
-    let target: Enemy | null = null;
-    let bestDist = Infinity;
-    for (const enemy of state.enemies) {
-      if (enemy.currentHp <= 0) continue;
-      const d = distance(enemy.pos, wizardPos);
-      if (d <= wizard.range && d < bestDist) {
-        bestDist = d;
-        target = enemy;
-      }
-    }
-    if (target) {
-      const template = getEnemyTemplate(target.templateId)!;
-      const defender: Combatant = { attack: 0, defense: 0, dexterity: template.stats.dexterity };
-      const result = computeDamage(wizard, defender, state.rngState);
-      state.rngState = result.rngState;
-      if (!result.dodged) {
-        addMessage(state, `The wizard hits ${target.name} the ${template.type} for ${result.damage}.`, 'combat');
-        target.currentHp -= result.damage;
-      } else {
-        addMessage(state, `${target.name} the ${template.type} dodges the wizard's attack.`, 'combat');
-      }
-      wizard.attackCooldown = WIZARD_DEFAULTS.attackCooldown;
-    } else {
-      wizard.attackCooldown = 0; // ready to fire the instant a target enters range
-    }
-  }
+  tickSpellCooldowns(state, dt);
+  runAutoSpells(state);
+  tickFireEffects(state, dt, (spellName) => buildSpellContext(state, spellName));
+  tickAirEffects(state, dt, (spellName) => buildSpellContext(state, spellName));
 
   // Soldier movement during attack.
   stepSoldiers(state, dt);

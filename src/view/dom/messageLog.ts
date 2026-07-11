@@ -12,7 +12,7 @@ export function createMessageLog(root: HTMLElement, store: Store): () => void {
     const previousScrollTop = previous ? previous.scrollTop : 0;
 
     const rows = game.messages
-      .map((m) => `<li class="msg msg-${m.kind}">${m.tick} ${escapeHtml(m.text)}</li>`)
+      .map((m) => `<li class="msg msg-${m.kind}">${escapeHtml(m.text)}</li>`)
       .join('');
     root.innerHTML = `<h2>Log</h2><ul>${rows}</ul>`;
 

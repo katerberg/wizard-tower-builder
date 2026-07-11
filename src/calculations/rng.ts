@@ -21,6 +21,19 @@ export function randomItem<T>(state: number, items: readonly T[]): { value: T; s
   return { value: items[value], state: nextState };
 }
 
+/** Fisher–Yates shuffle; returns a new array and advanced RNG state. */
+export function shuffle<T>(state: number, items: readonly T[]): { items: T[]; state: number } {
+  const result = [...items];
+  let rngState = state;
+  for (let i = result.length - 1; i > 0; i--) {
+    const roll = randomInt(rngState, 0, i);
+    rngState = roll.state;
+    const j = roll.value;
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return { items: result, state: rngState };
+}
+
 export function seedFrom(input: string | number): number {
   if (typeof input === 'number') {
     return input >>> 0;

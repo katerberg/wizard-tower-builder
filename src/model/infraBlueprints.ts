@@ -12,6 +12,7 @@ export const INFRA_BLUEPRINTS: Blueprint[] = [
     baseHp: 0,
     category: 'infra',
     infraKind: 'stair',
+    description: 'Vertical path for soldiers between floors. Paint on the infra layer over structure cells.',
   },
   {
     id: 'pipe',
@@ -23,6 +24,7 @@ export const INFRA_BLUEPRINTS: Blueprint[] = [
     baseHp: 0,
     category: 'infra',
     infraKind: 'pipe',
+    description: 'Infrastructure overlay placeholder for future steam and mana routing.',
   },
 ];
 

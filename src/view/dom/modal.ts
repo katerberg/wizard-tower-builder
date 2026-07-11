@@ -45,8 +45,9 @@ export function createModal(root: HTMLElement, store: Store): () => void {
 
   return function render(): void {
     const snapshot = store.getSnapshot();
-    const modal = snapshot.view.modal;
-    if (!modal) {
+    const { game, view } = snapshot;
+    const modal = view.modal;
+    if (!modal || (game.phase === 'attack' && modal.kind === 'room')) {
       root.innerHTML = '';
       return;
     }
@@ -88,6 +89,7 @@ function roomBody(inspector: RoomInspector): string {
           <span class="mod-info">
             <strong>${mod.name}</strong> <span class="mod-level">${mod.levelText}</span>
             <span class="mod-desc">${mod.description}</span>
+            ${mod.mechanics ? `<span class="mod-mechanics">${mod.mechanics}</span>` : ''}
           </span>
           ${control}
         </div>`;

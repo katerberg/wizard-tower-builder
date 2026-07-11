@@ -10,6 +10,7 @@ import type { RoomBehaviorDef } from './types';
 /** Fires a volley using stationed soldiers with crowding efficiency. */
 export const slotRoomBehavior: RoomBehaviorDef = {
   blueprintId: 'slotRoom',
+  mechanics: `Stationed soldiers fire every ${SLOT_ATTACK_COOLDOWN}s · ${SLOT_ATTACK_RANGE} cell range · crowding efficiency`,
   attack: {
     cooldown: () => SLOT_ATTACK_COOLDOWN,
     run: (ctx) => {

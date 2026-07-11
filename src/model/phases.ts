@@ -1,7 +1,9 @@
+import { prepareWaveNames } from './game';
 import { addMessage } from './messages';
 import { clearSoldiersAfterWave, deploySoldiersForWave } from './soldiers';
 import { reward } from '../calculations/economy';
 import { runWaveClearedEffects } from './modifications/effects';
+import { refillMana, resetAirState, resetFireState, resetSpellCooldowns } from './spells';
 import { linearProgression } from './waves';
 import { buildSpawnQueue } from './waves';
 import type { GameState } from './types';
@@ -20,7 +22,7 @@ export function startRun(state: GameState): void {
   state.scene = 'run';
   state.phase = 'build';
   captureBuildBaseline(state);
-  addMessage(state, `Build your tower, then start wave ${state.levelIndex + 1}.`, 'info');
+  addMessage(state, 'A starter tower frame is in place — reinforce it before wave 1.', 'info');
 }
 
 export function beginWave(state: GameState): void {
@@ -28,10 +30,15 @@ export function beginWave(state: GameState): void {
   state.phase = 'attack';
   state.enemies = [];
   state.spawnQueue = buildSpawnQueue(wave);
+  prepareWaveNames(state);
   state.spawnTimer = 0;
   state.waveTimer = 0;
   state.roomEffectTimers = {};
   deploySoldiersForWave(state);
+  refillMana(state);
+  resetSpellCooldowns(state);
+  resetFireState(state);
+  resetAirState(state);
   addMessage(state, `Wave ${state.levelIndex + 1} incoming: ${state.spawnQueue.length} foes.`, 'combat');
 }
 

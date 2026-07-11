@@ -1,11 +1,13 @@
 import type { RoomBehaviorDef } from './types';
 
+export const GOLD_MINE_INCOME = 4;
+
 /** Pays out gold each time a wave is cleared. */
 export const goldMineRoomBehavior: RoomBehaviorDef = {
   blueprintId: 'goldMineRoom',
+  mechanics: `+${GOLD_MINE_INCOME} gold when wave clears`,
   onWaveCleared: (ctx) => {
-    const income = 4;
-    ctx.reward(income);
-    ctx.log(`Gold Mine yields ${income} gold.`, 'economy');
+    ctx.reward(GOLD_MINE_INCOME);
+    ctx.log(`Gold Mine yields ${GOLD_MINE_INCOME} gold.`, 'economy');
   },
 };

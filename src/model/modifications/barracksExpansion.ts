@@ -7,6 +7,7 @@ export const barracksExpansion: ModificationDef = {
   glyph: '+',
   color: '#718096',
   description: 'Increases capacity from 5 to 10 soldiers.',
+  mechanicsAtLevel: () => 'Capacity 10 soldiers',
   maxLevel: 1,
   cost: (level) => (level === 1 ? 12 : 0),
   canApply: (room) => isBarracksRoom(room),

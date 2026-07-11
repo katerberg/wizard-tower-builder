@@ -8,3 +8,5 @@ export * from './waves';
 export * from './messages';
 export * from './progression';
 export * from './roomBehaviors';
+export * from './spells';
+export * from './starterTower';

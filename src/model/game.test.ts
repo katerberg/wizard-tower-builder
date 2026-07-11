@@ -1,21 +1,33 @@
 import { describe, expect, it } from 'vitest';
 import { FIXED_DT } from '@/config/constants';
-import { beginRun, createInitialState, step } from './game';
+import { beginRun, createInitialState, prepareWaveNames, step, takeEnemyName } from './game';
 import { beginWave } from './phases';
 import { getBlueprint } from './blueprints';
 import { createRoom, placeRoom } from './tower';
+import { buildSpawnQueue, linearProgression } from './waves';
+
+describe('enemy naming', () => {
+  it('draws unique names within a wave and fresh names on the next wave', () => {
+    const state = createInitialState('goblin-names');
+    const wave = buildSpawnQueue(linearProgression.getWave(0));
+
+    state.spawnQueue = [...wave];
+    prepareWaveNames(state);
+    const waveOneGoblins = wave.map((templateId) => takeEnemyName(templateId)).filter(Boolean);
+    expect(new Set(waveOneGoblins).size).toBe(waveOneGoblins.length);
+
+    state.spawnQueue = [...wave];
+    prepareWaveNames(state);
+    const waveTwoGoblins = wave.map((templateId) => takeEnemyName(templateId)).filter(Boolean);
+    expect(new Set(waveTwoGoblins).size).toBe(waveTwoGoblins.length);
+    expect(waveTwoGoblins).not.toEqual(waveOneGoblins);
+  });
+});
 
 describe('attack-phase simulation', () => {
   it('spawns a wave, resolves it, and reaches a terminal state', () => {
     const state = createInitialState('integration');
     beginRun(state);
-
-    // Small valid tower: spire → buttress → spire.
-    const stem = getBlueprint('stem')!;
-    const buttress = getBlueprint('buttress2')!;
-    state.tower = placeRoom(state.tower, createRoom('r0', stem, { col: 8, row: 0 }));
-    state.tower = placeRoom(state.tower, createRoom('r1', buttress, { col: 8, row: 1 }));
-    state.tower = placeRoom(state.tower, createRoom('r2', stem, { col: 8, row: 2 }));
 
     beginWave(state);
     expect(state.phase).toBe('attack');
@@ -23,7 +35,7 @@ describe('attack-phase simulation', () => {
 
     let sawEnemy = false;
     let steps = 0;
-    const maxSteps = 60 * 60; // 60 simulated seconds
+    const maxSteps = 75 * 60; // 75 simulated seconds (sub-cell paths are longer)
     while (steps < maxSteps) {
       step(state, FIXED_DT);
       steps += 1;

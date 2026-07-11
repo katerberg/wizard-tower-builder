@@ -3,20 +3,11 @@ import { getBlueprint } from '../blueprints';
 import { createInitialState } from '../game';
 import { createRoom, placeRoom } from '../tower';
 import { runEnemyStepEffects, runRoomEffects, runWaveClearedEffects } from './effects';
-import type { Enemy, GameState } from '../types';
+import type { GameState } from '../types';
+import { makeTestEnemy, subAt } from '@/test/subCells';
 
-function makeEnemy(templateId: string, col: number, row: number, hp: number): Enemy {
-  return {
-    id: `e-${col}-${row}`,
-    templateId,
-    name: 'Test',
-    pos: { col, row, face: 'left' },
-    path: [],
-    pathIndex: 0,
-    currentHp: hp,
-    moveCooldown: 0,
-    attackCooldown: 0,
-  };
+function makeEnemy(templateId: string, macroCol: number, macroRow: number, hp: number) {
+  return makeTestEnemy(macroCol, macroRow, { templateId, hp });
 }
 
 function stateWithRoom(
@@ -34,37 +25,37 @@ function stateWithRoom(
 describe('turret room effect', () => {
   it('damages the nearest enemy within range', () => {
     const state = stateWithRoom('turret', 'turretRoom');
-    const brute = makeEnemy('brute', 8, 2, 34);
-    state.enemies = [brute];
+    const elite = makeEnemy('elite', 8, 2, 28);
+    state.enemies = [elite];
 
     for (let i = 0; i < 5; i++) runRoomEffects(state, 1.0);
 
-    expect(brute.currentHp).toBeLessThan(34);
+    expect(elite.currentHp).toBeLessThan(28);
   });
 
   it('ignores enemies beyond range', () => {
     const state = stateWithRoom('turret-range', 'turretRoom');
-    const far = makeEnemy('brute', 8, 9, 34);
+    const far = makeEnemy('elite', 8, 9, 28);
     state.enemies = [far];
 
     for (let i = 0; i < 5; i++) runRoomEffects(state, 1.0);
 
-    expect(far.currentHp).toBe(34);
+    expect(far.currentHp).toBe(28);
   });
 });
 
 describe('spikes effect', () => {
   it('damages an enemy when they step onto a spiked surface', () => {
     const state = stateWithRoom('spikes-multi', 'stem', { id: 'spikes', level: 1 });
-    const enemy = makeEnemy('brute', 8, 5, 34);
+    const enemy = makeEnemy('elite', 8, 5, 28);
     state.enemies = [enemy];
 
     runEnemyStepEffects(state, enemy);
-    expect(enemy.currentHp).toBe(34);
+    expect(enemy.currentHp).toBe(28);
 
-    enemy.pos = { col: 7, row: 0, face: 'left' };
+    enemy.pos = { ...subAt(7, 0), face: 'left' };
     runEnemyStepEffects(state, enemy);
-    expect(enemy.currentHp).toBeLessThan(34);
+    expect(enemy.currentHp).toBeLessThan(28);
   });
 
   it('damages again on each step along a spiked wall', () => {
@@ -75,24 +66,24 @@ describe('spikes effect', () => {
     top.modifications.push({ id: 'spikes', level: 1 });
     state.tower = placeRoom(placeRoom(state.tower, bottom), top);
 
-    const enemy = makeEnemy('brute', 7, 0, 34);
+    const enemy = makeEnemy('elite', 7, 0, 28);
     state.enemies = [enemy];
 
     runEnemyStepEffects(state, enemy);
     const afterFirst = enemy.currentHp;
 
-    enemy.pos = { col: 7, row: 1, face: 'left' };
+    enemy.pos = { ...subAt(7, 1), face: 'left' };
     runEnemyStepEffects(state, enemy);
     expect(enemy.currentHp).toBeLessThan(afterFirst);
   });
 
   it('does not damage enemies who never step near the room', () => {
     const state = stateWithRoom('spikes-far', 'stem', { id: 'spikes', level: 1 });
-    const distant = makeEnemy('brute', 8, 5, 34);
+    const distant = makeEnemy('elite', 8, 5, 28);
     state.enemies = [distant];
 
     runEnemyStepEffects(state, distant);
-    expect(distant.currentHp).toBe(34);
+    expect(distant.currentHp).toBe(28);
   });
 });
 
