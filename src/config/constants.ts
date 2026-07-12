@@ -53,7 +53,17 @@ export const WIZARD_DEFAULTS = {
   attackCooldown: 0.6,
 } as const;
 
-export const MAX_MANA = 10;
+/** Shared mana pool cap (spells, boilers, future springs/turrets). */
+export const MAX_MANA = 20;
+
+// Pipes / boilers / steam (PIPES.md) — stubs until later phases consume them.
+export const BOILER_MANA_PER_SEC = 0.25;
+export const MANA_SPRING_PER_SEC = 0.5;
+export const STEAM_TURRET_CHARGE_SEC = 3;
+export const STEAM_TURRET_DAMAGE = 10;
+export const MAGIC_TURRET_MANA_COST = 1;
+/** Throughput units by boilerExpansion level (0 = base, 1–2 = upgrades). */
+export const BOILER_THROUGHPUT = [3, 4, 5] as const;
 
 export const symbols = {
   wizard: '@',
@@ -88,6 +98,7 @@ export const colors = {
   infraPipe: '#4299e1',
   /** Pipe not yet connected to a water (or steam) seed. */
   infraPipeDry: '#718096',
+  infraPipeSteam: '#ed8936',
   soldier: '#68d391',
   connectivityWarn: '#ed8936',
 } as const;

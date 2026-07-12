@@ -7,6 +7,7 @@ import {
 } from '@/config/constants';
 import { sameMacroCell, macroCellOfNode } from '@/calculations/subGrid';
 import { resetSoldierCounter, stepSoldiers } from './soldiers';
+import { tickBoilers } from './boilers';
 import { STARTING_BLUEPRINT_IDS } from './blueprints';
 import { computeDamage, type Combatant } from '../calculations/combat';
 import { spawnNode } from '../calculations/exteriorGraph';
@@ -79,6 +80,7 @@ export function createInitialState(seed: string | number = 'wizard'): GameState 
     blizzardZones: [],
     tornadoEnterDone: {},
     activeSpellSchool: 'fire',
+    boilerRuntime: {},
     buildBaseline: null,
   };
   resetSoldierCounter();
@@ -272,6 +274,9 @@ export function step(state: GameState, dt: number): void {
 
   // Room behaviors (turret rooms, slot volleys) and modifications (spikes) act on enemies this tick.
   runRoomEffects(state, dt);
+
+  // Boilers drain mana and mark steam availability.
+  tickBoilers(state, dt);
 
   // Reap dead enemies and award currency.
   const survivors: Enemy[] = [];

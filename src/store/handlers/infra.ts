@@ -39,7 +39,13 @@ function placeInfraSelected(ctx: HandlerContext, cell: { col: number; row: numbe
   }
 
   if (!plan.ok) {
-    addMessage(game, `Cannot build here: ${plan.reason.replace(/_/g, ' ')}.`, 'info');
+    if (plan.reason === 'fluid_mix') {
+      addMessage(game, 'Would mix water and steam.', 'info');
+    } else if (plan.reason === 'boiler_footprint') {
+      addMessage(game, 'Cannot place pipes on a boiler.', 'info');
+    } else {
+      addMessage(game, `Cannot build here: ${plan.reason.replace(/_/g, ' ')}.`, 'info');
+    }
     return;
   }
 

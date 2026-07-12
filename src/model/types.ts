@@ -6,6 +6,8 @@ export type BlueprintCategory = 'structure' | 'infra';
 
 export type InfraKind = 'stair' | 'pipe';
 
+export type Fluid = 'water' | 'steam' | 'unassigned';
+
 export interface Blueprint {
   id: string;
   name: string;
@@ -23,6 +25,8 @@ export interface Blueprint {
 
 export interface InfraCell {
   kind: InfraKind;
+  /** Locked at wave start; live preview ignores this during build. */
+  fluid?: Fluid;
 }
 
 /** A modification instance attached to a room (one per type, leveled in place). */
@@ -240,8 +244,15 @@ export interface GameState {
   wizardFlight?: WizardFlight;
   /** Dev playtest: which spell kit is on the hotbar. */
   activeSpellSchool: SpellSchool;
+  /** Attack-phase boiler production state. */
+  boilerRuntime: Record<string, BoilerRuntime>;
   /** Tower + gold at build-phase start; edits commit on wave start. */
   buildBaseline: BuildBaseline | null;
+}
+
+export interface BoilerRuntime {
+  producing: boolean;
+  steamAvailable: boolean;
 }
 
 export type PlacementReason =
@@ -250,6 +261,8 @@ export type PlacementReason =
   | 'overlap'
   | 'no_support'
   | 'overhang_too_far'
-  | 'disconnected';
+  | 'disconnected'
+  | 'fluid_mix'
+  | 'boiler_footprint';
 
 export interface PlacementResult { ok: boolean; reason: PlacementReason }

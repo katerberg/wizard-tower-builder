@@ -2,7 +2,7 @@
 
 Developer spec for the **fluid logistics** slice: ground water, boilers, mana springs, steam turrets, and typed pipe networks. Complements [`INFRASTRUCTURE.md`](INFRASTRUCTURE.md) (layers, soldiers, stairs).
 
-**Status:** Planned — not yet implemented (pipe infra exists as untyped placeholder).
+**Status:** P0–P3 in progress (water/steam preview, merge reject, boilers). Steam turrets / mana springs / magic turret mana are P4+.
 
 ---
 
@@ -27,7 +27,7 @@ flowchart TB
   subgraph mana [Mana economy]
     Pool[Shared mana pool max 20]
     MS -->|water + spring| Pool
-    Boiler[Boiler 2x1] -->|mana/sec| Pool
+    Boiler[Boiler 1x2] -->|mana/sec| Pool
     MT[Magic turret 1 mana/shot]
     Pool --> MT
   end
@@ -108,7 +108,7 @@ If placing a pipe would **4-connect** two components whose resolved fluids diffe
 
 | Property | Value |
 |----------|--------|
-| Size | **2×1** |
+| Size | **1×2** |
 | Water | Adjacent cell connected to **ground-water** network |
 | Steam | Adjacent cell connected to **steam-turret** network |
 | Mana | **~0.25/sec** while producing (tunable); **stops** at 0 mana |
@@ -258,7 +258,7 @@ interface SteamTurretState {
 | **P0** | This doc + `Player.mana` + constants stubs |
 | **P1** | `InfraCell.fluid`, seed flood-fill, preview colors, merge reject |
 | **P2** | Ground-water detection; connectivity warnings |
-| **P3** | Boiler 2×1 + `boilerExpansion` + mana drain + steam availability |
+| **P3** | Boiler 1×2 + `boilerExpansion` + mana drain + steam availability |
 | **P4** | Steam turret + charge + side blast + exterior targeting |
 | **P5** | Mana spring 2×2 + water gate + inspect warning |
 | **P6** | Magic turret 1 mana/shot |

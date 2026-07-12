@@ -75,6 +75,19 @@ export const BLUEPRINTS: Blueprint[] = [
     passable: true,
     description: 'Station soldiers here during attack. Allocate headcount from barracks in build phase.',
   },
+  {
+    id: 'boilerRoom',
+    name: 'Boiler',
+    glyph: 'H',
+    color: '#c05621',
+    size: { w: 1, h: 2 },
+    cost: 16,
+    baseHp: 22,
+    category: 'structure',
+    passable: false,
+    description:
+      '1×2 steam plant. Needs a ground-water pipe in and a steam pipe out. Drains mana while producing steam.',
+  },
 ];
 
 export const STARTING_BLUEPRINT_IDS = BLUEPRINTS.map((b) => b.id);

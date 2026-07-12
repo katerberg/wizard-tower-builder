@@ -2,6 +2,7 @@ import { BLUEPRINTS, getBlueprint } from '@/model/blueprints';
 import { INFRA_BLUEPRINTS, getInfraBlueprint, isInfraBlueprint } from '@/model/infraBlueprints';
 import { planInfraPlacement } from '@/model/infraPlacement';
 import { selectConnectivityReport } from '@/model/soldiers/connectivity';
+import { selectPipeConnectivityReport } from '@/model/pipes';
 import { barracksCapacity, isBarracksRoom, isSlotRoom, slotCapacity } from '@/model/soldiers/capacity';
 import { netBuildCost, remainingBuildGold } from '@/calculations/buildCost';
 import { computeRoomStats } from '@/calculations/combat';
@@ -261,6 +262,10 @@ export function selectRoomBuildAlerts(snapshot: Snapshot): RoomBuildAlert[] {
     if (slot.warning) {
       alerts.push({ roomId: slot.slotId, message: slot.warning });
     }
+  }
+
+  for (const boiler of selectPipeConnectivityReport(game).boilers) {
+    alerts.push({ roomId: boiler.roomId, message: boiler.warning });
   }
 
   return alerts;

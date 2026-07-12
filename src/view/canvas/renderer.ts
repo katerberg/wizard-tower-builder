@@ -7,13 +7,15 @@ import { getModification } from '@/model/modifications';
 import { blizzardZoneCells } from '@/model/spells';
 import { computeRoomStats } from '@/calculations/combat';
 import { getUnstableRoomIds } from '@/model/tower';
-import { selectPipeFluids, previewPipeFluidAt, type PipeFluid } from '@/model/pipes';
+import { resolvePipeFluids, previewPipeFluidAt, type PipeFluid } from '@/model/pipes';
 import { selectCastPreview, selectGhostPlacement, selectRoomBuildAlerts, selectWizardPosition } from '@/store/selectors';
 import type { Snapshot } from '@/store/store';
 import { BOARD_WIDTH, cellCenter, cellTopLeft, enemyDrawRadius, exteriorNodeDrawCenter, GROUND_LINE_INSET, visibleRowRange } from './camera';
 
 function pipeFluidColor(fluid: PipeFluid): string {
-  return fluid === 'water' ? colors.infraPipe : colors.infraPipeDry;
+  if (fluid === 'water') return colors.infraPipe;
+  if (fluid === 'steam') return colors.infraPipeSteam;
+  return colors.infraPipeDry;
 }
 
 export class Renderer {
@@ -64,6 +66,10 @@ export class Renderer {
     this.drawWizard(snapshot, scrollY, viewportHeight);
     this.drawCastAimLine(snapshot, scrollY, viewportHeight);
     this.drawEnemies(snapshot, wizardPos, scrollY, viewportHeight, 'atWizard');
+    // Room alerts last so tooltips stay above rooms, infra, and units.
+    if (snapshot.view.layerVisibility.rooms) {
+      this.drawRoomAlerts(snapshot, scrollY, viewportHeight);
+    }
   }
 
   private drawGrid(scrollY: number, viewportHeight: number): void {
@@ -128,7 +134,6 @@ export class Renderer {
     const alerts = new Map(
       selectRoomBuildAlerts(snapshot).map((a) => [a.roomId, a.message] as const),
     );
-    const hover = snapshot.view.hoveredCell;
 
     for (const room of snapshot.game.tower.rooms) {
       const roomMinRow = room.origin.row;
@@ -171,13 +176,29 @@ export class Renderer {
       if (room.modifications.length > 0) {
         this.drawModIndicators(room.modifications, x, y + h);
       }
+    }
+  }
 
-      const hovered =
-        hover != null &&
-        roomCells(room.origin, room.size).some((c) => c.col === hover.col && c.row === hover.row);
-      if (alert && hovered) {
-        this.drawRoomAlert(alert, x, y + h, w);
-      }
+  /** Hover tooltips for room build alerts — drawn after all board layers. */
+  private drawRoomAlerts(snapshot: Snapshot, scrollY: number, viewportHeight: number): void {
+    const hover = snapshot.view.hoveredCell;
+    if (!hover) return;
+
+    const alerts = new Map(
+      selectRoomBuildAlerts(snapshot).map((a) => [a.roomId, a.message] as const),
+    );
+    for (const room of snapshot.game.tower.rooms) {
+      const message = alerts.get(room.id);
+      if (!message) continue;
+      const hovered = roomCells(room.origin, room.size).some(
+        (c) => c.col === hover.col && c.row === hover.row,
+      );
+      if (!hovered) continue;
+
+      const topRow = room.origin.row + room.size.h - 1;
+      const { x, y } = cellTopLeft(room.origin.col, topRow, scrollY, viewportHeight);
+      const w = room.size.w * CELL_SIZE;
+      this.drawRoomAlert(message, x, y, w);
     }
   }
 
@@ -197,7 +218,8 @@ export class Renderer {
     const boxW = Math.ceil(metrics.width) + padX * 2;
     const boxH = Math.ceil(textH) + padY * 2;
     const boxX = left + (width - boxW) / 2;
-    const boxY = top + 4;
+    // Anchor above the room so tall footprints (e.g. 1×2 boiler) don't cover the tip.
+    const boxY = top - boxH - 4;
 
     ctx.fillStyle = 'rgba(26, 32, 44, 0.92)';
     ctx.fillRect(boxX, boxY, boxW, boxH);
@@ -241,7 +263,8 @@ export class Renderer {
 
   private drawInfra(snapshot: Snapshot, scrollY: number, viewportHeight: number): void {
     const { minRow, maxRow } = visibleRowRange(scrollY, viewportHeight);
-    const pipeFluids = selectPipeFluids(snapshot.game.tower);
+    const phase = snapshot.game.phase === 'attack' ? 'attack' : 'build';
+    const pipeFluids = resolvePipeFluids(snapshot.game.tower, phase);
     for (const [key, cell] of Object.entries(snapshot.game.tower.infra)) {
       const { col, row } = parseKey(key);
       if (row < minRow || row > maxRow) continue;

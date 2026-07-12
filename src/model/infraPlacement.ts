@@ -1,5 +1,6 @@
 import { getBlueprint } from './blueprints';
 import { canPlaceInfra, getInfraAt, placeInfra } from './infra';
+import { isBoilerFootprintCell, wouldMixFluids } from './pipes';
 import { canPlace, createRoom, isOccupied, placeRoom } from './tower';
 import type { Blueprint, Cell, PlacementReason, Tower } from './types';
 
@@ -33,6 +34,14 @@ export function planInfraPlacement(
   const base = canPlaceInfra(tower, blueprint, cell);
   if (!base.ok) {
     return { ok: false, reason: base.reason, needsStem: false, isToggleOff: false };
+  }
+
+  if (blueprint.infraKind === 'pipe' && isBoilerFootprintCell(tower, cell.col, cell.row)) {
+    return { ok: false, reason: 'boiler_footprint', needsStem: false, isToggleOff: false };
+  }
+
+  if (blueprint.infraKind === 'pipe' && wouldMixFluids(tower, cell)) {
+    return { ok: false, reason: 'fluid_mix', needsStem: false, isToggleOff: false };
   }
 
   if (isOccupied(tower, cell.col, cell.row)) {
