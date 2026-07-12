@@ -1,6 +1,7 @@
 import { canAffordBuild } from '@/calculations/buildCost';
 import { getInfraBlueprint, isInfraBlueprint } from '@/model/infraBlueprints';
-import { canPlaceInfra, getInfraAt, placeInfra, removeInfraAt } from '@/model/infra';
+import { getInfraAt, removeInfraAt } from '@/model/infra';
+import { applyInfraPlacement, planInfraPlacement } from '@/model/infraPlacement';
 import { addMessage } from '@/model/messages';
 import { roomAt } from '@/model/tower';
 import type { HandlerContext } from '../context';
@@ -29,20 +30,20 @@ function placeInfraSelected(ctx: HandlerContext, cell: { col: number; row: numbe
   const blueprint = getInfraBlueprint(id);
   if (!blueprint?.infraKind) return;
 
-  const existing = getInfraAt(game.tower, cell.col, cell.row);
-  if (existing?.kind === blueprint.infraKind) {
+  const plan = planInfraPlacement(game.tower, blueprint, cell);
+  if (plan.isToggleOff) {
     ctx.recordBuildStep();
     game.tower = removeInfraAt(game.tower, cell.col, cell.row);
     addMessage(game, `Removed ${blueprint.name}.`, 'info');
     return;
   }
 
-  if (!canPlaceInfra(game.tower, blueprint, cell)) {
-    addMessage(game, 'Cannot place infra here (cell occupied by other infra).', 'info');
+  if (!plan.ok) {
+    addMessage(game, `Cannot build here: ${plan.reason.replace(/_/g, ' ')}.`, 'info');
     return;
   }
 
-  const nextTower = placeInfra(game.tower, cell, blueprint.infraKind);
+  const nextTower = applyInfraPlacement(game.tower, blueprint, cell, ctx.nextRoomId(), plan);
   if (!canAffordBuild(game.buildBaseline, nextTower, 0, game.buildRecruitSpend)) {
     addMessage(game, `Not enough gold for ${blueprint.name} (${blueprint.cost}).`, 'economy');
     return;
@@ -50,7 +51,11 @@ function placeInfraSelected(ctx: HandlerContext, cell: { col: number; row: numbe
 
   ctx.recordBuildStep();
   game.tower = nextTower;
-  addMessage(game, `Placed ${blueprint.name}.`, 'info');
+  if (plan.needsStem) {
+    addMessage(game, `Placed Spire Block and ${blueprint.name}.`, 'info');
+  } else {
+    addMessage(game, `Placed ${blueprint.name}.`, 'info');
+  }
 }
 
 function removeInfraAtCell(ctx: HandlerContext, cell: { col: number; row: number }): void {

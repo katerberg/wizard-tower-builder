@@ -1,5 +1,5 @@
 import { cellKey, inBounds } from '@/calculations/grid';
-import type { Blueprint, Cell, InfraCell, InfraKind, Tower } from './types';
+import type { Blueprint, Cell, InfraCell, InfraKind, PlacementResult, Tower } from './types';
 
 export function getInfraAt(tower: Tower, col: number, row: number): InfraCell | undefined {
   return tower.infra[cellKey(col, row)];
@@ -9,13 +9,15 @@ export function hasInfraKind(tower: Tower, col: number, row: number, kind: Infra
   return getInfraAt(tower, col, row)?.kind === kind;
 }
 
-export function canPlaceInfra(tower: Tower, blueprint: Blueprint, cell: Cell): boolean {
-  if (blueprint.category !== 'infra' || !blueprint.infraKind) return false;
-  if (!inBounds(cell.col, cell.row)) return false;
-  const key = cellKey(cell.col, cell.row);
-  const existing = tower.infra[key];
-  if (existing?.kind === blueprint.infraKind) return true; // toggle off handled separately
-  return !existing;
+/** Bounds check — different kinds replace each other via {@link placeInfra}. */
+export function canPlaceInfra(_tower: Tower, blueprint: Blueprint, cell: Cell): PlacementResult {
+  if (blueprint.category !== 'infra' || !blueprint.infraKind) {
+    return { ok: false, reason: 'overlap' };
+  }
+  if (!inBounds(cell.col, cell.row)) {
+    return { ok: false, reason: 'out_of_bounds' };
+  }
+  return { ok: true, reason: 'ok' };
 }
 
 export function placeInfra(tower: Tower, cell: Cell, kind: InfraKind): Tower {

@@ -1,6 +1,6 @@
 import { BLUEPRINTS, getBlueprint } from '@/model/blueprints';
 import { INFRA_BLUEPRINTS, getInfraBlueprint, isInfraBlueprint } from '@/model/infraBlueprints';
-import { canPlaceInfra } from '@/model/infra';
+import { planInfraPlacement } from '@/model/infraPlacement';
 import { selectConnectivityReport } from '@/model/soldiers/connectivity';
 import { barracksCapacity, isBarracksRoom, isSlotRoom, slotCapacity } from '@/model/soldiers/capacity';
 import { netBuildCost, remainingBuildGold } from '@/calculations/buildCost';
@@ -30,7 +30,15 @@ import {
 import { aoeCells } from '@/model/spells/fireball';
 import { canPlace, getUnstableRoomIds, towersEqual } from '@/model/tower';
 import { getBuildTool } from '@/static/buildTools';
-import type { Blueprint, Cell, ExteriorNode, PlacementReason, Room, RoomStats } from '@/model/types';
+import type {
+  Blueprint,
+  Cell,
+  ExteriorNode,
+  InfraKind,
+  PlacementReason,
+  Room,
+  RoomStats,
+} from '@/model/types';
 import type { Snapshot } from './store';
 
 export interface BuildEconomy {
@@ -103,6 +111,10 @@ export interface GhostPlacement {
   cells: Cell[];
   valid: boolean;
   reason: PlacementReason;
+  /** When set, ghost renders as a thin infra line instead of a room fill. */
+  infraKind?: InfraKind;
+  /** When true, also preview the auto-placed Spire Block under empty cells. */
+  needsStem?: boolean;
 }
 
 export function selectGhostPlacement(snapshot: Snapshot): GhostPlacement | null {
@@ -113,12 +125,14 @@ export function selectGhostPlacement(snapshot: Snapshot): GhostPlacement | null 
 
   if (isInfraBlueprint(id)) {
     const blueprint = getInfraBlueprint(id);
-    if (!blueprint) return null;
-    const valid = canPlaceInfra(game.tower, blueprint, view.hoveredCell);
+    if (!blueprint?.infraKind) return null;
+    const plan = planInfraPlacement(game.tower, blueprint, view.hoveredCell);
     return {
       cells: [view.hoveredCell],
-      valid,
-      reason: valid ? 'ok' : 'overlap',
+      valid: plan.ok,
+      reason: plan.reason,
+      infraKind: blueprint.infraKind,
+      needsStem: plan.needsStem,
     };
   }
 
@@ -218,6 +232,38 @@ export interface RoomInspector {
   slotAllocated?: number;
   slotCapacity?: number;
   slotConnected?: boolean;
+  /** Contextual build warning shown on this room (missing stairs, support, …). */
+  buildAlert?: string;
+}
+
+export interface RoomBuildAlert {
+  roomId: string;
+  message: string;
+}
+
+/** Per-room build-phase warnings for canvas/modal (replaces a single HUD dump). */
+export function selectRoomBuildAlerts(snapshot: Snapshot): RoomBuildAlert[] {
+  const { game } = snapshot;
+  if (game.scene !== 'run' || game.phase !== 'build') return [];
+
+  const alerts: RoomBuildAlert[] = [];
+  for (const roomId of getUnstableRoomIds(game.tower)) {
+    alerts.push({ roomId, message: 'Needs support' });
+  }
+
+  for (const room of game.tower.rooms) {
+    if (isBarracksRoom(room) && (game.barracksRecruited[room.id] ?? 0) < 1) {
+      alerts.push({ roomId: room.id, message: 'Soldier deserted — recruit a replacement' });
+    }
+  }
+
+  for (const slot of selectConnectivityReport(game).slots) {
+    if (slot.warning) {
+      alerts.push({ roomId: slot.slotId, message: slot.warning });
+    }
+  }
+
+  return alerts;
 }
 
 export function selectConnectivityWarnings(snapshot: Snapshot): string[] {
@@ -324,6 +370,7 @@ export function selectRoomInspector(snapshot: Snapshot, roomId: string): RoomIns
     slotConnected: isSlotRoom(room)
       ? selectConnectivityReport(game).slots.find((s) => s.slotId === room.id)?.connected ?? true
       : undefined,
+    buildAlert: selectRoomBuildAlerts(snapshot).find((a) => a.roomId === room.id)?.message,
   };
 }
 

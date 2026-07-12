@@ -2,7 +2,7 @@ import { FINAL_LEVEL_INDEX } from '@/model/waves';
 import {
   selectBuildEconomy,
   selectBuildUndoState,
-  selectConnectivityWarnings,
+  selectConnectivityReport,
   selectMana,
   selectSelectedBlueprint,
   selectTowerStability,
@@ -66,19 +66,17 @@ export function createHud(root: HTMLElement, store: Store): () => void {
       economy.isPlanning && economy.committedGold > 0
         ? `${economy.remainingGold} (${economy.committedGold} committed)`
         : `${economy.remainingGold}`;
-    const connectivity = inBuild ? selectConnectivityWarnings(snapshot) : [];
-    const connectivityHtml =
-      connectivity.length > 0
-        ? `<div class="connectivity-warn">${connectivity.map((w) => `<p class="warning">${w}</p>`).join('')}</div>`
-        : '';
+    const overAllocated = inBuild && selectConnectivityReport(snapshot.game).overAllocated;
+    const overAllocatedHtml = overAllocated
+      ? '<p class="warning">More soldiers allocated to slots than recruited in barracks.</p>'
+      : '';
 
     const phaseControls = inBuild
       ? `<div class="build-undo-row">
            <button data-action="undoBuild" ${undoState.canUndo ? '' : 'disabled'}>Undo</button>
            <button data-action="revertBuild" ${undoState.canRevert ? '' : 'disabled'}>Revert all</button>
          </div>
-         ${stability.stable ? '' : '<p class="warning">Tower unstable: floating rooms must be supported or removed.</p>'}
-         ${connectivityHtml}
+         ${overAllocatedHtml}
          <button class="primary" data-action="startWave" ${stability.stable ? '' : 'disabled'}>Start Wave ${game.levelIndex + 1}</button>`
       : '';
 

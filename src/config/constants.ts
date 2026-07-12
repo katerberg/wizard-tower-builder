@@ -86,6 +86,8 @@ export const colors = {
   pathDebug: '#63b3ed',
   infraStair: '#a0aec0',
   infraPipe: '#4299e1',
+  /** Pipe not yet connected to a water (or steam) seed. */
+  infraPipeDry: '#718096',
   soldier: '#68d391',
   connectivityWarn: '#ed8936',
 } as const;

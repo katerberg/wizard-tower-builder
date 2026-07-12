@@ -2,7 +2,7 @@ import { getBlueprint } from '@/model/blueprints';
 import { isInfraBlueprint } from '@/model/infraBlueprints';
 import { canAffordBuild } from '@/calculations/buildCost';
 import { addMessage } from '@/model/messages';
-import { pruneBarracksState } from '@/model/soldiers';
+import { pruneBarracksState, pruneOrphanSoldierState, seedSpecialtyRoomDefaults } from '@/model/soldiers';
 import { canPlace, createRoom, placeRoomReplacing, removeRoom, roomAt, towersEqual } from '@/model/tower';
 import type { HandlerContext } from '../context';
 import type { Intent } from '../intents';
@@ -55,6 +55,7 @@ function placeSelected(ctx: HandlerContext, cell: { col: number; row: number }):
   }
   ctx.recordBuildStep();
   game.tower = placed.tower;
+  seedSpecialtyRoomDefaults(game, room);
   if (view.modal?.kind === 'room') {
     view.modal = null;
   }
@@ -88,6 +89,7 @@ function undoBuild(ctx: HandlerContext): void {
   if (game.phase !== 'build' || !game.buildBaseline || buildHistory.length === 0) return;
 
   game.tower = buildHistory.pop()!;
+  pruneOrphanSoldierState(game);
   ctx.closeModalIfRoomMissing();
   addMessage(game, 'Undid last change.', 'info');
 }
@@ -100,6 +102,7 @@ function revertBuild(ctx: HandlerContext): void {
 
   game.tower = structuredClone(baseline.tower);
   buildHistory.length = 0;
+  pruneOrphanSoldierState(game);
   ctx.closeModalIfRoomMissing();
   addMessage(game, 'Reverted to wave start layout.', 'info');
 }

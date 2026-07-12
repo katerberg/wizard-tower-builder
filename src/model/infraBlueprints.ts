@@ -12,7 +12,7 @@ export const INFRA_BLUEPRINTS: Blueprint[] = [
     baseHp: 0,
     category: 'infra',
     infraKind: 'stair',
-    description: 'Vertical path for soldiers between floors. Paint on the infra layer over structure cells.',
+    description: 'Vertical path for soldiers between floors. Empty cells auto-place a Spire Block when legal.',
   },
   {
     id: 'pipe',
@@ -24,7 +24,7 @@ export const INFRA_BLUEPRINTS: Blueprint[] = [
     baseHp: 0,
     category: 'infra',
     infraKind: 'pipe',
-    description: 'Infrastructure overlay placeholder for future steam and mana routing.',
+    description: 'Thin logistics line on structure. Empty cells auto-place a Spire Block when legal.',
   },
 ];
 

@@ -53,12 +53,13 @@ describe('findInteriorPath', () => {
 });
 
 describe('infra placement', () => {
-  it('allows one infra kind per cell', () => {
+  it('allows replacing one infra kind with another', () => {
     const tower = createTower();
     const stair = getInfraBlueprint('staircase')!;
     const pipe = getInfraBlueprint('pipe')!;
-    expect(canPlaceInfra(tower, stair, { col: 1, row: 0 })).toBe(true);
+    expect(canPlaceInfra(tower, stair, { col: 1, row: 0 }).ok).toBe(true);
     const withStair = placeInfra(tower, { col: 1, row: 0 }, 'stair');
-    expect(canPlaceInfra(withStair, pipe, { col: 1, row: 0 })).toBe(false);
+    expect(canPlaceInfra(withStair, pipe, { col: 1, row: 0 }).ok).toBe(true);
+    expect(placeInfra(withStair, { col: 1, row: 0 }, 'pipe').infra['1,0']?.kind).toBe('pipe');
   });
 });

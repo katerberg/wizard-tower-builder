@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
+import { getBlueprint } from '@/model/blueprints';
+import { createRoom, placeRoom } from '@/model/tower';
 import { Store } from '@/store/store';
-import { selectLibraryBlueprints, selectRoomInspector, selectSpellBar, selectUiTooltip } from './selectors';
+import {
+  selectLibraryBlueprints,
+  selectRoomBuildAlerts,
+  selectRoomInspector,
+  selectSpellBar,
+  selectUiTooltip,
+} from './selectors';
 
 function placeStem(store: Store, cell: { col: number; row: number }): void {
   store.dispatch({ type: 'selectBlueprint', blueprintId: 'stem' });
@@ -22,6 +30,51 @@ describe('selectLibraryBlueprints', () => {
     const items = selectLibraryBlueprints(store.getSnapshot());
     expect(items.find((b) => b.id === 'buttress2')?.selected).toBe(true);
     expect(items.find((b) => b.id === 'stem')?.selected).toBe(false);
+  });
+});
+
+describe('selectRoomBuildAlerts', () => {
+  it('flags allocated slots that lack a stair path', () => {
+    const store = new Store('alert-slot');
+    const { game } = store.getSnapshot();
+    const barracksBp = getBlueprint('barracksRoom')!;
+    const slotBp = getBlueprint('slotRoom')!;
+    game.tower = placeRoom(game.tower, createRoom('b1', barracksBp, { col: 4, row: 0 }));
+    game.tower = placeRoom(game.tower, createRoom('s1', slotBp, { col: 10, row: 0 }));
+    game.barracksRecruited.b1 = 1;
+    game.slotAllocations.s1 = 1;
+
+    const alerts = selectRoomBuildAlerts(store.getSnapshot());
+    expect(alerts.some((a) => a.roomId === 's1' && a.message.includes('stairs'))).toBe(true);
+  });
+
+  it('flags barracks with no recruited soldiers', () => {
+    const store = new Store('alert-barracks');
+    const { game } = store.getSnapshot();
+    game.tower = placeRoom(game.tower, createRoom('b1', getBlueprint('barracksRoom')!, { col: 4, row: 0 }));
+    game.barracksRecruited.b1 = 0;
+
+    const alerts = selectRoomBuildAlerts(store.getSnapshot());
+    expect(alerts.some((a) => a.roomId === 'b1' && a.message.toLowerCase().includes('desert'))).toBe(true);
+  });
+
+  it('seeds defaults when placing barracks and slots', () => {
+    const store = new Store('seed-place');
+    store.dispatch({ type: 'selectBlueprint', blueprintId: 'barracksRoom' });
+    store.dispatch({ type: 'placeSelectedAt', cell: { col: 5, row: 0 } });
+    store.dispatch({ type: 'selectBlueprint', blueprintId: 'slotRoom' });
+    store.dispatch({ type: 'placeSelectedAt', cell: { col: 9, row: 0 } });
+
+    const { game } = store.getSnapshot();
+    const barracks = game.tower.rooms.find((r) => r.blueprintId === 'barracksRoom')!;
+    const slot = game.tower.rooms.find((r) => r.blueprintId === 'slotRoom')!;
+    expect(game.barracksRecruited[barracks.id]).toBe(1);
+    expect(game.slotAllocations[slot.id]).toBe(1);
+  });
+
+  it('does not flag a healthy slot', () => {
+    const store = new Store('alert-ok');
+    expect(selectRoomBuildAlerts(store.getSnapshot())).toEqual([]);
   });
 });
 

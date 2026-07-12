@@ -1,16 +1,20 @@
 import { CELL_SIZE, GRID_COLS, SUB_CELL_SIZE, SUB_CELLS_PER_MACRO, colors } from '@/config/constants';
-import { parseKey } from '@/calculations/grid';
+import { parseKey, roomCells } from '@/calculations/grid';
 import { sameMacroCell } from '@/calculations/subGrid';
 import { getBlueprint } from '@/model/blueprints';
-import { getInfraBlueprint } from '@/model/infraBlueprints';
 import { getEnemyTemplate } from '@/model/enemies';
 import { getModification } from '@/model/modifications';
 import { blizzardZoneCells } from '@/model/spells';
 import { computeRoomStats } from '@/calculations/combat';
 import { getUnstableRoomIds } from '@/model/tower';
-import { selectCastPreview, selectGhostPlacement, selectWizardPosition } from '@/store/selectors';
+import { selectPipeFluids, previewPipeFluidAt, type PipeFluid } from '@/model/pipes';
+import { selectCastPreview, selectGhostPlacement, selectRoomBuildAlerts, selectWizardPosition } from '@/store/selectors';
 import type { Snapshot } from '@/store/store';
 import { BOARD_WIDTH, cellCenter, cellTopLeft, enemyDrawRadius, exteriorNodeDrawCenter, GROUND_LINE_INSET, visibleRowRange } from './camera';
+
+function pipeFluidColor(fluid: PipeFluid): string {
+  return fluid === 'water' ? colors.infraPipe : colors.infraPipeDry;
+}
 
 export class Renderer {
   private canvas: HTMLCanvasElement;
@@ -121,13 +125,19 @@ export class Renderer {
     const { ctx } = this;
     const { minRow, maxRow } = visibleRowRange(scrollY, viewportHeight);
     const unstable = getUnstableRoomIds(snapshot.game.tower);
+    const alerts = new Map(
+      selectRoomBuildAlerts(snapshot).map((a) => [a.roomId, a.message] as const),
+    );
+    const hover = snapshot.view.hoveredCell;
+
     for (const room of snapshot.game.tower.rooms) {
       const roomMinRow = room.origin.row;
       const roomMaxRow = room.origin.row + room.size.h - 1;
       if (roomMaxRow < minRow || roomMinRow > maxRow) continue;
 
       const blueprint = getBlueprint(room.blueprintId);
-      const isUnstable = unstable.has(room.id);
+      const alert = alerts.get(room.id);
+      const isInvalid = unstable.has(room.id) || Boolean(alert);
       const topRow = roomMaxRow;
       const { x, y } = cellTopLeft(room.origin.col, topRow, scrollY, viewportHeight);
       const w = room.size.w * CELL_SIZE;
@@ -135,21 +145,21 @@ export class Renderer {
 
       ctx.fillStyle = blueprint?.color ?? colors.room;
       ctx.fillRect(x + 2, y + 2, w - 4, h - 4);
-      if (isUnstable) {
-        ctx.globalAlpha = 0.35;
+      if (isInvalid) {
+        ctx.globalAlpha = 0.4;
         ctx.fillStyle = colors.ghostInvalid;
         ctx.fillRect(x + 2, y + 2, w - 4, h - 4);
         ctx.globalAlpha = 1;
       }
-      ctx.strokeStyle = isUnstable ? colors.ghostInvalid : colors.roomStroke;
-      ctx.lineWidth = isUnstable ? 3 : 2;
+      ctx.strokeStyle = isInvalid ? colors.ghostInvalid : colors.roomStroke;
+      ctx.lineWidth = isInvalid ? 3 : 2;
       ctx.strokeRect(x + 2, y + 2, w - 4, h - 4);
 
       ctx.fillStyle = colors.text;
       ctx.font = `${Math.floor(CELL_SIZE * 0.5)}px monospace`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(isUnstable ? '!' : blueprint?.glyph ?? '?', x + w / 2, y + h / 2);
+      ctx.fillText(blueprint?.glyph ?? '?', x + w / 2, y + h / 2);
 
       if (blueprint) {
         const stats = computeRoomStats(room, blueprint);
@@ -161,7 +171,41 @@ export class Renderer {
       if (room.modifications.length > 0) {
         this.drawModIndicators(room.modifications, x, y + h);
       }
+
+      const hovered =
+        hover != null &&
+        roomCells(room.origin, room.size).some((c) => c.col === hover.col && c.row === hover.row);
+      if (alert && hovered) {
+        this.drawRoomAlert(alert, x, y + h, w);
+      }
     }
+  }
+
+  private drawRoomAlert(message: string, left: number, top: number, width: number): void {
+    const { ctx } = this;
+    const fontSize = Math.max(11, Math.floor(CELL_SIZE * 0.24));
+    const padX = 10;
+    const padY = 6;
+    ctx.font = `${fontSize}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    const metrics = ctx.measureText(message);
+    const ascent = metrics.actualBoundingBoxAscent || fontSize * 0.8;
+    const descent = metrics.actualBoundingBoxDescent || fontSize * 0.25;
+    const textH = ascent + descent;
+    const boxW = Math.ceil(metrics.width) + padX * 2;
+    const boxH = Math.ceil(textH) + padY * 2;
+    const boxX = left + (width - boxW) / 2;
+    const boxY = top + 4;
+
+    ctx.fillStyle = 'rgba(26, 32, 44, 0.92)';
+    ctx.fillRect(boxX, boxY, boxW, boxH);
+    ctx.strokeStyle = colors.ghostInvalid;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(boxX + 0.5, boxY + 0.5, boxW - 1, boxH - 1);
+    ctx.fillStyle = colors.connectivityWarn;
+    ctx.fillText(message, left + width / 2, boxY + boxH / 2);
   }
 
   private drawModIndicators(modifications: { id: string; level: number }[], left: number, bottom: number): void {
@@ -196,48 +240,130 @@ export class Renderer {
   }
 
   private drawInfra(snapshot: Snapshot, scrollY: number, viewportHeight: number): void {
-    const { ctx } = this;
     const { minRow, maxRow } = visibleRowRange(scrollY, viewportHeight);
+    const pipeFluids = selectPipeFluids(snapshot.game.tower);
     for (const [key, cell] of Object.entries(snapshot.game.tower.infra)) {
       const { col, row } = parseKey(key);
       if (row < minRow || row > maxRow) continue;
-      const blueprint = getInfraBlueprint(cell.kind === 'stair' ? 'staircase' : 'pipe');
       const { x, y } = cellTopLeft(col, row, scrollY, viewportHeight);
-      ctx.globalAlpha = 0.85;
-      ctx.fillStyle = blueprint?.color ?? colors.infraStair;
-      ctx.fillRect(x + 6, y + 6, CELL_SIZE - 12, CELL_SIZE - 12);
-      ctx.globalAlpha = 1;
-      ctx.fillStyle = colors.text;
-      ctx.font = `${Math.floor(CELL_SIZE * 0.35)}px monospace`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(blueprint?.glyph ?? '.', x + CELL_SIZE / 2, y + CELL_SIZE / 2);
+      const pipeColor =
+        cell.kind === 'pipe'
+          ? pipeFluidColor(pipeFluids[key] ?? 'unassigned')
+          : undefined;
+      this.drawInfraLine(cell.kind, x, y, 1, pipeColor);
     }
+  }
+
+  /** Thin side lines so room glyphs stay readable; stacked cells form continuous runs. */
+  private drawInfraLine(
+    kind: 'stair' | 'pipe',
+    x: number,
+    y: number,
+    alpha: number,
+    strokeOverride?: string,
+  ): void {
+    const { ctx } = this;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.lineCap = 'butt';
+    ctx.lineJoin = 'miter';
+
+    if (kind === 'pipe') {
+      // Riser along the left edge — blue when watered, grey until connected.
+      const px = x + CELL_SIZE * 0.22;
+      ctx.strokeStyle = strokeOverride ?? colors.infraPipeDry;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(px, y + 1);
+      ctx.lineTo(px, y + CELL_SIZE - 1);
+      ctx.stroke();
+    } else {
+      // Ladder-style stair on the right: vertical rail + short treads.
+      const px = x + CELL_SIZE * 0.78;
+      const treadW = CELL_SIZE * 0.16;
+      ctx.strokeStyle = strokeOverride ?? colors.infraStair;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(px, y + 1);
+      ctx.lineTo(px, y + CELL_SIZE - 1);
+      ctx.stroke();
+      ctx.lineWidth = 1.5;
+      const treadCount = 3;
+      for (let i = 1; i <= treadCount; i++) {
+        const ty = y + (CELL_SIZE * i) / (treadCount + 1);
+        ctx.beginPath();
+        ctx.moveTo(px - treadW, ty);
+        ctx.lineTo(px, ty);
+        ctx.stroke();
+      }
+    }
+
+    ctx.restore();
   }
 
   private drawSoldiers(snapshot: Snapshot, scrollY: number, viewportHeight: number): void {
     const { ctx } = this;
+    const byCell = new Map<string, typeof snapshot.game.soldiers>();
     for (const soldier of snapshot.game.soldiers) {
-      const { x, y } = cellCenter(soldier.pos.col, soldier.pos.row, scrollY, viewportHeight);
-      if (y + CELL_SIZE * 0.2 < 0 || y - CELL_SIZE * 0.2 > viewportHeight) continue;
-      ctx.beginPath();
-      ctx.arc(x, y, CELL_SIZE * 0.18, 0, Math.PI * 2);
-      ctx.fillStyle = soldier.status === 'stationed' ? colors.soldier : '#9ae6b4';
-      ctx.fill();
-      ctx.fillStyle = '#1a202c';
-      ctx.font = `${Math.floor(CELL_SIZE * 0.22)}px monospace`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('s', x, y);
+      const key = `${soldier.pos.col},${soldier.pos.row}`;
+      const group = byCell.get(key);
+      if (group) group.push(soldier);
+      else byCell.set(key, [soldier]);
+    }
+
+    const radius = Math.max(2, CELL_SIZE * 0.05);
+    const spacing = CELL_SIZE * 0.16;
+    const perRow = 4;
+
+    for (const group of byCell.values()) {
+      for (let i = 0; i < group.length; i++) {
+        const soldier = group[i];
+        const { x: cx, y: cy } = cellCenter(soldier.pos.col, soldier.pos.row, scrollY, viewportHeight);
+        if (cy + radius < 0 || cy - radius > viewportHeight) continue;
+
+        const row = Math.floor(i / perRow);
+        const col = i % perRow;
+        const rowCount = Math.min(perRow, group.length - row * perRow);
+        const x = cx + (col - (rowCount - 1) / 2) * spacing;
+        const y = cy + (row - (Math.ceil(group.length / perRow) - 1) / 2) * spacing;
+
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.fillStyle = soldier.status === 'stationed' ? colors.soldier : '#9ae6b4';
+        ctx.fill();
+      }
     }
   }
 
   private drawGhost(snapshot: Snapshot, scrollY: number, viewportHeight: number): void {
     const ghost = selectGhostPlacement(snapshot);
     if (!ghost) return;
+    const stroke = ghost.valid ? colors.ghostValid : colors.ghostInvalid;
     const { ctx } = this;
+
+    if (ghost.infraKind) {
+      if (ghost.needsStem || !ghost.valid) {
+        ctx.globalAlpha = 0.35;
+        ctx.fillStyle = stroke;
+        for (const cell of ghost.cells) {
+          const { x, y } = cellTopLeft(cell.col, cell.row, scrollY, viewportHeight);
+          ctx.fillRect(x + 2, y + 2, CELL_SIZE - 4, CELL_SIZE - 4);
+        }
+        ctx.globalAlpha = 1;
+      }
+      for (const cell of ghost.cells) {
+        const { x, y } = cellTopLeft(cell.col, cell.row, scrollY, viewportHeight);
+        const pipeStroke =
+          ghost.infraKind === 'pipe' && ghost.valid
+            ? pipeFluidColor(previewPipeFluidAt(snapshot.game.tower, cell))
+            : stroke;
+        this.drawInfraLine(ghost.infraKind, x, y, 0.75, pipeStroke);
+      }
+      return;
+    }
+
     ctx.globalAlpha = 0.45;
-    ctx.fillStyle = ghost.valid ? colors.ghostValid : colors.ghostInvalid;
+    ctx.fillStyle = stroke;
     for (const cell of ghost.cells) {
       const { x, y } = cellTopLeft(cell.col, cell.row, scrollY, viewportHeight);
       ctx.fillRect(x + 2, y + 2, CELL_SIZE - 4, CELL_SIZE - 4);

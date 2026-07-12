@@ -14,8 +14,6 @@ export function captureBuildBaseline(state: GameState): void {
     currency: state.player.currency,
   };
   state.buildRecruitSpend = 0;
-  state.barracksRecruited = {};
-  state.slotAllocations = {};
 }
 
 export function startRun(state: GameState): void {

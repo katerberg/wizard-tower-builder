@@ -5,7 +5,7 @@ export const slotExpansion: ModificationDef = {
   id: 'slotExpansion',
   name: 'Slot Expansion',
   glyph: '+',
-  color: '#e53e3e',
+  color: '#805ad5',
   description: 'Increases stationed soldiers from 2 to 4.',
   mechanicsAtLevel: () => 'Capacity 4 stationed soldiers',
   maxLevel: 1,

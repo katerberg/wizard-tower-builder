@@ -9,6 +9,8 @@ export interface SlotConnectivity {
   allocated: number;
   connected: boolean;
   pathLength: number;
+  /** Short contextual warning when this slot needs attention. */
+  warning: string | null;
 }
 
 export interface ConnectivityReport {
@@ -36,19 +38,22 @@ export function selectConnectivityReport(state: GameState): ConnectivityReport {
 
     const slotAnchor = roomAnchorCell(state.tower, slot.origin, slot.size);
     if (!slotAnchor) {
+      const warning = 'Needs a walkable cell';
       slots.push({
         slotId: slot.id,
         slotName: 'Slot',
         allocated: allocatedCount,
         connected: false,
         pathLength: 0,
+        warning,
       });
-      warnings.push('Slot has no walkable anchor cell.');
+      warnings.push(warning);
       continue;
     }
 
     let bestPath = 0;
     let connected = false;
+    const hasStaffedBarracks = barracks.some((b) => (state.barracksRecruited[b.id] ?? 0) > 0);
     for (const b of barracks) {
       if ((state.barracksRecruited[b.id] ?? 0) <= 0) continue;
       const from = roomAnchorCell(state.tower, b.origin, b.size);
@@ -60,17 +65,22 @@ export function selectConnectivityReport(state: GameState): ConnectivityReport {
       }
     }
 
+    let warning: string | null = null;
+    if (!connected) {
+      warning = hasStaffedBarracks
+        ? 'Needs stairs from barracks'
+        : 'Needs recruited soldiers in a barracks';
+      warnings.push(warning);
+    }
+
     slots.push({
       slotId: slot.id,
       slotName: 'Slot',
       allocated: allocatedCount,
       connected,
       pathLength: bestPath,
+      warning,
     });
-
-    if (!connected) {
-      warnings.push(`Slot needs ${allocatedCount} — no path from any barracks.`);
-    }
   }
 
   return { warnings, slots, overAllocated };

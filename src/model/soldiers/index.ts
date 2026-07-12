@@ -77,11 +77,6 @@ export function deploySoldiersForWave(state: GameState): void {
 
   for (const assignment of assignments) {
     for (let i = 0; i < assignment.count; i++) {
-      if (gold < SOLDIER_UPKEEP_COST) {
-        addMessage(state, 'Not enough gold for soldier upkeep; some troops stay in barracks.', 'economy');
-        break;
-      }
-
       let bestPool: BarracksPool | null = null;
       let bestDist = Infinity;
       for (const pool of pools) {
@@ -96,6 +91,15 @@ export function deploySoldiersForWave(state: GameState): void {
       }
       if (!bestPool) break;
 
+      if (gold < SOLDIER_UPKEEP_COST) {
+        // Unpaid soldiers desert and leave the barracks roster.
+        bestPool.available -= 1;
+        const left = Math.max(0, (state.barracksRecruited[bestPool.roomId] ?? 0) - 1);
+        state.barracksRecruited[bestPool.roomId] = left;
+        addMessage(state, 'A soldier deserted — could not pay upkeep.', 'economy');
+        continue;
+      }
+
       gold -= SOLDIER_UPKEEP_COST;
       bestPool.available -= 1;
       toField.push({
@@ -109,7 +113,7 @@ export function deploySoldiersForWave(state: GameState): void {
 
   state.player.currency = gold;
 
-  for (const entry of toField) {
+  toField.forEach((entry, index) => {
     const path = findInteriorPath(state.tower, entry.from, entry.anchor);
     const soldier: Soldier = {
       id: `soldier-${soldierCounter++}`,
@@ -118,18 +122,43 @@ export function deploySoldiersForWave(state: GameState): void {
       pos: { ...entry.from },
       path: path.length > 0 ? path : [entry.from],
       pathIndex: 0,
-      moveCooldown: 0,
+      // Stagger departures so co-spawned troops form a visible queue.
+      moveCooldown: index * 0.12,
       status: 'moving',
       stairColumn: null,
     };
     state.soldiers.push(soldier);
-  }
+  });
 }
 
 export function clearSoldiersAfterWave(state: GameState): void {
   state.soldiers = [];
   state.stairColumnLocks = {};
-  state.slotAllocations = {};
+}
+
+/** Drop recruit/allocation entries for rooms that no longer exist. */
+export function pruneOrphanSoldierState(state: GameState): void {
+  const ids = new Set(state.tower.rooms.map((r) => r.id));
+  for (const id of Object.keys(state.barracksRecruited)) {
+    if (!ids.has(id)) delete state.barracksRecruited[id];
+  }
+  for (const id of Object.keys(state.slotAllocations)) {
+    if (!ids.has(id)) delete state.slotAllocations[id];
+  }
+}
+
+/** New barracks start with 1 recruit; new slots start with 1 allocated. */
+export function seedSpecialtyRoomDefaults(state: GameState, room: Room): void {
+  if (isBarracksRoom(room)) {
+    if ((state.barracksRecruited[room.id] ?? 0) < 1) {
+      state.barracksRecruited[room.id] = 1;
+    }
+  }
+  if (isSlotRoom(room)) {
+    if ((state.slotAllocations[room.id] ?? 0) < 1) {
+      state.slotAllocations[room.id] = 1;
+    }
+  }
 }
 
 function releaseStairColumn(state: GameState, soldier: Soldier): void {
@@ -147,6 +176,12 @@ function isVerticalStep(from: Cell, to: Cell): boolean {
 function stairColumnBusy(state: GameState, col: number, exceptId: string): boolean {
   const holder = state.stairColumnLocks[col];
   return holder !== undefined && holder !== exceptId;
+}
+
+function isCellOccupiedByOtherSoldier(state: GameState, cell: Cell, exceptId: string): boolean {
+  return state.soldiers.some(
+    (s) => s.id !== exceptId && s.pos.col === cell.col && s.pos.row === cell.row,
+  );
 }
 
 /** Advance soldier movement during the attack phase. */
@@ -169,22 +204,25 @@ export function stepSoldiers(state: GameState, dt: number): void {
 
     const next = soldier.path[soldier.pathIndex + 1];
     const vertical = isVerticalStep(soldier.pos, next);
+    const enteringSlot = isInRoomFootprint(slot, next);
+
+    // One soldier per cell while en route; destination slots may hold several.
+    if (!enteringSlot && isCellOccupiedByOtherSoldier(state, next, soldier.id)) {
+      continue;
+    }
 
     if (vertical) {
-      if (stairColumnBusy(state, soldier.pos.col, soldier.id)) continue;
+      if (stairColumnBusy(state, next.col, soldier.id)) continue;
       if (!hasInfraKind(state.tower, soldier.pos.col, soldier.pos.row, 'stair')) continue;
-      state.stairColumnLocks[soldier.pos.col] = soldier.id;
-      soldier.stairColumn = soldier.pos.col;
+      // Hold the column lock for the whole climb (released on horizontal step or station).
+      state.stairColumnLocks[next.col] = soldier.id;
+      soldier.stairColumn = next.col;
     } else {
       releaseStairColumn(state, soldier);
     }
 
     soldier.pathIndex += 1;
     soldier.pos = next;
-
-    if (vertical) {
-      releaseStairColumn(state, soldier);
-    }
 
     const speed = vertical ? SOLDIER_STAIR_SPEED : SOLDIER_HORIZONTAL_SPEED;
     soldier.moveCooldown = 1 / speed;

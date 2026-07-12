@@ -110,10 +110,6 @@ function roomBody(inspector: RoomInspector): string {
   }
 
   if (inspector.slotCapacity !== undefined && inspector.slotAllocated !== undefined) {
-    const warn =
-      inspector.slotConnected === false
-        ? '<p class="warning">No path from barracks — soldiers cannot reach this slot.</p>'
-        : '';
     specialty += `
       <h4>Slot staffing</h4>
       <div class="stat"><span>Allocated</span><strong>${inspector.slotAllocated} / ${inspector.slotCapacity}</strong></div>
@@ -125,16 +121,20 @@ function roomBody(inspector: RoomInspector): string {
                <button data-action="slotPlus" data-room="${room.id}">+</button>
              </div>`
           : ''
-      }
-      ${warn}`;
+      }`;
   }
 
   const remove = canRemove
     ? `<button class="danger" data-action="sellRoom" data-room="${room.id}">Remove room</button>`
     : '';
 
+  const alertHtml = inspector.buildAlert
+    ? `<p class="warning">${inspector.buildAlert}</p>`
+    : '';
+
   return `
     <h3>${blueprint.name}</h3>
+    ${alertHtml}
     <div class="stat"><span>Size</span><strong>${room.size.w}x${room.size.h}</strong></div>
     <div class="stat"><span>HP</span><strong>${room.hp} / ${stats.maxHp}</strong></div>
     <div class="stat"><span>Origin</span><strong>(${room.origin.col}, ${room.origin.row})</strong></div>
