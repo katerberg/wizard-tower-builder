@@ -111,7 +111,7 @@ interface InfraCell {
 | Lock | Fluid type frozen at **wave start** |
 | Crossover | **Not planned** — use parallel adjacent columns |
 
-**Implementation status:** Untyped pipe paint only. Boilers, steam turrets, mana springs, and mana economy are specified in `docs/PIPES.md`.
+**Implementation status:** Typed pipes, boilers, steam turrets, mana springs, and magic-turret mana are shipped — see `docs/PIPES.md`.
 
 ### Elevator (`elevator`) — future
 

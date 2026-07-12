@@ -1,6 +1,8 @@
 export type { PipeFluid } from './fluids';
 export {
   isBoilerRoom,
+  isSteamTurretRoom,
+  isManaSpringRoom,
   isBoilerFootprintCell,
   selectPipeFluids,
   resolvePipeFluids,
@@ -8,7 +10,11 @@ export {
   previewPipeFluidAt,
   wouldMixFluids,
   lockPipeFluids,
+  roomHasFluidPort,
   boilerHasWaterPort,
   boilerHasSteamPort,
+  steamComponentKeys,
+  adjacentSteamPipeKeys,
+  pipeVisualLinks,
 } from './fluids';
 export { selectPipeConnectivityReport, type PipeConnectivityReport } from './connectivity';

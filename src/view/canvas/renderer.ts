@@ -7,7 +7,7 @@ import { getModification } from '@/model/modifications';
 import { blizzardZoneCells } from '@/model/spells';
 import { computeRoomStats } from '@/calculations/combat';
 import { getUnstableRoomIds } from '@/model/tower';
-import { resolvePipeFluids, previewPipeFluidAt, type PipeFluid } from '@/model/pipes';
+import { resolvePipeFluids, previewPipeFluidAt, pipeVisualLinks, type PipeFluid } from '@/model/pipes';
 import { selectCastPreview, selectGhostPlacement, selectRoomBuildAlerts, selectWizardPosition } from '@/store/selectors';
 import type { Snapshot } from '@/store/store';
 import { BOARD_WIDTH, cellCenter, cellTopLeft, enemyDrawRadius, exteriorNodeDrawCenter, GROUND_LINE_INSET, visibleRowRange } from './camera';
@@ -265,62 +265,97 @@ export class Renderer {
     const { minRow, maxRow } = visibleRowRange(scrollY, viewportHeight);
     const phase = snapshot.game.phase === 'attack' ? 'attack' : 'build';
     const pipeFluids = resolvePipeFluids(snapshot.game.tower, phase);
-    for (const [key, cell] of Object.entries(snapshot.game.tower.infra)) {
+    const tower = snapshot.game.tower;
+    for (const [key, cell] of Object.entries(tower.infra)) {
       const { col, row } = parseKey(key);
       if (row < minRow || row > maxRow) continue;
       const { x, y } = cellTopLeft(col, row, scrollY, viewportHeight);
-      const pipeColor =
-        cell.kind === 'pipe'
-          ? pipeFluidColor(pipeFluids[key] ?? 'unassigned')
-          : undefined;
-      this.drawInfraLine(cell.kind, x, y, 1, pipeColor);
+      if (cell.kind === 'pipe') {
+        this.drawPipeCell(tower, col, row, x, y, 1, pipeFluidColor(pipeFluids[key] ?? 'unassigned'));
+      } else {
+        this.drawStairLine(x, y, 1);
+      }
     }
   }
 
-  /** Thin side lines so room glyphs stay readable; stacked cells form continuous runs. */
-  private drawInfraLine(
-    kind: 'stair' | 'pipe',
+  /**
+   * Pipe runs meet at cell-edge midpoints and bend through the cell center.
+   * Joints count other pipes, fluid-port rooms, and ground (row 0) so T / + shapes appear.
+   */
+  private drawPipeCell(
+    tower: Snapshot['game']['tower'],
+    col: number,
+    row: number,
     x: number,
     y: number,
     alpha: number,
-    strokeOverride?: string,
+    stroke: string,
+    extraPipeKeys?: ReadonlySet<string>,
   ): void {
+    const { ctx } = this;
+    const links = pipeVisualLinks(tower, col, row, extraPipeKeys);
+    const cx = x + CELL_SIZE / 2;
+    const cy = y + CELL_SIZE / 2;
+    // World row increases upward; canvas y increases downward.
+    const ends: { x: number; y: number }[] = [];
+    if (links.north) ends.push({ x: cx, y });
+    if (links.south) ends.push({ x: cx, y: y + CELL_SIZE });
+    if (links.west) ends.push({ x, y: cy });
+    if (links.east) ends.push({ x: x + CELL_SIZE, y: cy });
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = stroke;
+    ctx.fillStyle = stroke;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = 2.5;
+
+    if (ends.length === 0) {
+      const stub = CELL_SIZE * 0.22;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - stub);
+      ctx.lineTo(cx, cy + stub);
+      ctx.stroke();
+    } else {
+      for (const end of ends) {
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(end.x, end.y);
+        ctx.stroke();
+      }
+    }
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, 2.25, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  /** Ladder-style stair on the right: vertical rail + short treads. */
+  private drawStairLine(x: number, y: number, alpha: number, strokeOverride?: string): void {
     const { ctx } = this;
     ctx.save();
     ctx.globalAlpha = alpha;
     ctx.lineCap = 'butt';
     ctx.lineJoin = 'miter';
-
-    if (kind === 'pipe') {
-      // Riser along the left edge — blue when watered, grey until connected.
-      const px = x + CELL_SIZE * 0.22;
-      ctx.strokeStyle = strokeOverride ?? colors.infraPipeDry;
-      ctx.lineWidth = 2.5;
+    const px = x + CELL_SIZE * 0.78;
+    const treadW = CELL_SIZE * 0.16;
+    ctx.strokeStyle = strokeOverride ?? colors.infraStair;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(px, y + 1);
+    ctx.lineTo(px, y + CELL_SIZE - 1);
+    ctx.stroke();
+    ctx.lineWidth = 1.5;
+    const treadCount = 3;
+    for (let i = 1; i <= treadCount; i++) {
+      const ty = y + (CELL_SIZE * i) / (treadCount + 1);
       ctx.beginPath();
-      ctx.moveTo(px, y + 1);
-      ctx.lineTo(px, y + CELL_SIZE - 1);
+      ctx.moveTo(px - treadW, ty);
+      ctx.lineTo(px, ty);
       ctx.stroke();
-    } else {
-      // Ladder-style stair on the right: vertical rail + short treads.
-      const px = x + CELL_SIZE * 0.78;
-      const treadW = CELL_SIZE * 0.16;
-      ctx.strokeStyle = strokeOverride ?? colors.infraStair;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(px, y + 1);
-      ctx.lineTo(px, y + CELL_SIZE - 1);
-      ctx.stroke();
-      ctx.lineWidth = 1.5;
-      const treadCount = 3;
-      for (let i = 1; i <= treadCount; i++) {
-        const ty = y + (CELL_SIZE * i) / (treadCount + 1);
-        ctx.beginPath();
-        ctx.moveTo(px - treadW, ty);
-        ctx.lineTo(px, ty);
-        ctx.stroke();
-      }
     }
-
     ctx.restore();
   }
 
@@ -376,11 +411,24 @@ export class Renderer {
       }
       for (const cell of ghost.cells) {
         const { x, y } = cellTopLeft(cell.col, cell.row, scrollY, viewportHeight);
-        const pipeStroke =
-          ghost.infraKind === 'pipe' && ghost.valid
+        if (ghost.infraKind === 'pipe') {
+          const pipeStroke = ghost.valid
             ? pipeFluidColor(previewPipeFluidAt(snapshot.game.tower, cell))
             : stroke;
-        this.drawInfraLine(ghost.infraKind, x, y, 0.75, pipeStroke);
+          const extra = new Set(ghost.cells.map((c) => `${c.col},${c.row}`));
+          this.drawPipeCell(
+            snapshot.game.tower,
+            cell.col,
+            cell.row,
+            x,
+            y,
+            0.75,
+            pipeStroke,
+            extra,
+          );
+        } else {
+          this.drawStairLine(x, y, 0.75, ghost.valid ? undefined : stroke);
+        }
       }
       return;
     }

@@ -56,11 +56,13 @@ export const WIZARD_DEFAULTS = {
 /** Shared mana pool cap (spells, boilers, future springs/turrets). */
 export const MAX_MANA = 20;
 
-// Pipes / boilers / steam (PIPES.md) — stubs until later phases consume them.
+// Pipes / boilers / steam (PIPES.md).
 export const BOILER_MANA_PER_SEC = 0.25;
 export const MANA_SPRING_PER_SEC = 0.5;
 export const STEAM_TURRET_CHARGE_SEC = 3;
 export const STEAM_TURRET_DAMAGE = 10;
+/** Exterior blast depth (cells outward) and perpendicular width is 3. */
+export const STEAM_TURRET_BLAST_DEPTH = 3;
 export const MAGIC_TURRET_MANA_COST = 1;
 /** Throughput units by boilerExpansion level (0 = base, 1–2 = upgrades). */
 export const BOILER_THROUGHPUT = [3, 4, 5] as const;
@@ -78,7 +80,7 @@ export const colors = {
   room: '#4a5568',
   roomStroke: '#9aa5b1',
   ghostValid: '#2f855a',
-  ghostInvalid: '#c53030',
+  ghostInvalid: '#ff3b3b',
   spellValid: '#dd6b20',
   spellInvalid: '#742a2a',
   spellAim: 'rgba(221, 107, 32, 0.55)',
@@ -100,5 +102,5 @@ export const colors = {
   infraPipeDry: '#718096',
   infraPipeSteam: '#ed8936',
   soldier: '#68d391',
-  connectivityWarn: '#ed8936',
+  connectivityWarn: '#ff5c5c',
 } as const;

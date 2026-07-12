@@ -246,6 +246,8 @@ export interface GameState {
   activeSpellSchool: SpellSchool;
   /** Attack-phase boiler production state. */
   boilerRuntime: Record<string, BoilerRuntime>;
+  /** Attack-phase steam turret charge state. */
+  steamTurretRuntime: Record<string, SteamTurretRuntime>;
   /** Tower + gold at build-phase start; edits commit on wave start. */
   buildBaseline: BuildBaseline | null;
 }
@@ -253,6 +255,11 @@ export interface GameState {
 export interface BoilerRuntime {
   producing: boolean;
   steamAvailable: boolean;
+}
+
+export interface SteamTurretRuntime {
+  charge: number;
+  chargeRate: number;
 }
 
 export type PlacementReason =

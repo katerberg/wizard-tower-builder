@@ -8,6 +8,8 @@ import {
 import { sameMacroCell, macroCellOfNode } from '@/calculations/subGrid';
 import { resetSoldierCounter, stepSoldiers } from './soldiers';
 import { tickBoilers } from './boilers';
+import { tickManaSprings } from './manaSprings';
+import { tickSteamTurrets } from './steamTurrets';
 import { STARTING_BLUEPRINT_IDS } from './blueprints';
 import { computeDamage, type Combatant } from '../calculations/combat';
 import { spawnNode } from '../calculations/exteriorGraph';
@@ -81,6 +83,7 @@ export function createInitialState(seed: string | number = 'wizard'): GameState 
     tornadoEnterDone: {},
     activeSpellSchool: 'fire',
     boilerRuntime: {},
+    steamTurretRuntime: {},
     buildBaseline: null,
   };
   resetSoldierCounter();
@@ -275,8 +278,10 @@ export function step(state: GameState, dt: number): void {
   // Room behaviors (turret rooms, slot volleys) and modifications (spikes) act on enemies this tick.
   runRoomEffects(state, dt);
 
-  // Boilers drain mana and mark steam availability.
+  // Mana springs → boilers → steam turrets (PIPES.md attack order).
+  tickManaSprings(state, dt);
   tickBoilers(state, dt);
+  tickSteamTurrets(state, dt);
 
   // Reap dead enemies and award currency.
   const survivors: Enemy[] = [];

@@ -39,7 +39,7 @@ export const BLUEPRINTS: Blueprint[] = [
     size: { w: 1, h: 1 },
     cost: 10,
     baseHp: 18,
-    description: 'Auto-fires at nearby climbers during attack.',
+    description: 'Auto-fires at nearby climbers during attack. Costs 1 mana per shot.',
   },
   {
     id: 'goldMineRoom',
@@ -87,6 +87,31 @@ export const BLUEPRINTS: Blueprint[] = [
     passable: false,
     description:
       '1×2 steam plant. Needs a ground-water pipe in and a steam pipe out. Drains mana while producing steam.',
+  },
+  {
+    id: 'steamTurretRoom',
+    name: 'Steam Turret',
+    glyph: 'T',
+    color: '#dd6b20',
+    size: { w: 1, h: 1 },
+    cost: 14,
+    baseHp: 20,
+    category: 'structure',
+    passable: false,
+    description:
+      'Charges from boiler steam, then dumps a wide exterior blast. Needs an adjacent steam pipe.',
+  },
+  {
+    id: 'manaSpringRoom',
+    name: 'Mana Spring',
+    glyph: 'M',
+    color: '#3182ce',
+    size: { w: 2, h: 2 },
+    cost: 28,
+    baseHp: 30,
+    category: 'structure',
+    passable: false,
+    description: '2×2 spring. Needs ground-water pipe access. Regenerates mana during attack.',
   },
 ];
 

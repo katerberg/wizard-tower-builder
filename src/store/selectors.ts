@@ -264,8 +264,8 @@ export function selectRoomBuildAlerts(snapshot: Snapshot): RoomBuildAlert[] {
     }
   }
 
-  for (const boiler of selectPipeConnectivityReport(game).boilers) {
-    alerts.push({ roomId: boiler.roomId, message: boiler.warning });
+  for (const pipeRoom of selectPipeConnectivityReport(game).rooms) {
+    alerts.push({ roomId: pipeRoom.roomId, message: pipeRoom.warning });
   }
 
   return alerts;
@@ -382,11 +382,19 @@ export function selectRoomInspector(snapshot: Snapshot, roomId: string): RoomIns
 export interface ManaState {
   current: number;
   max: number;
+  /** Display string rounded to the nearest tenth. */
+  label: string;
 }
 
 export function selectMana(snapshot: Snapshot): ManaState {
   const { player } = snapshot.game;
-  return { current: player.mana, max: player.maxMana };
+  const current = Math.round(player.mana * 10) / 10;
+  const max = player.maxMana;
+  return {
+    current,
+    max,
+    label: `${current.toFixed(1)} / ${max}`,
+  };
 }
 
 export interface SpellBarSlot {

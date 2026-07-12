@@ -74,7 +74,7 @@ export function createSpellBar(root: HTMLElement, store: Store): () => void {
 
     root.hidden = false;
     const inAttack = game.phase === 'attack';
-    const { current, max } = selectMana(snapshot);
+    const { current, max, label } = selectMana(snapshot);
     const slots = selectSpellBar(snapshot);
     const hint = inAttack
       ? 'Press 1–6 or click a slot · click grid to cast · Esc cancels · Wand Strike auto-fires'
@@ -85,7 +85,7 @@ export function createSpellBar(root: HTMLElement, store: Store): () => void {
       <div class="mana-bar">
         <span class="mana-label">Mana</span>
         <div class="mana-track"><div class="mana-fill" style="width:${(current / max) * 100}%"></div></div>
-        <span class="mana-text">${current} / ${max}</span>
+        <span class="mana-text">${label}</span>
       </div>
       <div class="spell-bar">${slots.map((slot) => renderSlot(slot, inAttack)).join('')}</div>
       <p class="hint">${hint}</p>`;

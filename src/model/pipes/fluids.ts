@@ -15,6 +15,14 @@ export function isBoilerRoom(room: { blueprintId: string }): boolean {
   return room.blueprintId === 'boilerRoom';
 }
 
+export function isSteamTurretRoom(room: { blueprintId: string }): boolean {
+  return room.blueprintId === 'steamTurretRoom';
+}
+
+export function isManaSpringRoom(room: { blueprintId: string }): boolean {
+  return room.blueprintId === 'manaSpringRoom';
+}
+
 function pipeCells(tower: Tower): Cell[] {
   const cells: Cell[] = [];
   for (const [key, cell] of Object.entries(tower.infra ?? {})) {
@@ -32,6 +40,15 @@ function boilerFootprintCells(tower: Tower): Cell[] {
   const cells: Cell[] = [];
   for (const room of tower.rooms) {
     if (!isBoilerRoom(room)) continue;
+    cells.push(...roomCells(room.origin, room.size));
+  }
+  return cells;
+}
+
+function steamTurretFootprintCells(tower: Tower): Cell[] {
+  const cells: Cell[] = [];
+  for (const room of tower.rooms) {
+    if (!isSteamTurretRoom(room)) continue;
     cells.push(...roomCells(room.origin, room.size));
   }
   return cells;
@@ -67,7 +84,7 @@ function flood(
 
 /**
  * Water: flood from row-0 pipes.
- * Steam (until P4 turrets): flood from pipes adjacent to boilers that are not water.
+ * Steam: flood from pipes adjacent to steam turrets that are not water.
  */
 export function selectPipeFluids(tower: Tower): Record<string, PipeFluid> {
   const result: Record<string, PipeFluid> = {};
@@ -80,7 +97,7 @@ export function selectPipeFluids(tower: Tower): Record<string, PipeFluid> {
   flood(tower, waterSeeds, result, 'water');
 
   const steamSeeds: Cell[] = [];
-  for (const foot of boilerFootprintCells(tower)) {
+  for (const foot of steamTurretFootprintCells(tower)) {
     for (const [dc, dr] of ORTHO) {
       const n = { col: foot.col + dc, row: foot.row + dr };
       const key = cellKey(n.col, n.row);
@@ -161,19 +178,29 @@ export function lockPipeFluids(tower: Tower): Tower {
   return { ...tower, infra };
 }
 
-export function boilerHasWaterPort(
+/** True if any orthogonal neighbor pipe has the given fluid. */
+export function roomHasFluidPort(
   tower: Tower,
   roomOrigin: Cell,
   roomSize: { w: number; h: number },
+  fluid: 'water' | 'steam',
 ): boolean {
   const fluids = selectPipeFluids(tower);
   for (const c of roomCells(roomOrigin, roomSize)) {
     for (const [dc, dr] of ORTHO) {
       const n = { col: c.col + dc, row: c.row + dr };
-      if (fluids[cellKey(n.col, n.row)] === 'water') return true;
+      if (fluids[cellKey(n.col, n.row)] === fluid) return true;
     }
   }
   return false;
+}
+
+export function boilerHasWaterPort(
+  tower: Tower,
+  roomOrigin: Cell,
+  roomSize: { w: number; h: number },
+): boolean {
+  return roomHasFluidPort(tower, roomOrigin, roomSize, 'water');
 }
 
 export function boilerHasSteamPort(
@@ -181,12 +208,77 @@ export function boilerHasSteamPort(
   roomOrigin: Cell,
   roomSize: { w: number; h: number },
 ): boolean {
+  return roomHasFluidPort(tower, roomOrigin, roomSize, 'steam');
+}
+
+/** Keys of steam pipes reachable from `start` within the steam network. */
+export function steamComponentKeys(tower: Tower, start: Cell): Set<string> {
   const fluids = selectPipeFluids(tower);
+  const startKey = cellKey(start.col, start.row);
+  if (fluids[startKey] !== 'steam') return new Set();
+
+  const seen = new Set<string>([startKey]);
+  const queue = [start];
+  while (queue.length > 0) {
+    const cur = queue.shift()!;
+    for (const [dc, dr] of ORTHO) {
+      const n = { col: cur.col + dc, row: cur.row + dr };
+      const key = cellKey(n.col, n.row);
+      if (seen.has(key) || fluids[key] !== 'steam') continue;
+      seen.add(key);
+      queue.push(n);
+    }
+  }
+  return seen;
+}
+
+export function adjacentSteamPipeKeys(
+  tower: Tower,
+  roomOrigin: Cell,
+  roomSize: { w: number; h: number },
+): string[] {
+  const fluids = selectPipeFluids(tower);
+  const keys: string[] = [];
   for (const c of roomCells(roomOrigin, roomSize)) {
     for (const [dc, dr] of ORTHO) {
       const n = { col: c.col + dc, row: c.row + dr };
-      if (fluids[cellKey(n.col, n.row)] === 'steam') return true;
+      const key = cellKey(n.col, n.row);
+      if (fluids[key] === 'steam') keys.push(key);
     }
   }
-  return false;
+  return keys;
+}
+
+function isFluidPortRoom(room: { blueprintId: string }): boolean {
+  return isBoilerRoom(room) || isManaSpringRoom(room) || isSteamTurretRoom(room);
+}
+
+/**
+ * Orthogonal joints for pipe drawing: other pipes, fluid-port rooms
+ * (boiler / mana spring / steam turret), and ground under row-0 pipes.
+ */
+export function pipeVisualLinks(
+  tower: Tower,
+  col: number,
+  row: number,
+  extraPipeKeys?: ReadonlySet<string>,
+): { north: boolean; south: boolean; west: boolean; east: boolean } {
+  const linksToward = (c: number, r: number): boolean => {
+    if (r < 0) return false;
+    const key = cellKey(c, r);
+    if (extraPipeKeys?.has(key)) return true;
+    if (hasPipe(tower, c, r)) return true;
+    const roomId = tower.occupancy[key];
+    if (!roomId) return false;
+    const room = tower.rooms.find((candidate) => candidate.id === roomId);
+    return room != null && isFluidPortRoom(room);
+  };
+
+  return {
+    north: linksToward(col, row + 1),
+    // Row 0 always taps ground water — draw a south stub into the ground.
+    south: linksToward(col, row - 1) || row === 0,
+    west: linksToward(col - 1, row),
+    east: linksToward(col + 1, row),
+  };
 }

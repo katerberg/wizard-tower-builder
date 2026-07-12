@@ -33,6 +33,24 @@ describe('turret room effect', () => {
     expect(elite.currentHp).toBeLessThan(28);
   });
 
+  it('spends mana per shot', () => {
+    const state = stateWithRoom('turret-mana', 'turretRoom');
+    const elite = makeEnemy('elite', 8, 2, 28);
+    state.enemies = [elite];
+    const before = state.player.mana;
+    runRoomEffects(state, 1.0);
+    expect(state.player.mana).toBe(before - 1);
+  });
+
+  it('skips the shot when mana is empty', () => {
+    const state = stateWithRoom('turret-dry', 'turretRoom');
+    const elite = makeEnemy('elite', 8, 2, 28);
+    state.enemies = [elite];
+    state.player.mana = 0;
+    runRoomEffects(state, 1.0);
+    expect(elite.currentHp).toBe(28);
+  });
+
   it('ignores enemies beyond range', () => {
     const state = stateWithRoom('turret-range', 'turretRoom');
     const far = makeEnemy('elite', 8, 9, 28);

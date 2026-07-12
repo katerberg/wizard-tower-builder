@@ -2,6 +2,7 @@ import { prepareWaveNames } from './game';
 import { addMessage } from './messages';
 import { resetBoilerRuntime } from './boilers';
 import { lockPipeFluids } from './pipes';
+import { resetSteamTurretRuntime } from './steamTurrets';
 import { clearSoldiersAfterWave, deploySoldiersForWave } from './soldiers';
 import { reward } from '../calculations/economy';
 import { runWaveClearedEffects } from './modifications/effects';
@@ -36,6 +37,7 @@ export function beginWave(state: GameState): void {
   state.roomEffectTimers = {};
   state.tower = lockPipeFluids(state.tower);
   resetBoilerRuntime(state);
+  resetSteamTurretRuntime(state);
   deploySoldiersForWave(state);
   refillMana(state);
   resetSpellCooldowns(state);
@@ -60,6 +62,7 @@ export function endWave(state: GameState): void {
   state.phase = 'build';
   clearSoldiersAfterWave(state);
   state.boilerRuntime = {};
+  state.steamTurretRuntime = {};
   captureBuildBaseline(state);
   addMessage(state, `Reinforce the tower for wave ${state.levelIndex + 1}.`, 'info');
 }

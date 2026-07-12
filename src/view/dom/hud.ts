@@ -83,7 +83,7 @@ export function createHud(root: HTMLElement, store: Store): () => void {
     const attackInfo =
       game.scene === 'run' && game.phase === 'attack'
         ? `<div class="stat"><span>Enemies</span><strong>${enemiesLeft}</strong></div>
-           <div class="stat"><span>Mana</span><strong>${selectMana(snapshot).current} / ${selectMana(snapshot).max}</strong></div>`
+           <div class="stat"><span>Mana</span><strong>${selectMana(snapshot).label}</strong></div>`
         : '';
 
     const devControls = game.devMode

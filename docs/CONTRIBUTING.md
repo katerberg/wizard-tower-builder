@@ -73,8 +73,9 @@ Read [`docs/PIPES.md`](../docs/PIPES.md) first. Key rules:
 
 - Generic pipe with **preview typing** (water = row 0, steam = steam turret); **locks at wave start**.
 - **Reject** placement that merges water and steam networks.
-- Boiler **2×1**; no pipes through boiler cells — water/steam on **adjacent** cells only.
+- Boiler **1×2**; no pipes through boiler cells — water/steam on **adjacent** cells only.
 - Shared **mana** pool; mana springs (2×2) and boilers consume/produce per spec.
+- Pipe / boiler / steam warnings are **per-room** alerts (outline + hover), not a HUD dump.
 
 ### Add an intent and UI control
 
