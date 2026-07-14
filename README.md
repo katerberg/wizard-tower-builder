@@ -254,7 +254,7 @@ flowchart TB
 - Alternative enemy movement modes (fly, attack overhangs, etc.) — default is `under_overhang` exterior climb
 - Visual polish beyond ASCII-style glyphs on canvas
 - Training rooms (troops of certain types that are then required to populate rooms of other types)
-- Housing rooms of various types
+- Housing rooms of various types — design: [`docs/HOUSING.md`](docs/HOUSING.md)
 - Economy rooms of various types
 - Research rooms ()
 - Movement-controlling structures (e.g. moats, parapets, cornices)

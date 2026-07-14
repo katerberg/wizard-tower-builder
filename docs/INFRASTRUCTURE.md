@@ -4,6 +4,8 @@ Developer-facing architecture for the tower’s **infrastructure layer** — the
 
 **First vertical slice:** Barracks → Slot soldier staffing over staircase infrastructure.
 
+**Housing expansion (planned):** three housing types (guardrooms, chambers, quarters) for soldiers, magi, and laborers — see [`HOUSING.md`](HOUSING.md).
+
 ---
 
 ## Design goals
