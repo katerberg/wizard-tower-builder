@@ -10,9 +10,9 @@ import { createTower } from '@/model/tower';
 
 function towerWithRooms() {
   let tower = createTower();
-  const barracks = getBlueprint('barracksRoom')!;
+  const guardroom = getBlueprint('guardroomRoom')!;
   const slot = getBlueprint('slotRoom')!;
-  tower = placeRoom(tower, createRoom('b1', barracks, { col: 4, row: 0 }));
+  tower = placeRoom(tower, createRoom('b1', guardroom, { col: 4, row: 0 }));
   tower = placeRoom(tower, createRoom('s1', slot, { col: 4, row: 2 }));
   return tower;
 }
@@ -29,22 +29,28 @@ describe('interiorGraph', () => {
     expect(canSoldierTraverse(tower, { col: 4, row: 0 }, { col: 4, row: 1 })).toBe(false);
   });
 
-  it('allows vertical movement on stair cells', () => {
+  it('lets a stair on the lower floor reach the room above (no stair required on landing)', () => {
     let tower = towerWithRooms();
+    // Intermediate shaft cell + floor under the slot — not on the slot itself.
     tower = placeInfra(tower, { col: 4, row: 0 }, 'stair');
     tower = placeInfra(tower, { col: 4, row: 1 }, 'stair');
-    tower = placeInfra(tower, { col: 4, row: 2 }, 'stair');
-    expect(canSoldierTraverse(tower, { col: 4, row: 0 }, { col: 4, row: 1 })).toBe(true);
     expect(canSoldierTraverse(tower, { col: 4, row: 1 }, { col: 4, row: 2 })).toBe(true);
+    expect(canSoldierTraverse(tower, { col: 4, row: 2 }, { col: 4, row: 1 })).toBe(true);
+  });
+
+  it('does not let a stair on a floor pull traffic up from below', () => {
+    let tower = towerWithRooms();
+    // Stair only on the destination floor — cannot climb into it from below.
+    tower = placeInfra(tower, { col: 4, row: 2 }, 'stair');
+    expect(canSoldierTraverse(tower, { col: 4, row: 1 }, { col: 4, row: 2 })).toBe(false);
   });
 });
 
 describe('findInteriorPath', () => {
-  it('finds a path via stairs between barracks and slot', () => {
+  it('finds a path via stairs between guardroom and slot without a stair in the slot', () => {
     let tower = towerWithRooms();
     tower = placeInfra(tower, { col: 4, row: 0 }, 'stair');
     tower = placeInfra(tower, { col: 4, row: 1 }, 'stair');
-    tower = placeInfra(tower, { col: 4, row: 2 }, 'stair');
     const path = findInteriorPath(tower, { col: 4, row: 0 }, { col: 4, row: 2 });
     expect(path.length).toBeGreaterThan(0);
     expect(path[0]).toEqual({ col: 4, row: 0 });

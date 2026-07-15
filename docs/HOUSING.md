@@ -1,101 +1,54 @@
 # Housing & staff types
 
-Design plan for splitting soldier-only barracks into three housing room types, each tied to a distinct staff role. Extends the first logistics slice in [`INFRASTRUCTURE.md`](INFRASTRUCTURE.md).
+**Status:** Shipped. Complements [`INFRASTRUCTURE.md`](INFRASTRUCTURE.md) (layers, stairs, slots) and [`PIPES.md`](PIPES.md) (mana springs).
 
-**Goal:** Economy that reshapes the tower — especially forcing **mana springs** to be sited where **chambers** can staff them.
+Three housing room types, each tied to a distinct staff role. The economy reshapes the tower — especially forcing **mana springs** to be sited where **chambers** can staff them.
 
-Numbers below are **working defaults**. Treat capacities and gold amounts as flexible until playtested.
+Numbers below match `src/config/constants.ts`. Treat gold amounts as flexible until playtested.
 
 ---
 
 ## Summary
 
-| Housing | Staff | Base capacity | Expanded (via mod) | Workplace (today) |
-|---------|-------|---------------|--------------------|-------------------|
-| **Guardroom** | Soldiers | **3** | TBD (higher) | Slots (existing) |
-| **Chamber** | Magi | **1** | TBD (higher) | Mana springs |
-| **Quarters** | Laborers | **6** | **12** | Damaged rooms (repair HP) |
+| Housing | Blueprint | Staff | Base → expanded | Workplace |
+|---------|-----------|-------|-----------------|-----------|
+| **Guardroom** | `guardroomRoom` | Soldiers | **3 → 6** (`guardroomExpansion`) | Slots |
+| **Chamber** | `chamberRoom` | Magi | **1 → 2** (`chamberExpansion`) | Mana springs |
+| **Quarters** | `quartersRoom` | Laborers | **6 → 12** (`quartersExpansion`) | Damaged rooms (repair HP) |
 
 Shared rules:
 
-- Separate blueprints; shared **housing** tag/class in data
-- Separate recruit rosters per type
+- Separate blueprints; `housing?: HousingKind` on `Blueprint`
+- Roster keyed by room id in `housingRecruited`
 - Place anywhere; all **1×1**, **passable**, available from run start
-- Buy a housing room → **1 free occupant** already housed; **hard-capped** at capacity; never below **1**
-- Recruit in build phase (cheap relative to room cost); upkeep every wave even when idle
-- **Unrecruit** allowed down to 1 (saves upkeep; **no** recruit-cost refund)
-- Attack-only movement; spawn from housing at wave start; clear entities at wave end (roster persists)
+- Place housing → **1 free occupant** seeded; hard-capped at capacity
+- **Unrecruit** floor is **1** (no recruit-cost refund). Upkeep desertion **can** leave roster at **0**
+- Recruit in build phase; upkeep every wave for **every** rostered occupant (idle or assigned)
+- Attack-only movement; spawn from housing at wave start; clear runtime entities at wave end (roster + allocations persist)
 - Auto-assign to workplaces; path via stairs between levels
-- Stair columns: **shared exclusivity** — one staff unit at a time (soldier *or* laborer *or* mage)
-- Selling housing **force-unassigns** then removes; destroying housing → occupants **desert**
-- Build-phase **undo** must cover room place/remove, recruit/unrecruit, mods, and workplace allocations made this phase
+- Stair shafts: **one staffer per cell** en route (queues down the column; destination workplaces may stack)
+- Selling housing prunes roster/allocations for that room
+- Build-phase **undo / revert** covers room place/remove, recruit/unrecruit, mods, and workplace allocations
 
-The player **wizard** stays a separate hero entity. Magi are helpers only — similar name, independent systems.
-
----
-
-## Mentality shift from today
-
-Today’s pipeline is barracks (cap 5→10) → slots → soldiers.
-
-This plan:
-
-1. **Rename / retarget** `barracksRoom` → **guardroom** (soldiers), smaller base capacity.
-2. Add **chamber** (magi) and **quarters** (laborers).
-3. Generalize “barracks → slot” into **housing → workplace** for all three staff types.
-4. Add a single overlay layer (**workers**) that shows all three unit types during attack.
-5. Fold connectivity warnings into one **logistics report**.
+The player **wizard** stays a separate hero entity. Magi are helpers only.
 
 ---
 
-## Data model sketch
-
-### Housing tag
-
-Blueprints stay separate IDs. Mark them as housing so UI, capacity helpers, and pruning share one path:
+## Data model
 
 ```ts
 type HousingKind = 'guardroom' | 'chamber' | 'quarters';
 type StaffKind = 'soldier' | 'mage' | 'laborer';
 
-// On Blueprint (or parallel registry):
-// housing?: HousingKind
-```
+// Blueprint.housing?: HousingKind
 
-Suggested blueprint IDs (rename existing barracks):
-
-| ID | Display name | Staff |
-|----|--------------|-------|
-| `guardroomRoom` | Guardroom | soldier |
-| `chamberRoom` | Chamber | mage |
-| `quartersRoom` | Quarters | laborer |
-
-Migration: rename `barracksRoom` / `barracksExpansion` / `barracksRecruited` → guardroom equivalents (or keep old IDs as aliases briefly if saves exist — prototype has none, so rename cleanly).
-
-### Roster state
-
-Per housing room, track recruited count (same shape as today’s `barracksRecruited`):
-
-```ts
 // GameState
-housingRecruited: Record<RoomId, number>; // keyed by housing room id
-// or three maps — prefer one map + housing kind from room blueprint
-buildRecruitSpend: number; // keep one draft-economy bucket unless gameplay needs split
-```
+staff: StaffUnit[];
+housingRecruited: Record<RoomId, number>;
+slotAllocations: Record<RoomId, number>;
+manaSpringAllocations: Record<RoomId, number>;
+buildRecruitSpend: number;
 
-Workplace allocations (player-set headcount where applicable):
-
-```ts
-slotAllocations: Record<RoomId, number>;          // existing (soldiers)
-manaSpringAllocations: Record<RoomId, number>;    // magi headcount desired
-// laborers: no player allocation — auto demand from damaged rooms
-```
-
-### Runtime entities
-
-Generalize `Soldier` into a staff unit, or keep parallel types sharing movement:
-
-```ts
 interface StaffUnit {
   id: string;
   kind: StaffKind;
@@ -106,123 +59,108 @@ interface StaffUnit {
   pathIndex: number;
   moveCooldown: number;
   status: 'idle' | 'moving' | 'stationed' | 'working';
-  stairColumn: number | null;
 }
 ```
 
-Interior graph / stair mutex must be **staff-wide**, not soldier-only.
+Implementation: `src/model/staff/` (capacity, deploy/step/repair, logistics). Store handlers: `src/store/handlers/staff.ts`. Layer id: `workers` (`TowerLayer`).
+
+| Housing ID | Staff | Place cost / HP |
+|------------|-------|-----------------|
+| `guardroomRoom` | soldier | 9 / 20 |
+| `chamberRoom` | mage | 12 / 18 |
+| `quartersRoom` | laborer | 8 / 22 |
 
 ---
 
 ## Capacity & upgrades
 
-| Housing | Start occupied | Min | Base max | Expanded max |
-|---------|----------------|-----|----------|--------------|
-| Guardroom | 1 | 1 | 3 | TBD |
-| Chamber | 1 | 1 | 1 | TBD |
-| Quarters | 1 | 1 | 6 | 12 |
+| Housing | Start occupied | Unrecruit min | Base max | Expanded max | Mod id |
+|---------|----------------|---------------|----------|--------------|--------|
+| Guardroom | 1 | 1 | 3 | 6 | `guardroomExpansion` |
+| Chamber | 1 | 1 | 1 | 2 | `chamberExpansion` |
+| Quarters | 1 | 1 | 6 | 12 | `quartersExpansion` |
 
-- Starting occupant **counts toward** capacity (guardroom places at `1/3`).
+- Starting occupant counts toward capacity (guardroom places at `1/3`).
 - Recruitment hard-stops at capacity in build phase.
-- Every housing type gets an **expansion modification** (quarters: 6→12 known; others TBD).
 - No cross-type housing mods; no placement zoning.
-
-Room size stays **1×1** for v1 (likely to diverge later).
+- Room size is **1×1** for v1.
 
 ---
 
 ## Economy
 
-### Intent (not balance-locked)
+| Staff | Recruit cost | Wave-start upkeep |
+|-------|--------------|-------------------|
+| Soldier | 4 | 2 |
+| Mage | 5 | 2 |
+| Laborer | 3 | 1 |
 
-- **Room cost** dominates.
-- **Recruit cost** is cheap.
-- Filling a room from its free starter to full capacity should cost on the order of **~50–150% of another copy of that room**.
-- Curves differ per staff type eventually; placeholders fine for first ship.
-
-### Upkeep & desertion
-
-- Charge upkeep at **wave start** for every living rostered occupant (idle or assigned).
-- If gold cannot cover upkeep, **unpaid staff desert** (decrement roster; do not spawn).
-- Applies to soldiers, magi, and laborers.
-- Dead staff (future): no upkeep; refill by paying recruit cost again. Not required for this slice.
-
-### Unrecruit
-
-- Build-phase action: decrement roster toward minimum **1**.
-- Saves future upkeep; **does not** refund recruit gold.
-- Expected to be rare; still support it for economy control and undo symmetry.
-
-### Draft spend
-
-Keep a single `buildRecruitSpend` unless UI or refunds later need per-type breakdown.
+- Room cost dominates; recruit is cheap relative to another copy of the room.
+- Upkeep: charge at wave start for every rostered occupant; unpaid **desert** (any staff kind).
+- Single draft bucket: `buildRecruitSpend`.
 
 ---
 
-## Workplaces & behavior (v1)
+## Workplaces & behavior
 
-### Soldiers → slots (unchanged pipeline)
+### Soldiers → slots
 
-- Guardroom replaces barracks as home.
-- Slot headcount allocation, closest-home auto-assign, attack-only pathing, slot volleys — keep as today.
-- One guardroom may feed multiple slots; auto-assign remains fine at smaller caps.
+- Player sets slot headcount (`slotAllocations`, 0..slot capacity; new slots seed **1**).
+- Wave start: after upkeep, assign closest guardroom pools (Manhattan on anchors), spawn paths, station, fire volleys.
+- Slot fire efficiency by stationed index (0-based): **`[1, 0.8, 0.7, 0.6]`**.
 
 ### Magi → mana springs
 
-**Today’s rule:** a mana spring regenerates mana only if it is **water-connected** *and* has **at least one mage physically stationed** in it during attack.
+A mana spring regenerates only if it is **water-connected** *and* has **at least one mage physically stationed** in it during attack.
 
-- Magi are interchangeable.
-- Auto-assign from closest staffed chamber (same spirit as barracks→slot).
-- Build-phase: player sets **desired mage headcount** per mana spring (0..spring staff capacity — see open questions).
+- Cap **5** magi per spring (`manaSpringAllocations`; new springs seed **1**).
+- Regen: `MANA_SPRING_PER_SEC` (0.5) × sum of efficiencies by stationed index: **`[1, 0.8, 0.6, 0.4, 0.2]`**.
+- Auto-assign from closest chamber (same closest-pool spirit as guardroom→slot).
 - Magi do **not** cast, research, or buff the wizard in v1.
-- Future: other “ley-like” nodes (e.g. steam-powered equivalent); advanced tech unlocks — out of scope.
-
-This is the intentional tower-shape lever: springs are **2×2** and pipe-gated; chambers must be stair-reachable so springs stop being “drop anywhere and forget.”
+- Springs are **2×2** and **passable** so magi can station inside the footprint.
 
 ### Laborers → room repair
 
-**Today’s rule:** during **attack only**, laborers auto-assign to damaged rooms and path there to restore **room HP**.
+During **attack only**, laborers auto-assign to damaged rooms (`hp < maxHp`) and restore room HP.
 
-- Automatic targeting (worst / nearest damaged — pick one simple heuristic and tune later).
-- No player per-room headcount UI for repair in v1 (housing recruit only).
-- Laborers are **defenseless**.
-- If a target room is destroyed or repaired mid-job → **retarget**.
-- Scope creep deferred: infra repair, mod installation during attack, building new structures mid-wave.
+- Spawn all rostered laborers at quarters (idle), then assign.
+- Prefer rooms with **0** laborers; only stack when every damaged reachable room already has ≥1.
+- Target heuristic: **lowest HP%**, then nearest.
+- Repair rate: **2 HP/sec** for the first laborer; each next does **50% of the previous**.
+- No per-room headcount UI; recruit only in quarters.
+- Retarget when the job room is gone or fully repaired.
+- No repair ticks in build phase.
 
-Build phase remains paused time — no repair ticks in build.
+Deferred: infra/mod repair, mid-wave building.
 
 ---
 
 ## Layers, UI, logistics
 
-### Layer
+### Workers layer
 
-Replace the soldier-only overlay with a **workers** layer that renders all three staff kinds (distinct glyphs/colors).
+`TowerLayer = 'rooms' | 'infra' | 'workers'`. Workers render all three staff kinds with distinct glyphs/colors (`STAFF_GLYPHS` / `colors.soldier|mage|laborer`).
 
 ### Inspector
 
-Same pattern as today’s barracks for every housing room:
+Housing: capacity / recruited, recruit + unrecruit, expansion mod when applicable.
 
-- Capacity / recruited
-- Recruit control (and unrecruit)
-- Expansion mod when applicable
+Workplaces:
 
-Workplace inspectors:
-
-- **Slot** — existing headcount steppers
-- **Mana spring** — mage headcount stepper (mirrors slot)
-- Damaged rooms — no assignment UI; logistics report surfaces shortfalls
+- **Slot** — headcount steppers
+- **Mana spring** — mage headcount steppers
+- Damaged rooms — no assignment UI; logistics surfaces shortfalls
 
 ### Logistics report (warn-only)
 
-One report covering:
+`selectLogisticsReport` covers:
 
 - Allocated soldiers > recruited in guardrooms
-- Mana springs wanting magi without path / without recruited magi
-- Damaged rooms with no reachable laborers (or global laborer shortage)
-- Missing stairs between housing and workplaces on different levels
+- Allocated magi > recruited in chambers
+- Mana springs / slots wanting staff without path or without recruits
+- Damaged rooms with no reachable laborers (or laborer shortage)
 
-Teach capacity softly via “not enough …” copy when the report fires. Don’t bury the player in upfront housing tutorials — UX is in flux.
+Shown as per-room build alerts and a HUD summary line. Does not block `startWave`.
 
 ---
 
@@ -243,7 +181,7 @@ flowchart TB
     Spawn[Spawn entities at housing anchors]
   end
   subgraph attack [Attack phase]
-    Path[Pathfind; shared stair mutex]
+    Path[Pathfind; cell-exclusive movement]
     Soldiers[Soldiers station in slots and fire]
     Magi[Magi station in springs; spring ticks mana]
     Labor[Laborers path to damage and repair HP]
@@ -256,87 +194,39 @@ flowchart TB
   build --> waveStart --> attack --> waveEnd --> build
 ```
 
----
-
-## Success criterion
-
-v1 is useful when:
-
-1. Mana springs **do nothing** without stationed magi → players cluster chambers + stairs near springs.
-2. Laborers visibly walk to damaged rooms and spend attack-phase time repairing, competing with soldiers for stair bandwidth.
-3. Guardrooms feel like small dedicated army housing (more rooms, less density) without breaking the slot pipeline.
+Attack `game.step` order (staff-related): `stepStaff` → `tickLaborerRepairs` → room behaviors (slots) → `tickManaSprings` → boilers → steam turrets.
 
 ---
 
-## Suggested implementation slices
+## Code map
 
-Order is flexible; this is a dependency-friendly cut:
-
-### Slice A — Housing foundation
-
-- `housing` tag + rename barracks → guardroom
-- Capacity constants + expansion mods for all three
-- Shared roster helpers (seed 1, min 1, hard cap, prune on sell)
-- Recruit / unrecruit intents; single spend bucket
-- Workers layer shell (soldiers rendering under new name)
-
-### Slice B — Magi + mana springs
-
-- Chamber blueprint + mage roster
-- Mana spring allocation + auto-assign + pathing
-- Gate `tickManaSprings` on stationed mage presence
-- Logistics warnings for unstaffed / unreachable springs
-
-### Slice C — Laborers + repair
-
-- Quarters blueprint + laborer roster
-- Attack-phase auto-assign to damaged rooms
-- Shared stair mutex across staff kinds
-- Repair-over-time while stationed; retarget on invalid job
-- Logistics warnings for labor shortage / unreachable damage
-
-### Slice D — Polish / docs
-
-- Unified logistics report UI
-- README / INFRASTRUCTURE updates
-- Tune placeholder gold numbers after a few playtests
-
-Soldier death, advanced mage tech, steam-powered workplaces, and multi-size housing footprints stay deferred.
+| Area | Location |
+|------|----------|
+| Blueprints | `guardroomRoom`, `chamberRoom`, `quartersRoom` |
+| Roster / deploy / move / repair | `src/model/staff/` |
+| Mana gate | `src/model/manaSprings.ts` |
+| Expansion mods | `guardroomExpansion`, `chamberExpansion`, `quartersExpansion` |
+| Intents | `recruitStaff`, `unrecruitStaff`, `setSlotAllocation`, `setManaSpringAllocation` |
+| Layer | `workers` |
+| Logistics | `src/model/staff/connectivity.ts` → `selectLogisticsReport` |
 
 ---
 
-## Mapping onto existing code
+## Resolved tuning defaults
 
-| Area | Current | Plan |
-|------|---------|------|
-| Blueprints | `barracksRoom` | → `guardroomRoom`; add `chamberRoom`, `quartersRoom` |
-| Roster | `barracksRecruited` | generalize to housing roster |
-| Capacity | `barracksCapacity` / expansion mod | per-housing-kind helpers + mods |
-| Deploy | `deploySoldiersForWave` | generalize or parallel deploy per staff kind |
-| Movement | `stepSoldiers` + stair column lock | staff-wide movement + mutex |
-| Mana | `tickManaSprings` water-only gate | add stationed-mage gate |
-| Repair | none | new laborer work loop in attack `step` |
-| Layers | rooms / infra / soldiers | rooms / infra / **workers** |
-| Alerts | soldier + pipe reports | merge staff issues into logistics report |
+| Topic | Value in code |
+|-------|---------------|
+| Magi per mana spring | Cap **5**; efficiency `[1, 0.8, 0.6, 0.4, 0.2]` |
+| Laborer repair rate | **2** HP/sec (first laborer) |
+| Repair target | Lowest HP%, then nearest |
+| Laborer stacking | Prefer singleton rooms; then 50% falloff chain |
+| Expanded caps | Guardroom 3→6, Chamber 1→2, Quarters 6→12 |
+| Desertion | Any unpaid staff kind |
+| Glyphs | Distinct per kind on the workers layer |
 
 ---
 
-## Open questions (non-blocking)
-
-Resolve during implementation or first playtest; defaults suggested:
-
-1. **Magi per mana spring** — default **1** stationed required for any regen; allocation cap **1** until we want redundant staffing.
-2. **Multiple magi at one spring** — stack regen, or no benefit? Default: **no stack** (first mage enables full `MANA_SPRING_PER_SEC`).
-3. **Laborer repair rate** — HP/sec while stationed; start slow enough that stairs + travel matter.
-4. **Repair target heuristic** — prefer lowest HP%, then nearest to laborer/housing.
-5. **How many laborers per damaged room** — default **1** assigned per room; extras idle or next target.
-6. **Guardroom / chamber expanded caps** — pick after quarters 6→12 feels right.
-7. **Answer wording “only unpaid workers desert”** — interpreted as unpaid **staff of any type**; confirm if soldiers/magi were meant to be exempt (not recommended).
-8. **Glyphs / colors** — pick distinct from slots, springs, and each other for the workers layer.
-
----
-
-## Explicitly out of scope for this plan
+## Out of scope
 
 - Advanced mage tech (unlocks, research, attack casting)
 - Steam-powered workplace analogue
@@ -344,4 +234,4 @@ Resolve during implementation or first playtest; defaults suggested:
 - Cross-housing synergies and roguelike mutually exclusive housing rewards
 - Card-heavy or tutorialized housing UX
 - Replacing or merging the player wizard with magi
-
+- Soldier death / individual targeting

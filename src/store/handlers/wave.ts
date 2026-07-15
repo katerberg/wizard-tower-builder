@@ -51,7 +51,7 @@ function restart(ctx: HandlerContext): void {
     modal: null,
     cameraScrollY: 0,
     viewportHeight,
-    layerVisibility: { rooms: true, infra: true, soldiers: true },
+    layerVisibility: { rooms: true, infra: true, workers: true },
     connectivityFocusSlotId: null,
   };
 }

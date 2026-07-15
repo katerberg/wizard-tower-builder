@@ -1,6 +1,6 @@
 # Pipes, boilers & steam
 
-Developer spec for the **fluid logistics** slice: ground water, boilers, mana springs, steam turrets, and typed pipe networks. Complements [`INFRASTRUCTURE.md`](INFRASTRUCTURE.md) (layers, soldiers, stairs).
+Developer spec for the **fluid logistics** slice: ground water, boilers, mana springs, steam turrets, and typed pipe networks. Complements [`INFRASTRUCTURE.md`](INFRASTRUCTURE.md) (layers, workers, stairs) and [`HOUSING.md`](HOUSING.md) (magi staffing springs).
 
 **Status:** Shipped (P0–P7). Topology is static for the wave; see [Deferred / out of scope](#deferred--out-of-scope).
 
@@ -26,7 +26,7 @@ flowchart TB
   end
   subgraph mana [Mana economy]
     Pool[Shared mana pool max 20]
-    MS -->|water + spring| Pool
+    MS -->|water + stationed magi| Pool
     Boiler[Boiler 1x2] -->|mana/sec| Pool
     MT[Magic turret 1 mana/shot]
     Pool --> MT
@@ -37,9 +37,9 @@ flowchart TB
 
 | Defense line | Resource | Upstream |
 |--------------|----------|----------|
-| **Soldier slots** | Gold + logistics | Barracks, stairs |
+| **Soldier slots** | Gold + logistics | Guardrooms, stairs |
 | **Steam turrets** | Steam charge | Boiler water + mana |
-| **Magic turret** | Mana per shot | Mana springs + pool |
+| **Magic turret** | Mana per shot | Mana springs (water + magi) + pool |
 
 Spells spend mana but are **not** part of this logistics slice.
 
@@ -156,10 +156,11 @@ Many boilers may share water and steam networks.
 | Size | **2×2** |
 | Cost / HP | **28 / 30** |
 | Water | Same adjacent-pipe rules as boiler |
-| Output | **0.5 mana/sec** per spring (stacks) |
-| No water | **0** mana; room build alert / inspect |
+| Staffing | Needs stationed **magi** from chambers (see [`HOUSING.md`](HOUSING.md)); up to **5**, efficiency `[1, 0.8, 0.6, 0.4, 0.2]` |
+| Output | **0.5 mana/sec** × mage efficiency sum (stacks across springs) |
+| No water / no mage | **0** mana; room build alert / inspect |
 | Placement | Any **stable** cell |
-| Passable | **false** |
+| Passable | **true** (magi station inside the footprint) |
 
 ### Magic turret (`turretRoom`)
 
@@ -173,7 +174,7 @@ Existing room; **1 mana per shot**. Cooldown still ticks when dry; the shot is s
 |------|--------|
 | Pool | **Shared**; **max 20** (`MAX_MANA`) |
 | Wave start | **Full** (20) |
-| Passive regen | **0** without mana springs |
+| Passive regen | **0** without water-connected, mage-staffed springs |
 | Magic turret | **1 mana** per shot |
 | Boiler | Drains mana while producing steam |
 | UI | Mana label rounded to the **nearest tenth** |
@@ -187,7 +188,7 @@ Intent: mana springs + turret shots compete with boiler fire — the player cann
 ### Simulation order (`game.step`, after room effects / magic turret)
 
 ```
-1. Tick mana springs (+mana/sec if water-connected)
+1. Tick mana springs (+mana/sec if water-connected and staffed by magi)
 2. Tick boilers (−mana/sec if water + steam port + mana; mark steamAvailable)
 3. Tick steam turret charge (throughput split) and fire when charged + targets
 ```
@@ -200,7 +201,7 @@ Intent: mana springs + turret shots compete with boiler fire — the player cann
 
 ## Connectivity validation
 
-Build-phase only. Warnings are **per-room** (red outline + hover/inspect), same pattern as soldier slot alerts — **not** a HUD dump.
+Build-phase only. Warnings are **per-room** (red outline + hover/inspect), same pattern as logistics/slot alerts — **not** a HUD dump.
 
 | Check | Behavior |
 |-------|----------|
@@ -266,6 +267,7 @@ steamTurretRuntime: Record<roomId, { charge: number; chargeRate: number }>;
 | **P5** | Mana spring 2×2 + water gate + inspect warning |
 | **P6** | Magic turret 1 mana/shot |
 | **P7** | Balance pass (costs, HP, passable flags) |
+| **Post** | Magi staffing gate + spring passable (see [`HOUSING.md`](HOUSING.md)) |
 
 ---
 
@@ -301,12 +303,13 @@ BOILER_THROUGHPUT = [3, 4, 5];
 |------|------|----|----------|
 | Boiler | 16 | 22 | false |
 | Steam turret | 14 | 20 | false |
-| Mana spring | 28 | 30 | false |
+| Mana spring | 28 | 30 | true (magi station inside) |
 | Magic turret | 10 | 18 | (existing) |
 
 ---
 
 ## Related docs
 
-- [`INFRASTRUCTURE.md`](INFRASTRUCTURE.md) — layers, soldiers, stairs
+- [`INFRASTRUCTURE.md`](INFRASTRUCTURE.md) — layers, workers, stairs
+- [`HOUSING.md`](HOUSING.md) — chambers / magi staffing for springs
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — task recipes

@@ -6,7 +6,7 @@ import { handleDevIntent } from './dev';
 import { handleInfraIntent } from './infra';
 import { handleInspectIntent } from './inspect';
 import { handleModificationsIntent } from './modifications';
-import { handleSoldiersIntent } from './soldiers';
+import { handleStaffIntent } from './staff';
 import { handleSpeedIntent } from './speed';
 import { handleSpellIntent } from './spells';
 import { handleWaveIntent } from './wave';
@@ -43,9 +43,11 @@ export function applyIntent(ctx: HandlerContext, intent: Intent): void {
       handleBuildIntent(ctx, intent);
       break;
 
-    case 'recruitSoldier':
+    case 'recruitStaff':
+    case 'unrecruitStaff':
     case 'setSlotAllocation':
-      handleSoldiersIntent(ctx, intent);
+    case 'setManaSpringAllocation':
+      handleStaffIntent(ctx, intent);
       break;
 
     case 'addModification':

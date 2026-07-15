@@ -41,9 +41,10 @@ A replacement UI only needs `Store`, `Intent`, `Snapshot`, and functions from `s
 
 ### Add a blueprint
 
-1. Add entry to [`src/model/blueprints.ts`](../src/model/blueprints.ts).
-2. Add placement/stability tests in [`src/model/tower.test.ts`](../src/model/tower.test.ts) if rules differ.
-3. Library auto-lists via `selectLibraryBlueprints` — no view change unless custom UI.
+1. Add entry to [`src/model/blueprints.ts`](../src/model/blueprints.ts) (or `infraBlueprints.ts` for infra).
+2. Assign a library section in [`src/static/librarySections.ts`](../src/static/librarySections.ts).
+3. Add placement/stability tests in [`src/model/tower.test.ts`](../src/model/tower.test.ts) if rules differ.
+4. Library auto-lists via `selectLibrarySections` — no view change unless custom UI.
 
 ### Add a modification (spikes-style add-on)
 
@@ -57,15 +58,18 @@ A replacement UI only needs `Store`, `Intent`, `Snapshot`, and functions from `s
 2. Add behavior in [`src/model/roomBehaviors/`](../src/model/roomBehaviors/) and register in `index.ts`.
 3. Test in `effects.test.ts`. Library lists the blueprint automatically via selectors.
 
-### Infrastructure feature (barracks, slots, stairs, …)
+### Infrastructure / housing feature (guardrooms, slots, stairs, …)
 
-Read [`docs/INFRASTRUCTURE.md`](../docs/INFRASTRUCTURE.md) first. Follow the phased roadmap there. Key rules:
+Read [`docs/INFRASTRUCTURE.md`](../docs/INFRASTRUCTURE.md) and [`docs/HOUSING.md`](../docs/HOUSING.md) first. Key rules:
 
-- Infra shares the macro grid; **one** infra kind per cell.
-- Soldiers are `GameState` entities; movement runs in **attack phase** only.
+- Infra shares the macro grid; **one** infra kind per cell (`stair` or `pipe`).
+- Staff live in `GameState.staff` (`StaffUnit`); movement runs in **attack phase** only.
+- Housing: `guardroomRoom` / `chamberRoom` / `quartersRoom` with `housingRecruited`.
+- Layer id is **`workers`** (not `soldiers`).
 - Interior pathfinding is separate from enemy exterior pathfinding.
-- Slot staffing uses per-slot headcount + auto-assign at wave start.
-- Reuse the **modifications** system for barracks/slot capacity upgrades.
+- Slot / mana-spring staffing uses headcount allocations + auto-assign at wave start.
+- Reuse the **modifications** system for housing/slot capacity upgrades (`guardroomExpansion`, `chamberExpansion`, `quartersExpansion`, `slotExpansion`).
+- Core logic lives in `src/model/staff/`; intents in `src/store/handlers/staff.ts`.
 
 ### Pipe / boiler / steam feature
 
@@ -74,7 +78,7 @@ Read [`docs/PIPES.md`](../docs/PIPES.md) first. Key rules:
 - Generic pipe with **preview typing** (water = row 0, steam = steam turret); **locks at wave start**.
 - **Reject** placement that merges water and steam networks.
 - Boiler **1×2**; no pipes through boiler cells — water/steam on **adjacent** cells only.
-- Shared **mana** pool; mana springs (2×2) and boilers consume/produce per spec.
+- Shared **mana** pool; mana springs (2×2) need water **and stationed magi**; boilers drain mana while producing.
 - Pipe / boiler / steam warnings are **per-room** alerts (outline + hover), not a HUD dump.
 
 ### Add an intent and UI control

@@ -12,7 +12,8 @@ export const INFRA_BLUEPRINTS: Blueprint[] = [
     baseHp: 0,
     category: 'infra',
     infraKind: 'stair',
-    description: 'Vertical path for soldiers between floors. Empty cells auto-place a Spire Block when legal.',
+    description:
+      'Leads up to the floor above (staff can enter a room from the stair below). Empty cells auto-place a Spire Block when legal.',
   },
   {
     id: 'pipe',

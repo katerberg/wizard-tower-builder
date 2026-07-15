@@ -1,4 +1,4 @@
-import { isSlotRoom } from '@/model/soldiers/capacity';
+import { isSlotRoom } from '@/model/staff/capacity';
 import { roomAt } from '@/model/tower';
 import type { HandlerContext } from '../context';
 import type { Intent } from '../intents';

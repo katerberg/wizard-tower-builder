@@ -4,6 +4,7 @@ import { createRoom, placeRoom } from '@/model/tower';
 import { Store } from '@/store/store';
 import {
   selectLibraryBlueprints,
+  selectLibrarySections,
   selectRoomBuildAlerts,
   selectRoomInspector,
   selectSpellBar,
@@ -31,44 +32,73 @@ describe('selectLibraryBlueprints', () => {
     expect(items.find((b) => b.id === 'buttress2')?.selected).toBe(true);
     expect(items.find((b) => b.id === 'stem')?.selected).toBe(false);
   });
+
+  it('assigns library sections for structure and infra', () => {
+    const store = new Store('lib-sections');
+    const items = selectLibraryBlueprints(store.getSnapshot());
+    expect(items.find((b) => b.id === 'stem')?.section).toBe('structure');
+    expect(items.find((b) => b.id === 'guardroomRoom')?.section).toBe('housing');
+    expect(items.find((b) => b.id === 'manaSpringRoom')?.section).toBe('generators');
+    expect(items.find((b) => b.id === 'staircase')?.section).toBe('infrastructure');
+    expect(items.find((b) => b.id === 'turretRoom')?.section).toBe('damagers');
+  });
+});
+
+describe('selectLibrarySections', () => {
+  it('groups blueprints under labeled sections in display order', () => {
+    const store = new Store('lib-grouped');
+    const sections = selectLibrarySections(store.getSnapshot());
+    expect(sections.map((s) => s.id)).toEqual([
+      'structure',
+      'housing',
+      'generators',
+      'infrastructure',
+      'damagers',
+    ]);
+    expect(sections.find((s) => s.id === 'housing')?.items.map((i) => i.id)).toEqual([
+      'guardroomRoom',
+      'chamberRoom',
+      'quartersRoom',
+    ]);
+  });
 });
 
 describe('selectRoomBuildAlerts', () => {
   it('flags allocated slots that lack a stair path', () => {
     const store = new Store('alert-slot');
     const { game } = store.getSnapshot();
-    const barracksBp = getBlueprint('barracksRoom')!;
+    const guardroomBp = getBlueprint('guardroomRoom')!;
     const slotBp = getBlueprint('slotRoom')!;
-    game.tower = placeRoom(game.tower, createRoom('b1', barracksBp, { col: 4, row: 0 }));
+    game.tower = placeRoom(game.tower, createRoom('b1', guardroomBp, { col: 4, row: 0 }));
     game.tower = placeRoom(game.tower, createRoom('s1', slotBp, { col: 10, row: 0 }));
-    game.barracksRecruited.b1 = 1;
+    game.housingRecruited.b1 = 1;
     game.slotAllocations.s1 = 1;
 
     const alerts = selectRoomBuildAlerts(store.getSnapshot());
     expect(alerts.some((a) => a.roomId === 's1' && a.message.includes('stairs'))).toBe(true);
   });
 
-  it('flags barracks with no recruited soldiers', () => {
-    const store = new Store('alert-barracks');
+  it('flags guardrooms with no recruited soldiers', () => {
+    const store = new Store('alert-guardroom');
     const { game } = store.getSnapshot();
-    game.tower = placeRoom(game.tower, createRoom('b1', getBlueprint('barracksRoom')!, { col: 4, row: 0 }));
-    game.barracksRecruited.b1 = 0;
+    game.tower = placeRoom(game.tower, createRoom('b1', getBlueprint('guardroomRoom')!, { col: 4, row: 0 }));
+    game.housingRecruited.b1 = 0;
 
     const alerts = selectRoomBuildAlerts(store.getSnapshot());
     expect(alerts.some((a) => a.roomId === 'b1' && a.message.toLowerCase().includes('desert'))).toBe(true);
   });
 
-  it('seeds defaults when placing barracks and slots', () => {
+  it('seeds defaults when placing guardrooms and slots', () => {
     const store = new Store('seed-place');
-    store.dispatch({ type: 'selectBlueprint', blueprintId: 'barracksRoom' });
+    store.dispatch({ type: 'selectBlueprint', blueprintId: 'guardroomRoom' });
     store.dispatch({ type: 'placeSelectedAt', cell: { col: 5, row: 0 } });
     store.dispatch({ type: 'selectBlueprint', blueprintId: 'slotRoom' });
     store.dispatch({ type: 'placeSelectedAt', cell: { col: 9, row: 0 } });
 
     const { game } = store.getSnapshot();
-    const barracks = game.tower.rooms.find((r) => r.blueprintId === 'barracksRoom')!;
+    const guardroom = game.tower.rooms.find((r) => r.blueprintId === 'guardroomRoom')!;
     const slot = game.tower.rooms.find((r) => r.blueprintId === 'slotRoom')!;
-    expect(game.barracksRecruited[barracks.id]).toBe(1);
+    expect(game.housingRecruited[guardroom.id]).toBe(1);
     expect(game.slotAllocations[slot.id]).toBe(1);
   });
 

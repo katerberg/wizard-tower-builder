@@ -1,4 +1,3 @@
-import { SOLDIER_RECRUIT_COST } from '@/config/constants';
 import { selectRoomInspector, type RoomInspector } from '@/store/selectors';
 import type { Store } from '@/store/store';
 
@@ -20,8 +19,10 @@ export function createModal(root: HTMLElement, store: Store): () => void {
       store.dispatch({ type: 'addModification', roomId: target.dataset.room, modId: target.dataset.mod });
     } else if (action === 'upgradeModification' && target?.dataset.room && target.dataset.mod) {
       store.dispatch({ type: 'upgradeModification', roomId: target.dataset.room, modId: target.dataset.mod });
-    } else if (action === 'recruitSoldier' && target?.dataset.room) {
-      store.dispatch({ type: 'recruitSoldier', barracksRoomId: target.dataset.room });
+    } else if (action === 'recruitStaff' && target?.dataset.room) {
+      store.dispatch({ type: 'recruitStaff', housingRoomId: target.dataset.room });
+    } else if (action === 'unrecruitStaff' && target?.dataset.room) {
+      store.dispatch({ type: 'unrecruitStaff', housingRoomId: target.dataset.room });
     } else if (action === 'slotMinus' && target?.dataset.room) {
       const inspector = selectRoomInspector(store.getSnapshot(), target.dataset.room);
       if (inspector?.slotAllocated !== undefined) {
@@ -38,6 +39,24 @@ export function createModal(root: HTMLElement, store: Store): () => void {
           type: 'setSlotAllocation',
           slotRoomId: target.dataset.room,
           count: inspector.slotAllocated + 1,
+        });
+      }
+    } else if (action === 'springMinus' && target?.dataset.room) {
+      const inspector = selectRoomInspector(store.getSnapshot(), target.dataset.room);
+      if (inspector?.manaSpringAllocated !== undefined) {
+        store.dispatch({
+          type: 'setManaSpringAllocation',
+          springRoomId: target.dataset.room,
+          count: inspector.manaSpringAllocated - 1,
+        });
+      }
+    } else if (action === 'springPlus' && target?.dataset.room) {
+      const inspector = selectRoomInspector(store.getSnapshot(), target.dataset.room);
+      if (inspector?.manaSpringAllocated !== undefined) {
+        store.dispatch({
+          type: 'setManaSpringAllocation',
+          springRoomId: target.dataset.room,
+          count: inspector.manaSpringAllocated + 1,
         });
       }
     }
@@ -69,6 +88,17 @@ export function createModal(root: HTMLElement, store: Store): () => void {
   };
 }
 
+function staffTitle(kind: NonNullable<RoomInspector['housingStaffKind']>): string {
+  switch (kind) {
+    case 'soldier':
+      return 'Soldiers';
+    case 'mage':
+      return 'Magi';
+    case 'laborer':
+      return 'Laborers';
+  }
+}
+
 function roomBody(inspector: RoomInspector): string {
   const { room, blueprint, stats, isBuildPhase, modifications, canRemove } = inspector;
 
@@ -97,14 +127,23 @@ function roomBody(inspector: RoomInspector): string {
     .join('');
 
   let specialty = '';
-  if (inspector.barracksCapacity !== undefined && inspector.barracksRecruited !== undefined) {
-    const full = inspector.barracksRecruited >= inspector.barracksCapacity;
+  if (
+    inspector.housingCapacity !== undefined &&
+    inspector.housingRecruited !== undefined &&
+    inspector.housingStaffKind &&
+    inspector.recruitCost !== undefined
+  ) {
+    const full = inspector.housingRecruited >= inspector.housingCapacity;
+    const atMin = inspector.housingRecruited <= 1;
     specialty = `
-      <h4>Soldiers</h4>
-      <div class="stat"><span>Recruited</span><strong>${inspector.barracksRecruited} / ${inspector.barracksCapacity}</strong></div>
+      <h4>${staffTitle(inspector.housingStaffKind)}</h4>
+      <div class="stat"><span>Recruited</span><strong>${inspector.housingRecruited} / ${inspector.housingCapacity}</strong></div>
       ${
         isBuildPhase
-          ? `<button class="mod-btn ${full ? 'disabled' : ''}" data-action="recruitSoldier" data-room="${room.id}">Recruit · ${SOLDIER_RECRUIT_COST}g</button>`
+          ? `<div class="slot-stepper">
+               <button class="mod-btn ${atMin ? 'disabled' : ''}" data-action="unrecruitStaff" data-room="${room.id}">−</button>
+               <button class="mod-btn ${full ? 'disabled' : ''}" data-action="recruitStaff" data-room="${room.id}">Recruit · ${inspector.recruitCost}g</button>
+             </div>`
           : ''
       }`;
   }
@@ -119,6 +158,21 @@ function roomBody(inspector: RoomInspector): string {
                <button data-action="slotMinus" data-room="${room.id}">−</button>
                <span>${inspector.slotAllocated}</span>
                <button data-action="slotPlus" data-room="${room.id}">+</button>
+             </div>`
+          : ''
+      }`;
+  }
+
+  if (inspector.manaSpringCapacity !== undefined && inspector.manaSpringAllocated !== undefined) {
+    specialty += `
+      <h4>Spring staffing</h4>
+      <div class="stat"><span>Magi allocated</span><strong>${inspector.manaSpringAllocated} / ${inspector.manaSpringCapacity}</strong></div>
+      ${
+        isBuildPhase
+          ? `<div class="slot-stepper">
+               <button data-action="springMinus" data-room="${room.id}">−</button>
+               <span>${inspector.manaSpringAllocated}</span>
+               <button data-action="springPlus" data-room="${room.id}">+</button>
              </div>`
           : ''
       }`;
@@ -149,8 +203,8 @@ function helpBody(): string {
   return `
     <h3>How to play</h3>
     <ul class="help-list">
-      <li>Recruit soldiers in barracks, allocate slot headcounts, connect with stairs (infra layer).</li>
-      <li>Soldiers move during the attack phase; slots fire when troops arrive.</li>
+      <li>Recruit staff in housing (guardroom, chamber, quarters), allocate slots and mana springs, connect with stairs.</li>
+      <li>Workers move during the attack phase; slots fire when soldiers arrive; magi staff springs; laborers repair damage.</li>
       <li>Use the Select tool and click a room to add modifications or remove it.</li>
       <li>Pick a blueprint to place or replace rooms; Esc cancels the blueprint.</li>
       <li>Enemies climb the outside toward your wizard at the top.</li>

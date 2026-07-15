@@ -2,7 +2,7 @@ import { FINAL_LEVEL_INDEX } from '@/model/waves';
 import {
   selectBuildEconomy,
   selectBuildUndoState,
-  selectConnectivityReport,
+  selectLogisticsReport,
   selectMana,
   selectSelectedBlueprint,
   selectTowerStability,
@@ -66,17 +66,20 @@ export function createHud(root: HTMLElement, store: Store): () => void {
       economy.isPlanning && economy.committedGold > 0
         ? `${economy.remainingGold} (${economy.committedGold} committed)`
         : `${economy.remainingGold}`;
-    const overAllocated = inBuild && selectConnectivityReport(snapshot.game).overAllocated;
-    const overAllocatedHtml = overAllocated
-      ? '<p class="warning">More soldiers allocated to slots than recruited in barracks.</p>'
-      : '';
+    const logistics = inBuild ? selectLogisticsReport(snapshot.game) : null;
+    const logisticsHtml =
+      logistics && logistics.warnings.length > 0
+        ? `<p class="warning">${logistics.warnings[0]}${
+            logistics.warnings.length > 1 ? ` (+${logistics.warnings.length - 1} more)` : ''
+          }</p>`
+        : '';
 
     const phaseControls = inBuild
       ? `<div class="build-undo-row">
            <button data-action="undoBuild" ${undoState.canUndo ? '' : 'disabled'}>Undo</button>
            <button data-action="revertBuild" ${undoState.canRevert ? '' : 'disabled'}>Revert all</button>
          </div>
-         ${overAllocatedHtml}
+         ${logisticsHtml}
          <button class="primary" data-action="startWave" ${stability.stable ? '' : 'disabled'}>Start Wave ${game.levelIndex + 1}</button>`
       : '';
 

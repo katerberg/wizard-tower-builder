@@ -1,32 +1,32 @@
 # Infrastructure & logistics
 
-Developer-facing architecture for the tower’s **infrastructure layer** — the core of an economy/logistics tower-defense game. Mundane structures (barracks, slots, stairs, pipes) are the primary defense scaling path; auto-turrets and the wizard are supplementary.
+Developer-facing architecture for the tower’s **infrastructure layer** — the core of an economy/logistics tower-defense game. Mundane structures (housing, slots, stairs, pipes) are the primary defense scaling path; auto-turrets and the wizard are supplementary.
 
-**First vertical slice:** Barracks → Slot soldier staffing over staircase infrastructure.
-
-**Housing expansion (planned):** three housing types (guardrooms, chambers, quarters) for soldiers, magi, and laborers — see [`HOUSING.md`](HOUSING.md).
+**Shipped:** Guardroom → slot soldier staffing over stairs; full housing for soldiers / magi / laborers — see [`HOUSING.md`](HOUSING.md). Pipes, boilers, mana springs, steam — see [`PIPES.md`](PIPES.md).
 
 ---
 
 ## Design goals
 
 1. **Infrastructure is first-class** — placement, routing, and upkeep matter as much as room HP.
-2. **Layered editing** — structure, infra, and soldiers are separate overlays on the same grid (Maps-style visibility).
-3. **Logistics during attack** — soldiers spawn in barracks at wave start and **move only during the attack phase**; build phase is untimed planning with no movement.
-4. **Separate graphs** — soldiers pathfind on an interior/infra graph; enemies keep the existing exterior surface graph.
+2. **Layered editing** — structure, infra, and workers are separate overlays on the same grid (Maps-style visibility).
+3. **Logistics during attack** — staff spawn from housing at wave start and **move only during the attack phase**; build phase is untimed planning with no movement.
+4. **Separate graphs** — staff pathfind on an interior/infra graph; enemies keep the existing exterior surface graph.
 5. **Fat towers by choice** — one infra occupancy per cell (stair *or* pipe, not both) forces horizontal expansion.
 
 ---
 
 ## Layer model
 
-Three tower layers (visibility toggles; dev-focused rendering uses dots/glyphs when a layer is on):
+Three tower layers (visibility toggles; workers use glyphs when the layer is on):
 
 | Layer | Contents | Edit trigger |
 |-------|----------|--------------|
-| **rooms** | Structure blueprints (spire, buttress, barracks, slot, turret, …) | Select a structure blueprint |
-| **infra** | Stairs, pipes, (future) elevators | Select an infra blueprint / tool |
-| **soldiers** | Soldier positions during attack (build: allocation UI, not free movement) | Slot headcount panel; auto-routing at wave start |
+| **rooms** | Structure blueprints (spire, buttress, housing, slot, turret, …) | Select a structure blueprint |
+| **infra** | Stairs, pipes (elevators future) | Select an infra blueprint / tool |
+| **workers** | Staff positions during attack (build: allocation UI, not free movement) | Slot/spring headcount; auto-routing at wave start |
+
+`TowerLayer = 'rooms' | 'infra' | 'workers'`.
 
 ### Cell granularity
 
@@ -35,16 +35,16 @@ All layers share the **same macro grid** (`GRID_COLS` × unbounded rows). There 
 Per coordinate `(col, row)`:
 
 ```
-structure[col,row]  → roomId | null     // existing tower.occupancy
+structure[col,row]  → roomId | null     // tower.occupancy
 infra[col,row]      → InfraKind | null  // at most ONE kind per cell
 ```
 
 ```ts
-type InfraKind = 'stair' | 'pipe' | 'elevator'; // elevator: future
+type InfraKind = 'stair' | 'pipe'; // elevator: future
 
 interface InfraCell {
   kind: InfraKind;
-  // elevator only (future): shaftId, endpoints, platform state
+  fluid?: Fluid; // pipe only; preview in build, locked at wave start
 }
 ```
 
@@ -56,94 +56,101 @@ interface InfraCell {
 
 ## Room roles
 
-### Barracks (`barracksRoom`)
+### Housing
+
+Three housing types — full tables, economy, and workplaces in [`HOUSING.md`](HOUSING.md).
+
+| Blueprint | Staff | Base → expanded | Workplace |
+|-----------|-------|-----------------|-----------|
+| `guardroomRoom` | Soldiers | 3 → 6 (`guardroomExpansion`) | Slots |
+| `chamberRoom` | Magi | 1 → 2 (`chamberExpansion`) | Mana springs |
+| `quartersRoom` | Laborers | 6 → 12 (`quartersExpansion`) | Damaged rooms |
 
 | Property | Value |
 |----------|--------|
-| Capacity | **5** at base; **10** via modification upgrades |
-| Soldier storage | Up to capacity **per barracks room** |
-| Recruitment | Player pays gold to recruit soldiers (build phase) |
-| Upkeep | **Charged at wave start** for all soldiers the player intends to field; **any soldier not paid leaves** |
-| Passable | Yes (soldiers can walk through unless blueprint marked `passable: false`) |
-| Behavior (attack) | Spawn point for all assigned soldiers at `beginWave` |
+| Size / passable | **1×1**, passable |
+| Place seed | **1** recruited occupant |
+| Recruitment | Build phase; unrecruit down to **1** |
+| Upkeep | Wave start for **all** rostered; unpaid desert (roster may hit **0**) |
+| Attack | Spawn / path / work; runtime entities cleared at wave end |
 
 ### Slot (`slotRoom`)
 
 | Property | Value |
 |----------|--------|
-| Capacity | **2** at base; **4** via modification upgrades |
-| Staffing | Player sets **headcount needed** per slot in build phase (0..capacity) |
-| Assignment | At wave start, system **auto-assigns** soldiers from **closest** barracks along valid paths |
-| Combat | Shared cooldown volley; **only soldiers physically present** in the slot contribute |
-| Damage | Each present soldier adds `baseDamage × efficiency[index]` (see table below) |
-| Range / targeting | Same as turret: range **3**, **nearest** exterior enemy |
-| Passable | Occupied by stationed soldiers; routing targets slot interior |
+| Capacity | **2** at base; **4** via `slotExpansion` |
+| Staffing | Player sets headcount (`slotAllocations`, 0..capacity); new slots seed **1** |
+| Assignment | Wave start: closest guardroom pools (Manhattan on anchors), then path |
+| Combat | Shared cooldown volley; **only stationed** soldiers contribute |
+| Damage | `baseDamage × efficiency[index]` (0-based index) |
+| Range / targeting | Range **3**, **nearest** exterior enemy |
+| Passable | **true**; routing targets slot interior |
 
-**Slot fire efficiency (crowding):**
+**Slot fire efficiency:**
 
-| Soldier index (1-based) | Contribution |
-|---------------------------|--------------|
-| 1 | 100% |
-| 2 | 80% |
-| 3 | 70% |
-| 4 | 60% |
+| Soldier index (0-based) | Contribution |
+|-------------------------|--------------|
+| 0 | 100% |
+| 1 | 80% |
+| 2 | 70% |
+| 3 | 60% |
 
-**Baseline tuning:** one soldier at 100% ≈ one turret shot (turret will eventually cost **mana**; mana economy is out of scope for this plan).
+Baseline: one soldier at 100% ≈ one magic turret shot (turrets cost **1 mana** per shot — see [`PIPES.md`](PIPES.md)).
 
-### Staircase (`staircase`)
+### Staircase (`stair` infra)
 
 | Property | Value |
 |----------|--------|
-| Cost | **Cheap utility** (low gold, low HP) |
-| Placement | **Ad hoc** segments on the infra layer (not one continuous shaft requirement) |
-| Movement | **Required for vertical travel** — soldiers cannot climb through structure without stairs |
-| Throughput | **One soldier per stair column** at a time; parallel adjacent columns alleviate blocking |
-| Speed | **0.2×** horizontal baseline (tunable in constants) |
+| Cost | Cheap utility (infra blueprint) |
+| Placement | Ad hoc segments on the infra layer |
+| Movement | Stair on floor **N** connects **N ↔ N+1** (leads up into the room above; landing need not have a stair) |
+| Throughput | **One staffer per cell** en route (shafts can hold a queue down the column) |
+| Speed | **0.2×** horizontal (`STAFF_STAIR_SPEED` / `STAFF_HORIZONTAL_SPEED` = 0.4 / 2) |
 
 ### Pipe (`pipe`) — water & steam logistics
 
-**Full design:** [`docs/PIPES.md`](docs/PIPES.md)
+**Full design:** [`PIPES.md`](PIPES.md)
 
 | Property | Value |
 |----------|--------|
 | Tool | Generic pipe; **fluid preview** (gray → blue water / orange steam) |
 | Water seed | Any pipe on **row 0** |
 | Steam seed | Pipes touching **steam turret** |
-| Merge | **Reject** placement that would mix water + steam (Factorio-style) |
+| Merge | **Reject** placement that would mix water + steam |
 | Lock | Fluid type frozen at **wave start** |
-| Crossover | **Not planned** — use parallel adjacent columns |
 
-**Implementation status:** Typed pipes, boilers, steam turrets, mana springs, and magic-turret mana are shipped — see `docs/PIPES.md`.
+**Status:** Typed pipes, boilers, steam turrets, mana springs, and magic-turret mana are shipped.
 
 ### Elevator (`elevator`) — future
 
 | Property | Value |
 |----------|--------|
-| Placement | Player picks **start and end** on a **strictly vertical line** (multi-floor shaft) |
-| Speed | **2×** horizontal baseline (faster than stairs) |
-| Throughput | **Platform** carries up to **10** soldiers; soldiers wait for pickup/drop-off at landings along the shaft |
+| Placement | Start and end on a strictly vertical line |
+| Speed | **2×** horizontal baseline |
+| Throughput | Platform carries multiple staff; wait at landings |
 | Exclusion | Same cell mutual exclusion as stairs/pipes |
 
 ### Passability flag
 
-Blueprints may define `passable: boolean` (default **true**). No rooms are blocked by default today; use the flag when a room must deny soldier routing (e.g. future utility rooms).
+Blueprints may define `passable: boolean` (default **true**). Boilers and steam turrets are `passable: false`. Mana springs are `passable: true` so magi can station inside.
 
 ---
 
-## Soldiers
+## Staff
 
-First-class entities in `GameState` (individual instances; optimize later if hundreds become hot).
+First-class entities in `GameState.staff` (`StaffUnit`). See [`HOUSING.md`](HOUSING.md) for the full type and workforce rules.
 
 ```ts
-interface Soldier {
+interface StaffUnit {
   id: string;
-  homeBarracksId: string;
-  /** Graph position during attack-phase movement */
-  pos: { col: number; row: number };
-  /** Assigned slot, set at wave start from player headcount allocation */
-  targetSlotId: string | null;
-  /** Movement state machine: idle | routing | in_slot */
-  status: 'idle' | 'moving' | 'stationed';
+  kind: 'soldier' | 'mage' | 'laborer';
+  homeHousingId: string;
+  targetWorkplaceId: string | null;
+  pos: Cell;
+  path: Cell[];
+  pathIndex: number;
+  moveCooldown: number;
+  status: 'idle' | 'moving' | 'stationed' | 'working';
 }
 ```
 
@@ -151,40 +158,40 @@ interface Soldier {
 
 ```mermaid
 stateDiagram-v2
-  [*] --> Barracks: beginWave
-  Barracks --> Moving: attack step routing
-  Moving --> Slot: arrived
-  Slot --> Firing: cooldown volleys
-  Firing --> Slot: shared cooldown
-  Slot --> Barracks: endWave reset
-  Barracks --> [*]: unpaid at wave start
+  [*] --> Housing: beginWave upkeep
+  Housing --> Moving: attack step routing
+  Moving --> Workplace: arrived
+  Workplace --> Working: stationed or repairing
+  Working --> Housing: endWave clear entities
+  Housing --> [*]: unpaid desert at wave start
 ```
 
 | Rule | Behavior |
 |------|----------|
-| Wave start | All paid, allocated soldiers spawn in their **home barracks** |
-| Build phase | Recruit, allocate per-slot headcounts, paint infra — **no movement** |
-| Attack phase | Auto-route to assigned slots, move, fire when stationed |
-| Wave end | **Reset** — soldiers return to barracks state for next build phase |
-| Death | Deferred — assume respawn; no soldier targeting yet |
-| Scale | Individual entities; hundreds of soldiers expected at high levels |
+| Wave start | Charge upkeep for all rostered; unpaid desert; assign + spawn survivors |
+| Build phase | Recruit / unrecruit, allocate slots & springs, paint infra — **no movement** |
+| Attack phase | Path, station/work, slots fire, springs tick (if magi), laborers repair |
+| Wave end | Clear `staff` entities; **keep** `housingRecruited` and allocations |
+| Death | Deferred — no soldier targeting yet |
 
 ### Player workflow (build phase)
 
-1. Place **barracks** and **slot** structure rooms.
-2. Recruit soldiers (up to barracks capacity).
-3. Set **headcount per slot** (sum ≤ recruited soldiers).
-4. Paint **stairs** (infra layer) to connect barracks to slots vertically/horizontally.
-5. Review connectivity warnings (warn-only — wave can still start).
-6. Start wave → pay upkeep → unpaid soldiers removed → routing begins.
+1. Place **housing** and workplaces (slots, mana springs, …).
+2. Recruit staff (up to housing capacity); optionally unrecruit toward 1.
+3. Set slot and mana-spring headcounts.
+4. Paint **stairs** (and pipes) so housing reaches workplaces.
+5. Review logistics / pipe warnings (warn-only — wave can still start).
+6. Start wave → pay upkeep → unpaid desert → routing begins.
 
 ### Auto-assignment
 
-When the wave starts, for each slot with headcount `N`:
+At wave start (after upkeep):
 
-1. Collect soldiers from all barracks (paid).
-2. Assign **closest** soldiers (by infra/structure path distance) to each slot until `N` are committed.
-3. Each soldier paths independently during attack phase (stair columns serialize to one soldier at a time).
+1. **Soldiers** — for each slot headcount, pull from closest guardroom pools.
+2. **Magi** — for each spring allocation, pull from closest chamber pools.
+3. **Laborers** — spawn all rostered at quarters idle, then assign to damaged rooms (singleton preference).
+
+Assignment distance uses **Manhattan on room anchors**; each unit then pathfinds on the interior graph. En route, staff wait for a free **cell** (destination workplaces may stack).
 
 ---
 
@@ -194,8 +201,8 @@ When the wave starts, for each slot with headcount `N`:
 
 | Graph | Used by | Walkability |
 |-------|---------|-------------|
-| **Exterior** (existing) | Enemies | Empty cells hugging room surfaces |
-| **Interior/infra** (new) | Soldiers | Structure cells marked `passable` + infra stair/elevator cells |
+| **Exterior** | Enemies | Empty cells hugging room surfaces |
+| **Interior/infra** | Staff | Structure cells with `passable !== false` + stair infra cells |
 
 ### Movement speeds (relative)
 
@@ -203,38 +210,30 @@ When the wave starts, for each slot with headcount `N`:
 |------|-------|
 | Horizontal through passable rooms | **1.0×** |
 | Stair vertical | **0.2×** |
-| Elevator (future) | **2.0×** (platform wait time added separately) |
+| Elevator (future) | **2.0×** |
 
-Vertical movement **without** a stair (or elevator) cell is **blocked**.
+Vertical movement requires a stair on the **lower** floor of the step.
 
 ### Connectivity validation
 
 - **Warn only** before `startWave` — does not block.
-- **Hover/click** on slot or barracks shows disconnected routes in UI.
-- Selector-driven: `selectSlotConnectivity(snapshot, slotId)` → `{ ok, brokenSegments, unassignedCount }`.
+- Per-room alerts + HUD logistics summary (`selectLogisticsReport`).
+- Pipe/boiler/spring water warnings remain in the pipe connectivity report and feed the same alert UI.
 
 ---
 
 ## Attack-phase simulation
 
-Extend `game.step(dt)` ordering:
+Relevant order inside `game.step(dt)` (attack only):
 
 ```
-1. Spawn / tick enemies (existing)
-2. Wizard auto-attack (existing)
-3. Turret room behaviors (existing)
-4. Soldier movement step (NEW)
-5. Slot room volleys for stationed soldiers (NEW)
-6. Modification effects (existing)
-7. Reap enemies, wave clear (existing)
-```
-
-Slot behavior sketch:
-
-```ts
-// Per slot room on shared cooldown:
-// damage = sum over stationed soldiers of baseDamage * efficiency[slotIndex]
-// target = nearest enemy in range 3
+1. Spawn / tick enemies, wizard, spells (existing)
+2. stepStaff — cell-exclusive movement; shared stair links
+3. tickLaborerRepairs — repair + retarget
+4. runRoomEffects — slots, turrets, mods
+5. tickManaSprings — water + stationed magi
+6. tickBoilers → tickSteamTurrets
+7. Reap enemies, wave clear
 ```
 
 ---
@@ -243,151 +242,93 @@ Slot behavior sketch:
 
 | Event | Gold |
 |-------|------|
-| Recruit soldier | One-time cost in build phase |
-| Barracks capacity mod | Modification cost (5 → 10) |
-| Slot capacity mod | Modification cost (2 → 4) |
-| Wave start upkeep | Per-soldier cost; failure removes soldier |
-| Stair / pipe placement | Blueprint cost (stairs: cheap) |
+| Recruit staff | One-time cost in build phase (by kind) |
+| Housing expansion mods | Modification cost (guardroom / chamber / quarters) |
+| Slot capacity mod | `slotExpansion` (2 → 4) |
+| Wave start upkeep | Per rostered occupant by kind; failure deserts |
+| Stair / pipe placement | Infra blueprint cost |
 
-**Mana** (turret operating cost) — deferred; document in economy when added.
+**Mana** — shared pool; magic turret **1**/shot; springs staffed by magi; boilers drain while producing. See [`PIPES.md`](PIPES.md).
 
 ---
 
-## Modifications (reuse existing system)
+## Modifications
 
-| Room | Mod id (proposed) | Effect |
-|------|-------------------|--------|
-| Barracks | `barracksExpansion` | Capacity 5 → 10 |
+| Room | Mod id | Effect |
+|------|--------|--------|
+| Guardroom | `guardroomExpansion` | Capacity 3 → 6 |
+| Chamber | `chamberExpansion` | Capacity 1 → 2 |
+| Quarters | `quartersExpansion` | Capacity 6 → 12 |
 | Slot | `slotExpansion` | Capacity 2 → 4 |
+| Boiler | `boilerExpansion` | Throughput upgrades |
 
-Register defs in `src/model/modifications/` like spikes/turret/gold mine. No new upgrade framework required.
+Defs in `src/model/modifications/`.
 
 ---
 
-## View / UX architecture
+## View / UX
 
 ### Layer visibility
 
-Maps-style toggles: `rooms` | `infra` | `soldiers`. When off, that layer is not drawn.
+Maps-style toggles: `rooms` | `infra` | `workers`.
 
 ### Edit flow
 
-**Tool-driven, not mode-locked:** picking a structure blueprint edits structure; picking stairs/pipes edits infra. Contextual prompts bridge layers (“Slot needs 2 — no path” → focus infra tool).
+Picking a structure blueprint edits structure; picking stairs/pipes edits infra. Room inspector: recruit/unrecruit, slot/spring steppers, mods.
 
 ### Rendering (when layer on)
 
 | Layer | Representation |
 |-------|----------------|
-| rooms | Existing room glyphs |
-| infra | Stair/pipe glyphs on infra cells (overlay same coordinates) |
-| soldiers | Dots/glyphs along route and in slots during attack |
+| rooms | Room glyphs |
+| infra | Stair/pipe overlays |
+| workers | Staff glyphs by kind during attack |
 
-### New UI surfaces (shell)
-
-- Layer toggle bar
-- Per-slot headcount steppers (build phase)
-- Connectivity warning panel + hover highlights
-- Barracks recruit / roster summary
-
-All affordances via **selectors**; view dispatches intents only.
+Affordances via **selectors**; view dispatches intents only.
 
 ---
 
-## Data model changes (summary)
+## Data model (shipped)
 
 ```ts
-// tower.ts / types.ts extensions
 interface Tower {
   rooms: Room[];
   occupancy: Record<string, string>;
-  infra: Record<string, InfraCell>; // NEW — key "col,row"
+  infra: Record<string, InfraCell>;
 }
 
 interface GameState {
-  // ...existing
-  soldiers: Soldier[];              // NEW
-  soldierEffectTimers: Record<string, number>; // slot cooldowns if not reusing roomEffectTimers
-}
-
-interface Blueprint {
-  // ...existing
-  passable?: boolean; // default true
+  // ...
+  staff: StaffUnit[];
+  housingRecruited: Record<string, number>;
+  slotAllocations: Record<string, number>;
+  manaSpringAllocations: Record<string, number>;
+  buildRecruitSpend: number;
 }
 ```
 
-New blueprint ids (working names):
-
-| id | Role |
-|----|------|
-| `barracksRoom` | Housing (exists) |
+| Blueprint / infra id | Role |
+|----------------------|------|
+| `guardroomRoom` | Soldier housing |
+| `chamberRoom` | Mage housing |
+| `quartersRoom` | Laborer housing |
 | `slotRoom` | Ranged soldier defense |
-| `staircase` | Infra: vertical movement |
-| `pipe` | Infra: logistics |
-| `elevator` | Infra: fast vertical (future) |
+| `manaSpringRoom` | Mana workplace (pipe + magi) |
+| `stair` / `pipe` | Infra kinds |
 
 ---
 
-## Implementation phases
+## Implementation status
 
-### Phase 0 — Documentation ✅
-
-This file + README architecture summary.
-
-### Phase 1 — Core data model
-
-- `Tower.infra`, `InfraKind`, `Soldier` types
-- `Blueprint.passable`
-- `createInitialState` / tower helpers for infra read-write
-- Unit tests for infra mutual exclusion per cell
-
-### Phase 2 — Barracks
-
-- `barracksRoom` behavior: capacity tracking, recruit intent, roster selectors
-- `barracksExpansion` modification (5 → 10)
-- Build-phase UI: recruit buttons, capacity display
-
-### Phase 3 — Slot room
-
-- `slotRoom` blueprint + `slotExpansion` mod (2 → 4)
-- Build-phase headcount allocation intents + selectors
-- `slotRoomBehavior`: shared-cooldown volley with efficiency table
-- Tests: partial staffing, damage aggregation
-
-### Phase 4 — Stairs & interior pathfinding
-
-- `staircase` infra blueprint (cheap, paint on infra layer)
-- `calculations/interiorGraph.ts` — passable rooms + stair cells
-- Soldier movement in `game.step` during attack only
-- Auto-assignment at `beginWave`
-- Tests: routing, one-soldier-per-column, parallel columns
-
-### Phase 5 — Layer UX
-
-- View layer toggles (`rooms` / `infra` / `soldiers`)
-- Infra paint tool (reuse placement pipeline with layer-aware `canPlaceInfra`)
-- Soldier dots during attack when layer visible
-
-### Phase 6 — Connectivity feedback
-
-- `selectConnectivityWarnings` selector
-- Warn on start wave (non-blocking)
-- Hover/click route highlight for slots/barracks
-
-### Phase 7 — Pipes (logistics)
-
-- `pipe` infra blueprint, orthogonal draw
-- Logistics hooks stub (no gameplay effect yet)
-- Renderer + mutual exclusion with stairs
-
-### Phase 8 — Elevators (future)
-
-- Vertical A→B placement, platform simulation (≤10 soldiers)
-- Pickup/drop-off timing along shaft
-- Speed 2× vs horizontal
-
-### Phase 9 — Mana & turret operating cost (future)
-
-- Separate currency; turret ≈ one soldier but consumes mana per shot
+| Area | Status |
+|------|--------|
+| Infra mutual exclusion, stairs, interior path | Shipped |
+| Guardroom → slot staffing | Shipped |
+| Housing (three types), workers layer, logistics | Shipped — [`HOUSING.md`](HOUSING.md) |
+| Pipes, boilers, steam, mana springs | Shipped — [`PIPES.md`](PIPES.md) |
+| Elevators | Future |
+| Mid-wave pipe/room network breaks | Deferred |
+| Soldier death / targeting | Deferred |
 
 ---
 
@@ -396,22 +337,26 @@ This file + README architecture summary.
 | Area | Tests |
 |------|-------|
 | Infra placement | One kind per cell; exclusion; paint over structure |
-| Interior path | Horizontal through passable room; vertical only on stairs |
-| Stair throughput | Second soldier waits behind first in same column |
-| Auto-assign | Closest barracks preferred; unconnected slot flagged |
-| Slot combat | 2 soldiers → 100% + 80%; only stationed count |
-| Economy | Wave start upkeep; unpaid removed |
-| Wave reset | Soldiers cleared to barracks; allocations kept in view or reset? **Reset allocations each wave** per spec |
+| Interior path | Horizontal through passable room; vertical when lower cell has a stair |
+| Stair throughput | Second climber waits only for the next occupied cell |
+| Auto-assign | Closest housing preferred; unconnected workplaces flagged |
+| Slot combat | Efficiency table; only stationed count |
+| Economy | Wave-start upkeep; unpaid desert |
+| Wave reset | Staff cleared; **rosters and allocations persist** |
+| Magi / springs | No regen without water or without stationed mage |
+| Laborers | Singleton preference; repair falloff; retarget |
 
 ---
 
 ## Open tuning (constants only)
 
-All combat and speed numbers live in `src/config/constants.ts` or behavior defs — tweak without schema changes.
+Combat, capacity, recruit/upkeep, and speed numbers live in `src/config/constants.ts` or behavior defs — tweak without schema changes.
 
 ---
 
 ## Related docs
 
+- [`HOUSING.md`](HOUSING.md) — housing & staff workplaces
+- [`PIPES.md`](PIPES.md) — pipes, boilers, mana springs, steam
 - [`README.md`](../README.md) — architecture overview
-- [`CONTRIBUTING.md`](CONTRIBUTING.md) — task recipes (add blueprint, add modification, add room behavior)
+- [`CONTRIBUTING.md`](CONTRIBUTING.md) — task recipes

@@ -2,7 +2,7 @@ import { getBlueprint } from '@/model/blueprints';
 import { isInfraBlueprint } from '@/model/infraBlueprints';
 import { canAffordBuild } from '@/calculations/buildCost';
 import { addMessage } from '@/model/messages';
-import { pruneBarracksState, pruneOrphanSoldierState, seedSpecialtyRoomDefaults } from '@/model/soldiers';
+import { pruneHousingState, pruneOrphanStaffState, seedSpecialtyRoomDefaults } from '@/model/staff';
 import { canPlace, createRoom, placeRoomReplacing, removeRoom, roomAt, towersEqual } from '@/model/tower';
 import type { HandlerContext } from '../context';
 import type { Intent } from '../intents';
@@ -76,7 +76,7 @@ function sellRoomById(ctx: HandlerContext, roomId: string): void {
   const blueprint = getBlueprint(room.blueprintId);
   ctx.recordBuildStep();
   game.tower = removeRoom(game.tower, room.id);
-  pruneBarracksState(game, roomId);
+  pruneHousingState(game, roomId);
   addMessage(game, `Removed ${blueprint?.name ?? 'room'}.`, 'info');
 
   if (view.modal?.kind === 'room' && view.modal.roomId === roomId) {
@@ -88,8 +88,13 @@ function undoBuild(ctx: HandlerContext): void {
   const { game, buildHistory } = ctx;
   if (game.phase !== 'build' || !game.buildBaseline || buildHistory.length === 0) return;
 
-  game.tower = buildHistory.pop()!;
-  pruneOrphanSoldierState(game);
+  const snap = buildHistory.pop()!;
+  game.tower = snap.tower;
+  game.housingRecruited = snap.housingRecruited;
+  game.slotAllocations = snap.slotAllocations;
+  game.manaSpringAllocations = snap.manaSpringAllocations;
+  game.buildRecruitSpend = snap.buildRecruitSpend;
+  pruneOrphanStaffState(game);
   ctx.closeModalIfRoomMissing();
   addMessage(game, 'Undid last change.', 'info');
 }
@@ -98,11 +103,22 @@ function revertBuild(ctx: HandlerContext): void {
   const { game, buildHistory } = ctx;
   const baseline = game.buildBaseline;
   if (game.phase !== 'build' || !baseline) return;
-  if (towersEqual(game.tower, baseline.tower)) return;
+
+  const layoutChanged = !towersEqual(game.tower, baseline.tower);
+  const staffChanged =
+    JSON.stringify(game.housingRecruited) !== JSON.stringify(baseline.housingRecruited) ||
+    JSON.stringify(game.slotAllocations) !== JSON.stringify(baseline.slotAllocations) ||
+    JSON.stringify(game.manaSpringAllocations) !== JSON.stringify(baseline.manaSpringAllocations) ||
+    game.buildRecruitSpend !== 0;
+  if (!layoutChanged && !staffChanged) return;
 
   game.tower = structuredClone(baseline.tower);
+  game.housingRecruited = structuredClone(baseline.housingRecruited);
+  game.slotAllocations = structuredClone(baseline.slotAllocations);
+  game.manaSpringAllocations = structuredClone(baseline.manaSpringAllocations);
+  game.buildRecruitSpend = 0;
   buildHistory.length = 0;
-  pruneOrphanSoldierState(game);
+  pruneOrphanStaffState(game);
   ctx.closeModalIfRoomMissing();
   addMessage(game, 'Reverted to wave start layout.', 'info');
 }

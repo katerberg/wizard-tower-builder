@@ -4,7 +4,7 @@ import type { Store } from '@/store/store';
 const LAYERS: { id: TowerLayer; label: string }[] = [
   { id: 'rooms', label: 'Rooms' },
   { id: 'infra', label: 'Infra' },
-  { id: 'soldiers', label: 'Soldiers' },
+  { id: 'workers', label: 'Workers' },
 ];
 
 export function createLayersPanel(root: HTMLElement, store: Store): () => void {
