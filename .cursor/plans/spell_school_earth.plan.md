@@ -1,279 +1,310 @@
 ---
 name: Earth School — Planning (NOT LOCKED)
-overview: Draft identity for the earth school — big moves and powering up. Distinct from fire (combo burst) and air (displacement). Four spell sketches + shared Charge thread. Do NOT implement until status is LOCKED.
+overview: Earth = investment school. Charge on wizard. Fault (pass charges), Fortify (concentration shield that charges), Boulder (weak vs fliers), Earthquake (structural cascade up to pick). Distinct from fire combo and air displacement. NOT LOCKED.
 todos:
   - id: earth-identity
-    content: Lock one-paragraph earth identity + contrast table vs fire/air
+    content: Lock identity + contrast vs fire/air
     status: pending
   - id: earth-thread
-    content: Lock Charge (or renamed) shared mechanic — how it builds and spends
+    content: Lock Charge meter rules (wizard, wave reset, Fault + Fortify build)
     status: pending
   - id: earth-spells-draft
-    content: Lock 4 spells with distinctness table
+    content: Lock Fault / Fortify / Boulder / Earthquake feel rules
     status: pending
   - id: earth-open-questions
-    content: Resolve open behavior questions in chat (E1–E…)
+    content: Resolve remaining open questions (EQ cascade, Fortify exit, Boulder spend)
     status: pending
   - id: earth-lock
-    content: Mark plan LOCKED; add IN SCOPE / OUT OF SCOPE; ready for implement PR
+    content: Mark LOCKED + IN/OUT SCOPE; ready for implement PR
     status: pending
 isProject: false
 ---
 
-# Earth School — Planning Draft
+# Earth School — Planning Draft (v2)
 
-**Status:** ⏳ **NOT LOCKED** — design only. Do not implement from this doc yet.
+**Status:** ⏳ **NOT LOCKED** — design only. Directionally agreed; remaining questions below.
 
-**Prerequisite:** Fire and air schools on `main`.
+**Prerequisite:** Fire and air on `main`.
 
-**Process:** Same as fire/air — chat → lock behavior → implement in a **separate PR** with **only** this plan as scope.
-
-**Workflow:** See [`spell_system_index.plan.md`](./spell_system_index.plan.md).
+**Workflow:** See [`spell_system_index.plan.md`](./spell_system_index.plan.md). Implement later from **this file only**.
 
 ---
 
-## School contrast (identity first)
+## Identity (locked direction)
 
-| | **Fire** | **Air** | **Earth** (draft) |
+| | **Fire** | **Air** | **Earth** |
 | --- | --- | --- | --- |
 | **Mindset** | Combo burst | Movement control | Big moves + powering up |
-| **Thread** | Kindled (timed mark → consume) | Discombobulated (attachment tax) | **Charge** (build, then spend) |
-| **Payoff** | Fire hit detonates mark | Fall / collision / clumsy re-stick | **Committed power dump** at high Charge |
-| **Rhythm** | Place mark → hit soon | Knock off → deny / punish path | **Invest** → wait or stack → **commit** |
-| **Weakness** | Needs sequencing; weak alone | Soft damage without displacement | Slow cadence; weak if you never dump |
-| **Best at** | Packed climbers, setup lanes | Breaking wall contact, lane denial | Finishing packs / bosses after you powered up |
+| **Thread** | Kindled (enemy mark) | Discombobulated (attachment tax) | **Charge on the wizard** |
+| **Payoff** | Mark → fire detonate | Fall / collision | **Spend Charge** on committed hits |
+| **Rhythm** | Arm → hit | Knock off → deny | **Invest (Fault/Fortify) → commit (Boulder/Quake)** |
+| **Soft spot** | Needs sequence | Soft without displacement | **Fliers** (except weak Boulder); slow if you never Charge |
 
-### Identity paragraph (draft)
+Earth is the **investment school**: Charge lives on **you**. You crack the climb, concentrate into stone, then dump weight into a **structural slam** or a delayed boulder. Fire detonates marks; air moves bodies. Earth **builds pressure, then reshapes the fight** — including scarring its own tower on Earthquake.
 
-Earth is the **investment school**: you do not dabble for chip damage. You **build Charge**, harden yourself or the ground, and then spend that weight on **committed, telegraphed big moves**. Fire wins by sequencing marks into explosions; air wins by moving bodies. Earth wins by **being ready when the board is heavy** — then slamming the hammer.
-
-**Must not:** be fire with brown particles (no Kindled-style mark→burst) or air with rocks (no knock-off / repath as the school identity).
+**Must not:** Kindled-style detonate; Gust-style shove as identity; free chip without Charge narrative.
 
 ---
 
-## Shared thread: Charge (earth-only)
+## Charge (wizard meter) — locked direction
 
-Working name: **Charge** (alt: Seismic, Mass, Fault Pressure — rename later if you prefer).
-
-| Rule | Draft |
-| ---- | ----- |
-| **Where it lives** | On the **wizard / run** — a visible meter (0…max), **not** a timed enemy debuff |
-| **Builds when** | Casting lighter earth spells; holding **Fortify**; enemies struggling on **Fault**; (optional) idle while Fortified |
-| **Spends when** | Big earth spells (**Boulder**, **Earthquake**) — power scales with Charge spent, or requires a minimum |
-| **Wave start** | Charge → **0** (no banking between waves) |
-| **Must NOT** | Copy Kindled (enemy mark → fire detonate) or Discombobulated (attachment tax) |
-
-**Feel:** the hotbar’s earth spells are about **feeding the meter** or **emptying it for something huge**.
+| Rule | Detail |
+| ---- | ------ |
+| **Where** | Wizard / run — HUD meter `0…max` |
+| **Build** | **Fault** (per enemy **pass** over patch) + **Fortify** (while concentrating) |
+| **Spend** | **Boulder** (partial) and **Earthquake** (all / scaled dump) |
+| **Wave start** | Charge → **0** |
+| **Not** | Enemy debuff; not fire/air status |
 
 ---
 
-## The four spells (draft)
+## Four spells (refined)
 
-| Spell | One-line job | Targeting | Charge role |
-| ----- | ------------ | --------- | ----------- |
-| **Fault** | Scar the climb — pressure that **feeds** Charge | Click trap / ground cell beside tower | **Generates** while enemies tread it |
-| **Fortify** | Power stance — get ready for a big move | Instant (self) | **Amplifier** (faster Charge; next spend stronger) |
-| **Boulder** | Telegraphed committed smash | Click grid / enemy lane | **Spends** Charge → size/damage scales |
-| **Earthquake** | The dump — once-wave-scale hammer | Confirm / instant global-ish | **Spends all** Charge → scales with stack |
+| Spell | Job | Targeting | Charge |
+| ----- | --- | --------- | ------ |
+| **Fault** | Scar a choke — each **pass** feeds the meter | Trap cell adjacent to wall | **Generates** |
+| **Fortify** | Concentration — invuln + Charge, **no casting** | Instant self | **Generates** while held |
+| **Boulder** | Delayed smash (weak vs fliers) | Grid cell | **Spends** |
+| **Earthquake** | Cascade shake **up to chosen structure point** | Click room / structural pick | **Spends** (big dump) |
 
-### Why they feel different
+### Distinctness
 
 | | Fault | Fortify | Boulder | Earthquake |
 | --- | --- | --- | --- | --- |
-| **Skill** | Route reading / trap placement | Timing when to enter stance | Aim + read climb delay | When to empty the meter |
-| **Shape** | Passive on board | Self buff | Delayed heavy impact | Wave-scale pulse |
-| **Timing** | Passive | Sustain / toggle | Delayed commit | Instant on confirm |
-| **Best vs** | Slow packs on a choke | Mid-wave setup | Single brute / clustered face | Ground pack at peak Charge |
-| **Alone?** | Weak (feeds only) | No damage | Strong if Charge ready | Weak/empty if Charge ≈ 0 |
-| **Risk** | Wasted patch | Stance cost / CD | Miss if they leave the cell | Blow meter at wrong time |
+| **Skill** | Route place | When to freeze | Aim + delay read | Which backbone to risk |
+| **Shape** | Trap | Self stance | Delayed impact | Structural cascade |
+| **Interactive** | Enemies charge you | You hold still | Telegraphed hit | Tower HP + unit smash |
+| **Alone** | Weak (feed only) | No offense | Soft if empty Charge | Needs Charge + smart pick |
+| **Risk** | Bad choke | Stuck while concentrating | Miss / flier shrugs | **Room damage** on path |
 
 ---
 
-## Spell sketches (feel only — no mana/DPS numbers)
+## 1. Fault — *charge per pass*
 
-### 1. Fault — *feed the meter*
+**Fantasy:** Crack the shell. Every climber that **walks over** the scar pushes energy into you.
 
-**Fantasy:** Crack the shell. Climbers on the scar grind power into you.
+| Rule | Detail |
+| ---- | ------ |
+| **Placement** | Empty cell **orthogonally adjacent to a room** (same language as Kindling — different payoff) |
+| **Lifetime** | Timed patch (~15s tunable; later upgrade = whole wave) |
+| **On pass** | Enemy finishes a step **onto / across** the Fault cell → **+Charge** (once per pass, not per tick standing) |
+| **Re-pass** | Same enemy leaving and stepping on again → **another** Charge (encourages recirculation / slow packs) |
+| **Damage** | **None** (or optional tiny slow only if we want — default **no slow** so it's cleanly a feeder, not air-light Blizzard) |
+| **vs Kindling** | Kindling arms **fire** combo; Fault only feeds **earth Charge** |
+| **Fliers** | Don't walk the shell → don't charge Fault (school weakness) |
 
-| Sketch | |
-| ------ | --- |
-| Target | Single cell **orthogonally adjacent to tower wall** (trap/ground-adjacent — similar *placement language* to Kindling, **different payoff**) |
-| Effect | Patch lasts ~N seconds: enemies stepping/standing on it are **slowed** and **generate Charge** for the wizard (per step or per tick) |
-| Damage | **None or tiny** — not a Kindling → detonate loop |
-| Kindled | No interaction |
-| vs Kindling | Kindling arms fire combos; Fault **only powers Earth** |
-| Identity | Earth’s setup lever — **invests**, does not explode |
-
-### 2. Fortify — *powering up*
-
-**Fantasy:** Become the mountain. Get ready. Then hit.
-
-| Sketch | |
-| ------ | --- |
-| Target | Instant (self) |
-| Effect | Enter **Fortified** for a window: Charge builds **faster**; next Charge-spend spell is **empowered** (bigger Boulder / denser Quake); optional defense bump |
-| Cost | Spell CD + maybe mana; cannot spam |
-| Ends | Duration ends, or on first spent Charge spell (consume stance) |
-| Identity | Pure power-up — **no enemy target**, no AoE. Closest sibling is air’s Flight (self), but Flight is mobility; Fortify is **mass** |
-
-### 3. Boulder — *committed smash*
-
-**Fantasy:** You throw a mountain. It takes a beat. If they’re still there, it hurts.
-
-| Sketch | |
-| ------ | --- |
-| Target | Grid cell (or enemy then cell) |
-| Timing | **Telegraphed delay** then impact (big-move feel — not Fireball instant) |
-| Effect | Heavy damage in small AoE on impact; **scales with Charge spent** (pick spend amount, or spend fixed N) |
-| Miss | If climbers leave the landing cell, soft miss / partial |
-| Identity | Mid-game hammer — not the once-per-wave nuke, not chip |
-
-### 4. Earthquake — *the dump*
-
-**Fantasy:** Empty the Charge. Shake the world under their feet.
-
-| Sketch | |
-| ------ | --- |
-| Target | Confirm (or instant) — **whole ground / all grounded enemies** |
-| Filter | **Grounded only** (row 0 / on surface facing ground) — intentional miss on high climbers / fliers (mirrors Immolate’s niche weak, but inverse) |
-| Effect | Damage + short **stun/root**; power = **all Charge spent** (0 Charge = fizzle or negligible) |
-| Limit | Feels rare — CD or practical once per Charge full |
-| Identity | The school climax — **not** Fireball, **not** Gust, **not** Kindled burst |
+**Open:** Slow on Fault or pure Charge feeder? (Recommendation: **pure Charge** — keeps identity sharp.)
 
 ---
 
-## Typical sequences (feel)
+## 2. Fortify — *concentration*
+
+**Fantasy:** Become stone. Nothing touches you. Power builds. When you **go**, the mountain moves.
+
+| Rule | Detail |
+| ---- | ------ |
+| **Enter** | Cast Fortify (instant) → wizard is **Fortified** |
+| **While Fortified** | (1) **Damage immune** (enemy attacks / hazardous rooms don't chip wizard HP) (2) **Cannot cast spells** (including other earth) (3) **Charge builds** over time (steady tick) |
+| **Frozen** | Wizard perch — no relocation; Wand Strike **paused** while Fortified (you're concentrating, not auto-zapping) |
+| **Exit / “go”** | Breaking concentration ends Fortify. Recommended UX: **next cast attempt** ends Fortify then resolves that spell (one gesture). Alternate: toggle Fortify off, then cast separately. |
+| **Also ends** | Wave end; wizard would have died unprotected — fortify ends cleanly |
+| **Not** | Timed free empower aura; not air Flight (mobility). This is **hold-to-invest** |
+
+**Risk:** You don't act while charging — enemies climb. Release at the wrong beat and Charge isn't spent.
+
+---
+
+## 3. Boulder — *committed smash / only anti-air tooth*
+
+**Fantasy:** Lob a rock. Slow. Heavy on what it hits. Fliers can dodge the window; it's earth's **only** answer to air.
+
+| Rule | Detail |
+| ---- | ------ |
+| **Target** | Click grid cell (impact landing) |
+| **Timing** | Telegraphed delay → impact (not Fireball-instant) |
+| **Damage** | Scales with Charge spent; **weak if Charge low** |
+| **AoE** | Small (tighter than Fireball) |
+| **Fliers** | Can be hit **if** still in the blast volume at impact — no bonus; intended **soft** anti-air (school's only tool) |
+| **Spend** | Spends Charge (amount TBD — fixed 1 vs choose 1…N) |
+
+---
+
+## 4. Earthquake — *structural cascade* (redesigned)
+
+**Fantasy:** Pick a **point on your tower**. The quake runs **up the backbone to that point** — rooms on the cascading chain are punished; climbers clinging to that segment get obliterated. Spare branches stay healthy. **Build shape matters.**
+
+### Targeting
+
+| Rule | Detail |
+| ---- | ------ |
+| **Pick** | Click a **room** (or a cell on a room footprint) — the **quake tip** |
+| **Path** | Compute a cascade path **from the foundation (ground-supported mass) up to the tip** along connected rooms (support tree / BFS from ground → tip) |
+| **In cascade** | Every room **on that path** takes room HP damage (tunable; **intentional** tower risk) |
+| **Out of cascade** | Rooms **not** on the path are **untouched** — alternate spines / buttresses stay as recovery paths |
+
+### Combat effect
+
+| Rule | Detail |
+| ---- | ------ |
+| **Enemy damage** | **Heavy** to enemies whose exterior position is adjacent / on the faces of rooms **in the cascade** (especially near the tip — "lots of damage at that point in the structure") |
+| **Charge** | Spends Charge — damage (enemies + rooms) **scales with Charge spent** (dump all recommended) |
+| **Fliers** | Off the shell → miss (except if somehow overlapping — treat as miss). Boulder is their weak answer |
+| **0 Charge** | Cannot cast (or negligible — recommend **cannot cast**) |
+
+### Tower identity payoff
 
 ```
-Fault on choke → packs tread → Charge climbs
-Fortify when Charge mid → Charge races
-Boulder spends some Charge on a brute face
-Earthquake empties remainder when ground is crowded
+Thin spine to a high tip  →  Quake hits one path hard; tip rooms get hurt; climbers on spine suffer
+Wide / branched tower     →  Quake one backbone; spare wings survive; pathfinding still has routes
+Strong rooms at choke tip →  You can afford Quake there
+Glass tip                 →  Quake risks collapsing your own perch approach
 ```
 
-Or:
+This is earth's **architectural** spell — fire/air don't ask "which column am I willing to crack?"
+
+### Cascade algorithm (implementation sketch — lock behavior first)
+
+1. Tip room R = room under click.  
+2. Build set of rooms reachable walking **down** support / adjacency toward ground (or: shortest path in room-adjacency graph from any ground-supported room to R, preferring downward supports).  
+3. Damage rooms in set; damage enemies near room footprints in set.  
+4. Tip gets **heavier** enemy damage (optional weighting).  
+
+Exact support-graph vs simple “all rooms with `origin.row ≤ tip.row` in the same connected component** is an open question — favor **true structural path** so branches aside work.
+
+---
+
+## Typical sequences
 
 ```
-Fortify early → Boulder (empowered) → Fault refill → Earthquake dump
+Fault on climb choke → packs stream past → Charge ticks per pass
+Fortify → Charge races (invuln while you wait)
+Break Fortify into Boulder → delete a cluster on a face
+OR
+Fault → Fortify → Earthquake on a fortified choke column → rooms along spine chip, climbers on that segment die
+Spare wing of tower still stands for the next climb
 ```
 
 ---
 
-## Contrast check — not a reskin
+## School vs fliers (locked direction)
 
-| Temptation | Why we refuse |
-| ---------- | -------------- |
-| Earth Kindling | Fault generates **Charge**, never arms a fire-style detonate |
-| Earth Fireball | Boulder is **delayed + Charge-scaled**, not instant blanket |
-| Earth Wall of Flame | No timed damage lane; earth denies with **weight** (slow/stun) not zone burn |
-| Earth Gust | Earthquake / Boulder do not shove; they **hit / stun** grounded |
-| Earth Tornado | No eject/block eject; Charge meter is the structure |
-
----
-
-## Dev / hotbar
-
-Extend existing **dev school picker**: fire ↔ air ↔ **earth**.
-
-Playtest: all **4 earth spells** on hotbar when earth selected.
+| Tool | vs Fliers |
+| ---- | --------- |
+| Fault | No (don't pass shell) |
+| Fortify | No combat |
+| Boulder | **Weak yes** — only earth tool; telegraphed |
+| Earthquake | **No** — structural / shell |
 
 ---
 
-## OUT OF SCOPE (when implementing later)
+## Contrast check
 
-- Water school  
-- Rebalancing fire/air  
-- Spell shop / unlocks  
-- Room mana / Mana Well  
-- 5th earth spell  
-- Room HP friendly-fire from Earthquake **unless** we explicitly lock it in (see open questions)
+| Temptation | Rejected |
+| ---------- | -------- |
+| Earth Kindling | Fault feeds Charge per **pass**, no detonate |
+| Global Quake | Quake is **pick a tower point** + cascade, not whole-board |
+| Fortify = free buff | Must concentrate — frozen, no casts |
+| Earth Gust | Quake does not shove; it **cracks structure** |
 
 ---
 
-## Open questions — answer before LOCKED
+## Decisions already locked from chat
 
-### Thread
+| Topic | Locked |
+| ----- | ------ |
+| Charge location | Wizard meter |
+| Fault feed | **Per pass** over patch |
+| Fortify | Concentration: Charge while held; **no spells**; **damage immune**; ends when you go |
+| Earthquake | Pick spot; cascade rooms **up to** that point; room damage + heavy unit damage on that segment |
+| Fliers | Soft Boulder only |
+| Roster | Fault / Fortify / Boulder / Earthquake |
 
-**E1. Charge build sources?**  
-- [ ] **A.** Fault only (pure trap → meter)  
-- [ ] **B.** Fault + Fortify (idle regen while Fortified)  
-- [ ] **C.** Fault + Fortify + small amount on any earth cast  
+---
 
-**E2. Max Charge?**  
-- [ ] **A.** Cap of 3 (simple dumps)  
-- [ ] **B.** Cap of 5 (more granular Boulder spends)  
-- [ ] **C.** Other: ___  
+## Remaining open questions
 
-**E3. Wave reset?**  
-- [ ] **A.** Charge → 0 each wave (recommended)  
-- [ ] **B.** Carry up to 1 leftover  
+### Fault
+
+**E1.** Fault slow?  
+- [ ] **A.** Pure Charge feeder (no slow) — recommended  
+- [ ] **B.** Mild slow + Charge on pass  
+
+**E2.** Fault placement?  
+- [ ] **A.** Ortho-adjacent empty cell (like Kindling) — recommended  
+- [ ] **B.** Ground-row only  
+
+**E3.** Multiple Fault patches?  
+- [ ] **A.** Several with spell CD (like Kindling)  
+- [ ] **B.** One global at a time  
 
 ### Fortify
 
-**E4. Fortify form?**  
-- [ ] **A.** Timed duration buff  
-- [ ] **B.** Toggle (mana drain until off)  
-- [ ] **C.** Timed, and **consumes when first Charge-spend lands**  
+**E4.** Exit UX?  
+- [ ] **A.** Selecting/casting any spend spell **auto-breaks** Fortify then casts — recommended  
+- [ ] **B.** Must toggle Fortify off first  
+- [ ] **C.** Esc breaks Fortify only (safe cancel) + A for cast  
 
-**E5. Fortify empowerment?**  
-- [ ] **A.** Next Boulder or Earthquake only  
-- [ ] **B.** Whole duration — all Charge spends empowered  
+**E5.** Does Fortify pause Wand Strike?  
+- [ ] **A.** Yes (full concentration) — recommended  
+- [ ] **B.** Wand Strike still fires  
 
 ### Boulder
 
-**E6. Boulder Charge spend?**  
-- [ ] **A.** Fixed spend (e.g. 1) — always same unless Fortified  
-- [ ] **B.** Player chooses spend 1…N at cast (charge UI)  
-- [ ] **C.** Auto-spend all but leave 1 for Quake floor  
+**E6.** Charge spend mode?  
+- [ ] **A.** Fixed spend (e.g. 1)  
+- [ ] **B.** Spend all Charge on Boulder  
+- [ ] **C.** Choose 1…N at cast  
 
-**E7. Boulder miss?**  
-- [ ] **A.** Full miss if no enemy in impact  
-- [ ] **B.** Still hits empty ground (waste) but Charge spent either way  
-- [ ] **C.** Slight seeking to nearest enemy in 1 cell  
+**E7.** Impact timing?  
+- [ ] **A.** Short delay (~0.4–0.6s)  
+- [ ] **B.** Longer delay so climbing reads matter (~1s+)  
 
 ### Earthquake
 
-**E8. Grounded definition?**  
-- [ ] **A.** `pos.row === 0` only  
-- [ ] **B.** Any exterior surface (including walls) but **not** airborne  
-- [ ] **C.** Ground row + ground-adjacent Fault cells  
+**E8.** Cascade path definition?  
+- [ ] **A.** Support path: rooms connecting tip **down to ground** along supported adjacency (branches off-path safe) — recommended  
+- [ ] **B.** All rooms with row ≤ tip row in same tower mass (simpler, less interesting)  
+- [ ] **C.** Click cell marks a horizontal “fault line”; all rooms above it cascade separately  
 
-**E9. At 0 Charge?**  
-- [ ] **A.** Cannot cast  
-- [ ] **B.** Cast allowed but negligible effect  
-- [ ] **C.** Cast allowed — small quake + builds 1 Charge (odd — default avoid)  
+**E9.** Tip enemy damage vs rooms on path?  
+- [ ] **A.** Tip segment **heavier** unit damage; path rooms equal room chip  
+- [ ] **B.** Uniform unit damage along whole cascade  
+- [ ] **C.** Only tip footprint enemies take unit damage; path rooms take HP damage  
 
-**E10. Room / tower shock?**  
-- [ ] **A.** No room damage (consistent with fire)  
-- [ ] **B.** Light room chip on all rooms (big-move risk)  
-- [ ] **C.** Chip only if Charge ≥ threshold  
+**E10.** Room damage severity?  
+- [ ] **A.** Light chip (never collapses easily)  
+- [ ] **B.** Meaningful — Quake risks cracking glass chokes  
+- [ ] **C.** Scales with Charge so empty Quake chips little  
 
-### Fault vs Kindling UX
+**E11.** Can Quake destroy a room (HP → 0)?  
+- [ ] **A.** Yes — rooms can be sold-by-quake (huge drama)  
+- [ ] **B.** Floor at 1 HP — damage but never remove (safer for prototype)  
 
-**E11. Fault placement?**  
-- [ ] **A.** Same rule as Kindling (ortho adjacent empty cell)  
-- [ ] **B.** Ground-row only  
-- [ ] **C.** Exterior node pick  
+**E12.** Charge spend on Quake?  
+- [ ] **A.** Always dump **all** Charge  
+- [ ] **B.** Require min Charge to cast; dump all  
 
-### Kit size / names
+### Meter
 
-**E12. Spell names OK?** Fault / Fortify / Boulder / Earthquake — or rename any?
+**E13.** Max Charge?  
+- [ ] **A.** 3  
+- [ ] **B.** 5  
+- [ ] **C.** Other  
 
-**E13. Four spells locked as this roster?**  
-- [ ] **A.** Yes — refine only rules  
-- [ ] **B.** Swap one out (suggest: ___)  
+**E14.** Wave reset Charge → 0?  
+- [x] **A.** Yes (assumed)  
 
 ---
 
 ## After LOCKED
 
-1. Fill IN SCOPE / implementation order (mirror air).  
+1. Write IN SCOPE / OUT OF SCOPE + implement order.  
 2. Branch `cursor/implement-earth-school-cb99`.  
-3. Agent: implement **only** this plan.  
-4. Extend school picker fire | air | earth.  
+3. Extend school picker: fire | air | **earth**.  
+4. Room damage + cascade needs careful tests (tower graph).
 
 ---
 
-## File location
+## File
 
-`.cursor/plans/spell_school_earth.plan.md` — branch `cursor/earth-school-spell-plan-cb99`
+`.cursor/plans/spell_school_earth.plan.md` — branch `cursor/earth-school-spell-plan-cb99` · PR for review
