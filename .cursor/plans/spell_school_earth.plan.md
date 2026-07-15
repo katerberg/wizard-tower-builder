@@ -12,7 +12,7 @@ todos:
     content: Fault patch — ortho-adjacent; Charge per enemy pass; multi-patch + CD; no slow
     status: pending
   - id: fortify
-    content: Fortify concentration — invuln, Charge tick, no casts, pause Wand Strike; auto-break into next cast
+    content: Fortify concentration — 25% damage taken, Charge tick, no casts, pause Wand Strike; auto-break into next cast
     status: pending
   - id: boulder
     content: Boulder — short delay; spend all Charge; miss continues falling at angle and hits next obstacle
@@ -62,7 +62,7 @@ Earth is the **investment school**: Charge lives on **you**. Crack the climb, co
 | ---- | ------- |
 | **Charge** | Wizard meter; builds from Fault + Fortify; spends on Boulder / Earthquake; reset each wave |
 | **Fault** | Trap patch; Charge **per enemy pass**; several patches + CD; no slow |
-| **Fortify** | Concentration: invuln + Charge tick; no cast; pause Wand Strike; next cast auto-breaks then casts |
+| **Fortify** | Concentration: take **25% damage**; Charge tick; no cast; pause Wand Strike; next cast auto-breaks then casts |
 | **Boulder** | Short delay; spend **all** Charge; on miss, rock keeps falling at an angle and crashes into whatever it hits |
 | **Earthquake** | Click tip room; support-spine cascade to ground; enemies along path take damage (tip heavier); rooms take substantial HP (~3 Quakes to collapse); dump all Charge |
 | **School picker** | Dev toggle fire \| air \| **earth** |
@@ -100,7 +100,7 @@ Implement ONLY .cursor/plans/spell_school_earth.plan.md
 
 1. Charge meter + wave reset + HUD when earth school active  
 2. Fault (pass detection + multi-patch CD)  
-3. Fortify (invuln, pause Wand Strike, auto-break into cast)  
+3. Fortify (25% damage taken, pause Wand Strike, auto-break into cast)  
 4. Boulder (delay + spend-all + miss fall continuation)  
 5. Earthquake (support cascade + room/enemy damage + collapse)  
 6. School picker + hotbar earth kit  
@@ -139,7 +139,7 @@ Implement ONLY .cursor/plans/spell_school_earth.plan.md
 | Rule | Locked |
 | ---- | ------ |
 | Enter | Cast Fortify → Fortified |
-| While held | **Damage immune**; **cannot cast**; Charge ticks; **Wand Strike paused** (E5:A) |
+| While held | Take **25% incoming damage** (not immune); **cannot cast**; Charge ticks; **Wand Strike paused** (E5:A) |
 | Exit / go | Next spend cast **auto-breaks Fortify then casts** (E4:A). Esc can cancel Fortify without casting |
 | Ends also | Wave end |
 
@@ -182,7 +182,7 @@ After room destruction, reuse existing tower validity / path refresh rules so cl
 
 ```
 Fault on choke → passes feed Charge
-Fortify → Charge races (invuln)
+Fortify → Charge races (mitigated hits at 25%)
 Break into Boulder (dump Charge) → delayed hit / miss-fall crash
 OR
 Fault + Fortify → Earthquake on choke spine → path climbers die; rooms chip (~⅓ HP each)
@@ -200,6 +200,7 @@ Spare wing of tower still stands
 | E3 | Multiple Fault patches + spell CD |
 | E4 | Auto-break Fortify into next cast |
 | E5 | Fortify pauses Wand Strike |
+| E5b | Fortify is **not** immune — incoming damage × **0.25** |
 | E6 | Boulder spends **all** Charge |
 | E7 | Short delay; **miss → continues falling at angle until crash** |
 | E8 | Support-spine cascade tip → ground |
