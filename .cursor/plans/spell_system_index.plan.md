@@ -15,10 +15,10 @@ Use this file to **orient**, not to **implement**. Each elemental school has its
 
 | Goal | Read this | Do NOT read |
 | ---- | --------- | ----------- |
-| **Implement fire** | [`spell_school_fire.plan.md`](./spell_school_fire.plan.md) only | Air/water/earth plans, old phase-2 bulk plan |
-| **Plan air** (next) | [`spell_school_air.plan.md`](./spell_school_air.plan.md) | Fire implementation details (except “what exists on main”) |
+| **Implement fire** | [`spell_school_fire.plan.md`](./spell_school_fire.plan.md) only | Other schools’ plans while coding |
+| **Implement air** | [`spell_school_air.plan.md`](./spell_school_air.plan.md) only | Other schools |
+| **Plan / implement earth** | [`spell_school_earth.plan.md`](./spell_school_earth.plan.md) | Fire/air design internals |
 | **Plan water** | `spell_school_water.plan.md` *(future)* | Other schools |
-| **Plan earth** | `spell_school_earth.plan.md` *(future)* | Other schools |
 | **Understand mana/hotbar baseline** | [`spell_system_phase1_fireball.plan.md`](./spell_system_phase1_fireball.plan.md) | — |
 
 ---
@@ -110,10 +110,10 @@ Same process as fire: distinct mechanics per spell, no copying Kindled, lock beh
 | Order | Status | Plan |
 | ----- | ------ | ---- |
 | Phase 1 | ✅ on `main` | phase1 — mana, Fireball, hotbar |
-| **Fire** | 🔒 LOCKED, ready to implement | `spell_school_fire.plan.md` |
-| **Air** | 🔒 LOCKED, ready to implement | `spell_school_air.plan.md` |
+| **Fire** | ✅ implemented | `spell_school_fire.plan.md` |
+| **Air** | ✅ implemented | `spell_school_air.plan.md` |
+| **Earth** | 🔒 LOCKED, ready to implement | `spell_school_earth.plan.md` |
 | Water | ⏳ future | TBD |
-| Earth | ⏳ future | TBD |
 
 ---
 
