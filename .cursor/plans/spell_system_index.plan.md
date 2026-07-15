@@ -112,7 +112,7 @@ Same process as fire: distinct mechanics per spell, no copying Kindled, lock beh
 | Phase 1 | ✅ on `main` | phase1 — mana, Fireball, hotbar |
 | **Fire** | ✅ implemented | `spell_school_fire.plan.md` |
 | **Air** | ✅ implemented | `spell_school_air.plan.md` |
-| **Earth** | 📝 planning (NOT LOCKED) | `spell_school_earth.plan.md` |
+| **Earth** | 🔒 LOCKED, ready to implement | `spell_school_earth.plan.md` |
 | Water | ⏳ future | TBD |
 
 ---
