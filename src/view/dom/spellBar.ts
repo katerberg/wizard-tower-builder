@@ -1,5 +1,5 @@
 import { getSpell } from '@/model/spells';
-import { selectMana, selectSpellBar } from '@/store/selectors';
+import { selectEarthCharge, selectMana, selectSpellBar } from '@/store/selectors';
 import type { Store } from '@/store/store';
 
 function renderSlot(
@@ -76,17 +76,29 @@ export function createSpellBar(root: HTMLElement, store: Store): () => void {
     const inAttack = game.phase === 'attack';
     const { current, max, label } = selectMana(snapshot);
     const slots = selectSpellBar(snapshot);
+    const earth = game.activeSpellSchool === 'earth' ? selectEarthCharge(snapshot) : null;
     const hint = inAttack
-      ? 'Press 1–6 or click a slot · click grid to cast · Esc cancels · Wand Strike auto-fires'
+      ? earth
+        ? 'Earth: Fault feeds Charge · Fortify to concentrate · Esc cancels Fortify'
+        : 'Press 1–6 or click a slot · click grid to cast · Esc cancels · Wand Strike auto-fires'
       : 'Mana refills each wave · spells activate during attack';
 
+    const chargeBar = earth
+      ? `<div class="mana-bar charge-bar">
+        <span class="mana-label">Charge</span>
+        <div class="mana-track"><div class="mana-fill" style="width:${(earth.current / earth.max) * 100}%;background:#a0aec0"></div></div>
+        <span class="mana-text">${earth.label}</span>
+      </div>`
+      : '';
+
     root.innerHTML = `
-      <h2>Spells</h2>
+      <h2>Spells (${game.activeSpellSchool})</h2>
       <div class="mana-bar">
         <span class="mana-label">Mana</span>
         <div class="mana-track"><div class="mana-fill" style="width:${(current / max) * 100}%"></div></div>
         <span class="mana-text">${label}</span>
       </div>
+      ${chargeBar}
       <div class="spell-bar">${slots.map((slot) => renderSlot(slot, inAttack)).join('')}</div>
       <p class="hint">${hint}</p>`;
   };

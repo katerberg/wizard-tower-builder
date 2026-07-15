@@ -28,8 +28,9 @@ import {
   getEffectiveWizardPosition,
   blizzardZoneCells,
 } from '@/model/spells';
+import { MAX_CHARGE } from '@/model/spells/earth/constants';
 import { aoeCells } from '@/model/spells/fireball';
-import { canPlace, getUnstableRoomIds, towersEqual } from '@/model/tower';
+import { canPlace, getUnstableRoomIds, roomAt, towersEqual } from '@/model/tower';
 import { getBuildTool } from '@/static/buildTools';
 import type {
   Blueprint,
@@ -397,6 +398,25 @@ export function selectMana(snapshot: Snapshot): ManaState {
   };
 }
 
+export interface ChargeState {
+  current: number;
+  max: number;
+  fortified: boolean;
+  label: string;
+}
+
+export function selectEarthCharge(snapshot: Snapshot): ChargeState {
+  const { game } = snapshot;
+  const current = game.earthCharge ?? 0;
+  const max = MAX_CHARGE;
+  return {
+    current,
+    max,
+    fortified: game.fortified === true,
+    label: `${current} / ${max}${game.fortified ? ' · Fortified' : ''}`,
+  };
+}
+
 export interface SpellBarSlot {
   hotkey: number;
   id: string | null;
@@ -455,8 +475,11 @@ export function selectSpellBar(snapshot: Snapshot): SpellBarSlot[] {
 
     const onCooldown = spellCooldownRemaining(game, spell.id) > 0;
     const noMana = game.player.mana < spell.manaCost;
+    const check = canCastSpell(game, spell.id);
     let disabledReason: string | null = null;
-    if (onCooldown) disabledReason = 'cooldown';
+    if (!check.ok && (check.reason === 'concentrating' || check.reason === 'no_charge')) {
+      disabledReason = check.reason === 'no_charge' ? 'no charge' : 'fortified';
+    } else if (onCooldown) disabledReason = 'cooldown';
     else if (noMana) disabledReason = 'no mana';
 
     slots.push({
@@ -467,7 +490,7 @@ export function selectSpellBar(snapshot: Snapshot): SpellBarSlot[] {
       manaCost: spell.manaCost,
       cooldownRemaining: spellCooldownRemaining(game, spell.id),
       selected: view.selectedSpellId === spell.id,
-      enabled: !onCooldown && !noMana,
+      enabled: disabledReason == null,
       disabledReason,
       empty: false,
     });
@@ -510,6 +533,17 @@ export function selectCastPreview(snapshot: Snapshot): CastPreview | null {
     const result = canCastSpell(game, spellId, { kind: 'cell', cell: view.hoveredCell });
     return {
       cells: [view.hoveredCell],
+      valid: result.ok,
+      reason: result.ok ? 'ok' : result.reason,
+    };
+  }
+
+  if (spell.targeting === 'room') {
+    const result = canCastSpell(game, spellId, { kind: 'cell', cell: view.hoveredCell });
+    const room = roomAt(game.tower, view.hoveredCell.col, view.hoveredCell.row);
+    const cells = room ? roomCells(room.origin, room.size) : [view.hoveredCell];
+    return {
+      cells,
       valid: result.ok,
       reason: result.ok ? 'ok' : result.reason,
     };

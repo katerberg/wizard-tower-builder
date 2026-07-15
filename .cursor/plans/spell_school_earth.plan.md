@@ -4,31 +4,31 @@ overview: LOCKED earth school — Charge on wizard, Fault (pass feeds), Fortify 
 todos:
   - id: scope-check
     content: Confirm IN SCOPE only — no water/fire/air redesign; extend school picker only
-    status: pending
+    status: completed
   - id: charge-meter
     content: Wizard Charge meter on GameState; HUD; wave reset to 0
-    status: pending
+    status: completed
   - id: fault
     content: Fault patch — ortho-adjacent; Charge per enemy pass; multi-patch + CD; no slow
-    status: pending
+    status: completed
   - id: fortify
     content: Fortify concentration — 25% damage taken, Charge tick, no casts, pause Wand Strike; auto-break into next cast
-    status: pending
+    status: completed
   - id: boulder
     content: Boulder — short delay; spend all Charge; miss continues falling at angle and hits next obstacle
-    status: pending
+    status: completed
   - id: earthquake
     content: Earthquake — pick tip room; support-spine cascade to ground; enemy + room damage; ~3 Quakes to collapse a room
-    status: pending
+    status: completed
   - id: school-picker
     content: Extend dev school picker fire | air | earth
-    status: pending
+    status: completed
   - id: tests-earth
     content: Colocated tests — Charge, Fault pass, Fortify, Boulder miss fall, Quake cascade
-    status: pending
+    status: completed
   - id: verify
     content: npm test && npm run lint
-    status: pending
+    status: completed
 isProject: false
 ---
 

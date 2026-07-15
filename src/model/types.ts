@@ -197,7 +197,27 @@ export interface WizardFlight {
   descendTimer?: number;
 }
 
-export type SpellSchool = 'fire' | 'air';
+/** Earth school — Fault trap (Charge per pass). */
+export interface FaultPatch {
+  col: number;
+  row: number;
+  expiresAt: number;
+}
+
+/** Earth school — pending Boulder projectile. */
+export interface PendingBoulder {
+  aimCol: number;
+  aimRow: number;
+  chargeSpent: number;
+  impactAt: number;
+  phase: 'aimed' | 'falling';
+  col: number;
+  row: number;
+  fallDir?: number;
+  nextFallAt?: number;
+}
+
+export type SpellSchool = 'fire' | 'air' | 'earth';
 
 export type SimSpeed = 1 | 2 | 4;
 
@@ -242,6 +262,15 @@ export interface GameState {
   blizzardZones: BlizzardZone[];
   tornadoEnterDone: Record<string, true>;
   wizardFlight?: WizardFlight;
+  /** Earth school — Charge meter (0…max). */
+  earthCharge: number;
+  /** Earth school — Fault patches. */
+  faultPatches: FaultPatch[];
+  /** Earth school — Fortify concentration. */
+  fortified: boolean;
+  fortifyChargeAccum: number;
+  /** Earth school — in-flight boulders. */
+  pendingBoulders: PendingBoulder[];
   /** Dev playtest: which spell kit is on the hotbar. */
   activeSpellSchool: SpellSchool;
   /** Attack-phase boiler production state. */
