@@ -64,6 +64,7 @@ export class Renderer {
     this.drawCastPreview(snapshot, scrollY, viewportHeight);
     this.drawFireEffects(snapshot, scrollY, viewportHeight);
     this.drawAirEffects(snapshot, scrollY, viewportHeight);
+    this.drawEarthEffects(snapshot, scrollY, viewportHeight);
     if (snapshot.game.devMode) this.drawPaths(snapshot, scrollY, viewportHeight);
     const wizardPos = selectWizardPosition(snapshot);
     this.drawEnemies(snapshot, wizardPos, scrollY, viewportHeight, 'climbers');
@@ -551,6 +552,48 @@ export class Renderer {
         }
       }
       ctx.globalAlpha = 1;
+    }
+  }
+
+  private drawEarthEffects(snapshot: Snapshot, scrollY: number, viewportHeight: number): void {
+    const { game } = snapshot;
+    const { ctx } = this;
+
+    for (const patch of game.faultPatches ?? []) {
+      if (patch.expiresAt <= game.waveTimer) continue;
+      const { x, y } = cellTopLeft(patch.col, patch.row, scrollY, viewportHeight);
+      ctx.globalAlpha = 0.75;
+      ctx.fillStyle = colors.faultPatch;
+      ctx.fillRect(x + 4, y + 4, CELL_SIZE - 8, CELL_SIZE - 8);
+      ctx.strokeStyle = '#718096';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x + 4, y + 4, CELL_SIZE - 8, CELL_SIZE - 8);
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = '#2d3748';
+      ctx.font = `${Math.floor(CELL_SIZE * 0.4)}px monospace`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('F', x + CELL_SIZE / 2, y + CELL_SIZE / 2);
+    }
+
+    for (const boulder of game.pendingBoulders ?? []) {
+      const { x, y } = cellTopLeft(boulder.col, boulder.row, scrollY, viewportHeight);
+      ctx.globalAlpha = 0.9;
+      ctx.fillStyle = colors.boulder;
+      ctx.beginPath();
+      ctx.arc(x + CELL_SIZE / 2, y + CELL_SIZE / 2, CELL_SIZE * 0.28, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+
+    if (game.fortified) {
+      const wizardPos = selectWizardPosition(snapshot);
+      const { x, y } = cellCenter(wizardPos.col, wizardPos.row, scrollY, viewportHeight);
+      ctx.strokeStyle = '#a0aec0';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(x, y, CELL_SIZE * 0.48, 0, Math.PI * 2);
+      ctx.stroke();
     }
   }
 

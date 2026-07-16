@@ -2,8 +2,10 @@ import { addMessage } from '@/model/messages';
 import {
   canCastSpell,
   castSpell,
+  clearFortify,
   enemyAtCell,
   getSpell,
+  isFortified,
 } from '@/model/spells';
 import type { HandlerContext } from '../context';
 import type { Intent } from '../intents';
@@ -12,6 +14,13 @@ export function handleSpellIntent(ctx: HandlerContext, intent: Intent): void {
   switch (intent.type) {
     case 'selectSpell':
       if (ctx.game.phase === 'attack') {
+        if (intent.spellId) {
+          const spell = getSpell(intent.spellId);
+          if (spell?.targeting === 'self') {
+            handleCastAt(ctx, intent.spellId, { col: 0, row: 0 });
+            return;
+          }
+        }
         ctx.view.selectedSpellId = intent.spellId;
         ctx.view.castAnchor = null;
       }
@@ -19,6 +28,9 @@ export function handleSpellIntent(ctx: HandlerContext, intent: Intent): void {
     case 'cancelCast':
       ctx.view.selectedSpellId = null;
       ctx.view.castAnchor = null;
+      if (isFortified(ctx.game)) {
+        clearFortify(ctx.game, 'Fortify cancelled.');
+      }
       break;
     case 'castSpellAt':
       handleCastAt(ctx, intent.spellId, intent.cell);

@@ -22,11 +22,14 @@ import {
   blizzardSlowMultiplier,
   getEffectiveWizardPosition,
   isMacroCellBlockedByTornado,
+  mitigateWizardDamage,
   onEnemyWallStep,
   runAutoSpells,
+  runFaultPatchStepEffects,
   runKindlingPatchStepEffects,
   shouldStubDiscombobulatedStep,
   tickAirEffects,
+  tickEarthEffects,
   tickFireEffects,
   tickSpellCooldowns,
 } from './spells';
@@ -81,6 +84,11 @@ export function createInitialState(seed: string | number = 'wizard'): GameState 
     tornadoSegments: [],
     blizzardZones: [],
     tornadoEnterDone: {},
+    earthCharge: 0,
+    faultPatches: [],
+    fortified: false,
+    fortifyChargeAccum: 0,
+    pendingBoulders: [],
     activeSpellSchool: 'fire',
     boilerRuntime: {},
     steamTurretRuntime: {},
@@ -238,8 +246,9 @@ export function step(state: GameState, dt: number): void {
         if (result.dodged) {
           addMessage(state, `The wizard dodges ${enemy.name} the ${template.type}.`, 'combat');
         } else {
-          wizard.hp = Math.max(0, wizard.hp - result.damage);
-          addMessage(state, `${enemy.name} the ${template.type} hits the wizard for ${result.damage}.`, 'combat');
+          const dealt = mitigateWizardDamage(state, result.damage);
+          wizard.hp = Math.max(0, wizard.hp - dealt);
+          addMessage(state, `${enemy.name} the ${template.type} hits the wizard for ${dealt}.`, 'combat');
         }
         enemy.attackCooldown = ENEMY_ATTACK_COOLDOWN;
       }
@@ -263,6 +272,7 @@ export function step(state: GameState, dt: number): void {
       enemy.moveCooldown = (1 / template.speed) * blizzardSlowMultiplier(state, enemy);
       runEnemyStepEffects(state, enemy);
       runKindlingPatchStepEffects(state, enemy);
+      runFaultPatchStepEffects(state, enemy);
       onEnemyWallStep(state, enemy);
     }
   }
@@ -271,6 +281,7 @@ export function step(state: GameState, dt: number): void {
   runAutoSpells(state);
   tickFireEffects(state, dt, (spellName) => buildSpellContext(state, spellName));
   tickAirEffects(state, dt, (spellName) => buildSpellContext(state, spellName));
+  tickEarthEffects(state, dt, (spellName) => buildSpellContext(state, spellName));
 
   // Staff movement and laborer repairs during attack.
   stepStaff(state, dt);

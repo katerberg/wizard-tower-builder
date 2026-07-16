@@ -21,7 +21,7 @@ export function createHud(root: HTMLElement, store: Store): () => void {
     if (!action) return;
     if (action === 'devSetSpellSchool') {
       const school = target.dataset.school;
-      if (school === 'fire' || school === 'air') {
+      if (school === 'fire' || school === 'air' || school === 'earth') {
         store.dispatch({ type: 'devSetSpellSchool', school });
       }
       return;
@@ -97,6 +97,7 @@ export function createHud(root: HTMLElement, store: Store): () => void {
          <div class="dev-row">
            <button data-action="devSetSpellSchool" data-school="fire" ${game.activeSpellSchool === 'fire' ? 'disabled' : ''}>Fire school</button>
            <button data-action="devSetSpellSchool" data-school="air" ${game.activeSpellSchool === 'air' ? 'disabled' : ''}>Air school</button>
+           <button data-action="devSetSpellSchool" data-school="earth" ${game.activeSpellSchool === 'earth' ? 'disabled' : ''}>Earth school</button>
          </div>`
       : '';
 

@@ -108,6 +108,8 @@ export const colors = {
   spellAimOut: 'rgba(197, 48, 48, 0.5)',
   kindlingPatch: 'rgba(236, 201, 75, 0.65)',
   wallFlame: 'rgba(221, 107, 32, 0.45)',
+  faultPatch: 'rgba(160, 174, 192, 0.7)',
+  boulder: 'rgba(113, 128, 150, 0.9)',
   tornadoLane: 'rgba(144, 205, 244, 0.5)',
   blizzardZone: 'rgba(186, 230, 253, 0.35)',
   mana: '#63b3ed',
