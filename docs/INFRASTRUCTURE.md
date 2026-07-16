@@ -12,7 +12,7 @@ Developer-facing architecture for the tower’s **infrastructure layer** — the
 2. **Layered editing** — structure, infra, and workers are separate overlays on the same grid (Maps-style visibility).
 3. **Logistics during attack** — staff spawn from housing at wave start and **move only during the attack phase**; build phase is untimed planning with no movement.
 4. **Separate graphs** — staff pathfind on an interior/infra graph; enemies keep the existing exterior surface graph.
-5. **Fat towers by choice** — one infra occupancy per cell (stair *or* pipe, not both) forces horizontal expansion.
+5. **Fat towers by choice** — one infra occupancy per cell (stair *or* pipe *or* elevator) forces horizontal expansion.
 
 ---
 
@@ -23,7 +23,7 @@ Three tower layers (visibility toggles; workers use glyphs when the layer is on)
 | Layer | Contents | Edit trigger |
 |-------|----------|--------------|
 | **rooms** | Structure blueprints (spire, buttress, housing, slot, turret, …) | Select a structure blueprint |
-| **infra** | Stairs, pipes (elevators future) | Select an infra blueprint / tool |
+| **infra** | Stairs, pipes, elevators | Select an infra blueprint / tool |
 | **workers** | Staff positions during attack (build: allocation UI, not free movement) | Slot/spring headcount; auto-routing at wave start |
 
 `TowerLayer = 'rooms' | 'infra' | 'workers'`.
@@ -40,7 +40,7 @@ infra[col,row]      → InfraKind | null  // at most ONE kind per cell
 ```
 
 ```ts
-type InfraKind = 'stair' | 'pipe'; // elevator: future
+type InfraKind = 'stair' | 'pipe' | 'elevator';
 
 interface InfraCell {
   kind: InfraKind;
@@ -48,7 +48,7 @@ interface InfraCell {
 }
 ```
 
-**Mutual exclusion:** a cell may hold **one staircase *or* one pipe**, never both. Infra may be painted on cells that already have a structure room (“drawn over” the room on the infra layer). This intentionally prevents cramming pipe + stair through a single spire block.
+**Mutual exclusion:** a cell may hold **one** of staircase, pipe, or elevator — never two. Infra may be painted on cells that already have a structure room (“drawn over” the room on the infra layer). This intentionally prevents cramming multiple infra kinds through a single spire block.
 
 **Future damage model:** pipes inside a room footprint are logically protected when external bombs hit the room shell first (not implemented yet).
 
@@ -121,14 +121,28 @@ Baseline: one soldier at 100% ≈ one magic turret shot (turrets cost **1 mana**
 
 **Status:** Typed pipes, boilers, steam turrets, mana springs, and magic-turret mana are shipped.
 
-### Elevator (`elevator`) — future
+### Elevator (`elevator`)
 
 | Property | Value |
 |----------|--------|
-| Placement | Start and end on a strictly vertical line |
-| Speed | **2×** horizontal baseline |
-| Throughput | Platform carries multiple staff; wait at landings |
+| Cost | More expensive than stairs (infra blueprint; exact constant tunable) |
+| Placement | Paint ad hoc like stairs; **contiguous cells in one column = one shaft**; a gap splits into **two shafts** |
+| Adjacent columns | Always separate shafts (transfer by walking off one, onto the other) |
+| Boarding | **Any** elevator cell (board/exit in place) |
+| Capacity | Up to **6** staff per car; **one car per shaft** |
+| Leave rule | At a stop, board all eligible waiters until full or queue empty, **then** leave |
+| Empty car | **Park at last stop**; travel empty when **called** |
+| Mid-route pickup | **Yes** — stop if capacity remains and waiters want the **same direction** |
+| Horizontal | Elevator cells are **walkable horizontally** (like stairs) |
+| Vertical | **No free climbing** — vertical travel only inside the car |
+| Speed | Faster than stairs (~**5×** stair intent; exact constant tunable) |
 | Exclusion | Same cell mutual exclusion as stairs/pipes |
+
+**Shaft discovery:** contiguous `(col, row)` runs of `kind: 'elevator'`. Wave start spawns one car per shaft parked at the **bottom** cell.
+
+**Dispatch defaults:** among calls, serve the **nearest** floor (tie-break longest wait). Trip direction is set by the **first boarded** passenger’s exit. Only same-direction waiters board; opposite-direction waiters stay queued.
+
+**Occupancy:** riders share the car cell; waiters **stack** on landing cells (exceptions to one-staffer-per-cell).
 
 ### Passability flag
 
@@ -150,7 +164,7 @@ interface StaffUnit {
   path: Cell[];
   pathIndex: number;
   moveCooldown: number;
-  status: 'idle' | 'moving' | 'stationed' | 'working';
+  status: 'idle' | 'moving' | 'stationed' | 'working' | 'waiting_elevator' | 'riding_elevator';
 }
 ```
 
@@ -202,7 +216,7 @@ Assignment distance uses **Manhattan on room anchors**; each unit then pathfinds
 | Graph | Used by | Walkability |
 |-------|---------|-------------|
 | **Exterior** | Enemies | Empty cells hugging room surfaces |
-| **Interior/infra** | Staff | Structure cells with `passable !== false` + stair infra cells |
+| **Interior/infra** | Staff | Structure cells with `passable !== false` + stair/elevator infra cells |
 
 ### Movement speeds (relative)
 
@@ -210,9 +224,9 @@ Assignment distance uses **Manhattan on room anchors**; each unit then pathfinds
 |------|-------|
 | Horizontal through passable rooms | **1.0×** |
 | Stair vertical | **0.2×** |
-| Elevator (future) | **2.0×** |
+| Elevator car vertical | ~**1.0×** (~5× stairs; tunable) |
 
-Vertical movement requires a stair on the **lower** floor of the step.
+Vertical movement: a **stair** on the lower floor of the step, **or** both cells in the **same elevator shaft** (pathfinding only — runtime riding uses the car).
 
 ### Connectivity validation
 
@@ -228,12 +242,13 @@ Relevant order inside `game.step(dt)` (attack only):
 
 ```
 1. Spawn / tick enemies, wizard, spells (existing)
-2. stepStaff — cell-exclusive movement; shared stair links
-3. tickLaborerRepairs — repair + retarget
-4. runRoomEffects — slots, turrets, mods
-5. tickManaSprings — water + stationed magi
-6. tickBoilers → tickSteamTurrets
-7. Reap enemies, wave clear
+2. stepElevators — car call / empty travel / board / multi-stop
+3. stepStaff — cell-exclusive movement; stairs; elevator wait/ride handoff
+4. tickLaborerRepairs — repair + retarget
+5. runRoomEffects — slots, turrets, mods
+6. tickManaSprings — water + stationed magi
+7. tickBoilers → tickSteamTurrets
+8. Reap enemies, wave clear
 ```
 
 ---
@@ -246,7 +261,7 @@ Relevant order inside `game.step(dt)` (attack only):
 | Housing expansion mods | Modification cost (guardroom / chamber / quarters) |
 | Slot capacity mod | `slotExpansion` (2 → 4) |
 | Wave start upkeep | Per rostered occupant by kind; failure deserts |
-| Stair / pipe placement | Infra blueprint cost |
+| Stair / pipe / elevator placement | Infra blueprint cost |
 
 **Mana** — shared pool; magic turret **1**/shot; springs staffed by magi; boilers drain while producing. See [`PIPES.md`](PIPES.md).
 
@@ -314,7 +329,7 @@ interface GameState {
 | `quartersRoom` | Laborer housing |
 | `slotRoom` | Ranged soldier defense |
 | `manaSpringRoom` | Mana workplace (pipe + magi) |
-| `stair` / `pipe` | Infra kinds |
+| `stair` / `pipe` / `elevator` | Infra kinds |
 
 ---
 
@@ -326,7 +341,7 @@ interface GameState {
 | Guardroom → slot staffing | Shipped |
 | Housing (three types), workers layer, logistics | Shipped — [`HOUSING.md`](HOUSING.md) |
 | Pipes, boilers, steam, mana springs | Shipped — [`PIPES.md`](PIPES.md) |
-| Elevators | Future |
+| Elevators | Shipped |
 | Mid-wave pipe/room network breaks | Deferred |
 | Soldier death / targeting | Deferred |
 
@@ -339,6 +354,8 @@ interface GameState {
 | Infra placement | One kind per cell; exclusion; paint over structure |
 | Interior path | Horizontal through passable room; vertical when lower cell has a stair |
 | Stair throughput | Second climber waits only for the next occupied cell |
+| Elevator shafts | Contiguous column = one shaft; gap = two; adjacent columns separate |
+| Elevator dispatch | Call/empty travel; capacity 6; mid-pickup; no free vertical walk |
 | Auto-assign | Closest housing preferred; unconnected workplaces flagged |
 | Slot combat | Efficiency table; only stationed count |
 | Economy | Wave-start upkeep; unpaid desert |

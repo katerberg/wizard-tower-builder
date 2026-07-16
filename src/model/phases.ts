@@ -1,3 +1,4 @@
+import { clearElevators, initElevators } from './elevators';
 import { prepareWaveNames } from './game';
 import { addMessage } from './messages';
 import { resetBoilerRuntime } from './boilers';
@@ -42,6 +43,7 @@ export function beginWave(state: GameState): void {
   resetBoilerRuntime(state);
   resetSteamTurretRuntime(state);
   deployStaffForWave(state);
+  initElevators(state);
   refillMana(state);
   resetSpellCooldowns(state);
   resetFireState(state);
@@ -66,6 +68,7 @@ export function endWave(state: GameState): void {
   state.waveIndex += 1;
   state.phase = 'build';
   clearStaffAfterWave(state);
+  clearElevators(state);
   state.boilerRuntime = {};
   state.steamTurretRuntime = {};
   captureBuildBaseline(state);

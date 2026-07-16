@@ -1,5 +1,6 @@
 import { getBlueprint } from '@/model/blueprints';
 import { hasInfraKind } from '@/model/infra';
+import { isElevatorVerticalStep } from '@/model/elevators';
 import { roomAt } from '@/model/tower';
 import { inBounds, roomCells } from './grid';
 import type { Cell, Tower } from '@/model/types';
@@ -11,10 +12,11 @@ export function isPassableStructure(tower: Tower, col: number, row: number): boo
   return blueprint?.passable !== false;
 }
 
-/** A cell soldiers may occupy: passable structure and/or stair infra. */
+/** A cell staff may occupy: passable structure and/or stair/elevator infra. */
 export function isSoldierWalkable(tower: Tower, col: number, row: number): boolean {
   if (!inBounds(col, row)) return false;
   if (hasInfraKind(tower, col, row, 'stair')) return true;
+  if (hasInfraKind(tower, col, row, 'elevator')) return true;
   return isPassableStructure(tower, col, row);
 }
 
@@ -27,10 +29,12 @@ export function canSoldierTraverse(tower: Tower, from: Cell, to: Cell): boolean 
   if (dc + dr !== 1) return false;
 
   if (dr > 0) {
-    // A stair on the lower floor reaches the floor above (either direction).
-    // Stair on row N connects N ↔ N+1; it does not connect N-1 → N.
+    // Stair on the lower floor reaches the floor above (either direction).
     const lowerRow = Math.min(from.row, to.row);
-    return hasInfraKind(tower, from.col, lowerRow, 'stair');
+    if (hasInfraKind(tower, from.col, lowerRow, 'stair')) return true;
+    // Elevator: both cells must be elevator infra in the same contiguous shaft.
+    // Runtime forbids free climbing — staff must ride the car — but A* may route through.
+    return isElevatorVerticalStep(tower, from, to);
   }
   return true;
 }

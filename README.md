@@ -172,7 +172,7 @@ Mount points: `#board`, `#stage`, `#hud`, `#library`, `#message-log`, `#modal-ro
 | **Room** | Placed blueprint instance (origin, size, hp, modifications) |
 | **Blueprint** | Room type definition (cost, size, base hp, description) — structure rooms and specialty rooms (Turret, Steam Turret, Gold Mine, housing, Slot, Boiler, Mana Spring, …) |
 | **Modification** | Leveled add-on on a room (spikes, housing/slot/boiler expansions, …) |
-| **Infra layer** | Per-cell overlay (`stair` or `pipe`) on the same grid as rooms; one kind per cell (elevators deferred) |
+| **Infra layer** | Per-cell overlay (`stair`, `pipe`, or `elevator`) on the same grid as rooms; one kind per cell |
 | **Staff** | Mobile units (soldier / mage / laborer) recruited into housing; route to workplaces during attack |
 | **Spell / school** | Hotbar ability spending mana; fire · air · earth kits today (water deferred) |
 | **Layer** | Visibility/edit plane: `rooms`, `infra`, or `workers` (Maps-style toggles) |
@@ -241,22 +241,23 @@ flowchart TB
 | Concept | Behavior |
 |---------|----------|
 | **Layers** | `rooms`, `infra`, `workers` — toggled for display; tool selection drives editing |
-| **Infra granularity** | Same `(col, row)` as rooms; **one** of stair *or* pipe per cell (forces wider towers) |
+| **Infra granularity** | Same `(col, row)` as rooms; **one** of stair *or* pipe *or* elevator per cell (forces wider towers) |
 | **Housing** | Guardroom (soldiers 3→6), chamber (magi 1→2), quarters (laborers 6→12) |
 | **Slot** | Player sets headcount; auto-assign closest; fires during attack (2→4 via mod) |
 | **Mana spring** | Water + stationed magi; regen falls off with more magi (cap 5) |
-| **Stairs** | Cheap ad-hoc infra; **only** way to move vertically; one staffer per cell en route |
+| **Stairs** | Cheap ad-hoc infra; slow vertical; one staffer per cell en route |
+| **Elevators** | Expensive vertical shafts; one car (cap 6); call-to-idle; no free climb |
 | **Movement** | Staff spawn from housing each wave; **attack phase only** |
 | **Pathfinding** | Interior/infra graph for staff; exterior graph for enemies (unchanged) |
 | **Logistics** | Warn-only before wave; hover/click shows broken routes |
 
-**Implementation status:** Housing + staff workplaces shipped (see [`docs/HOUSING.md`](docs/HOUSING.md)). Pipes/boilers/springs shipped ([`docs/PIPES.md`](docs/PIPES.md)). Fire · air · earth spell schools shipped. Elevators and mid-wave pipe breaks remain deferred.
+**Implementation status:** Housing + staff workplaces shipped (see [`docs/HOUSING.md`](docs/HOUSING.md)). Pipes/boilers/springs shipped ([`docs/PIPES.md`](docs/PIPES.md)). Fire · air · earth spell schools shipped. Elevators shipped. Mid-wave pipe breaks remain deferred.
 
 ## Deferred / not in v1
 
 Still not done:
 
-- Elevators; dynamic pipe/network breaks on room destruction
+- Dynamic pipe/network breaks on room destruction
 - Soldier death / targeting; pipe damage
 - Advanced mage tech (research / combat casting) — housing basics shipped in [`docs/HOUSING.md`](docs/HOUSING.md)
 - Multiple currencies beyond gold; roguelike map branching

@@ -7,6 +7,7 @@ import {
 } from '@/config/constants';
 import { sameMacroCell, macroCellOfNode } from '@/calculations/subGrid';
 import { resetStaffCounter, stepStaff, tickLaborerRepairs } from './staff';
+import { stepElevators } from './elevators';
 import { tickBoilers } from './boilers';
 import { tickManaSprings } from './manaSprings';
 import { tickSteamTurrets } from './steamTurrets';
@@ -92,6 +93,7 @@ export function createInitialState(seed: string | number = 'wizard'): GameState 
     activeSpellSchool: 'fire',
     boilerRuntime: {},
     steamTurretRuntime: {},
+    elevators: [],
     buildBaseline: null,
   };
   resetStaffCounter();
@@ -283,7 +285,8 @@ export function step(state: GameState, dt: number): void {
   tickAirEffects(state, dt, (spellName) => buildSpellContext(state, spellName));
   tickEarthEffects(state, dt, (spellName) => buildSpellContext(state, spellName));
 
-  // Staff movement and laborer repairs during attack.
+  // Elevator cars, then staff movement and laborer repairs during attack.
+  stepElevators(state, dt);
   stepStaff(state, dt);
   tickLaborerRepairs(state, dt);
 

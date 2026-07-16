@@ -4,7 +4,7 @@ export interface Modifier { attack?: number; defense?: number; hp?: number }
 
 export type BlueprintCategory = 'structure' | 'infra';
 
-export type InfraKind = 'stair' | 'pipe';
+export type InfraKind = 'stair' | 'pipe' | 'elevator';
 
 export type Fluid = 'water' | 'steam' | 'unassigned';
 
@@ -51,11 +51,17 @@ export interface RoomStats { maxHp: number; attack: number; defense: number }
 export interface Tower {
   rooms: Room[];
   occupancy: Record<string, string>;
-  /** Per-cell infrastructure overlay (stair or pipe, never both). */
+  /** Per-cell infrastructure overlay (stair, pipe, or elevator — never two). */
   infra: Record<string, InfraCell>;
 }
 
-export type StaffStatus = 'idle' | 'moving' | 'stationed' | 'working';
+export type StaffStatus =
+  | 'idle'
+  | 'moving'
+  | 'stationed'
+  | 'working'
+  | 'waiting_elevator'
+  | 'riding_elevator';
 
 export interface StaffUnit {
   id: string;
@@ -68,6 +74,37 @@ export interface StaffUnit {
   pathIndex: number;
   moveCooldown: number;
   status: StaffStatus;
+  /** Shaft being waited on / ridden (elevator statuses). */
+  elevatorShaftId?: string;
+  /** Exit row within the shaft for the current ride. */
+  elevatorExitRow?: number;
+  /** Path index of the exit cell once unloaded. */
+  elevatorExitPathIndex?: number;
+  /** Seconds spent waiting for a car (call priority tie-break). */
+  elevatorWaitElapsed?: number;
+}
+
+export type ElevatorDir = 'up' | 'down' | 'idle';
+
+/** Contiguous vertical run of elevator infra in one column. */
+export interface ElevatorShaft {
+  id: string;
+  col: number;
+  minRow: number;
+  maxRow: number;
+}
+
+/** Attack-phase elevator car (one per shaft). */
+export interface ElevatorCar {
+  shaftId: string;
+  col: number;
+  row: number;
+  dir: ElevatorDir;
+  /** Staff ids currently riding. */
+  passengers: string[];
+  moveCooldown: number;
+  /** Floor the car is traveling toward (empty call or next stop). */
+  targetRow: number | null;
 }
 
 /** @deprecated Prefer StaffUnit. */
@@ -303,6 +340,8 @@ export interface GameState {
   boilerRuntime: Record<string, BoilerRuntime>;
   /** Attack-phase steam turret charge state. */
   steamTurretRuntime: Record<string, SteamTurretRuntime>;
+  /** Attack-phase elevator cars (one per shaft; cleared at wave end). */
+  elevators: ElevatorCar[];
   /** Tower + gold at build-phase start; edits commit on wave start. */
   buildBaseline: BuildBaseline | null;
 }

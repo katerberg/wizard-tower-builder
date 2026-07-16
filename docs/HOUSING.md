@@ -27,6 +27,7 @@ Shared rules:
 - Attack-only movement; spawn from housing at wave start; clear runtime entities at wave end (roster + allocations persist)
 - Auto-assign to workplaces; path via stairs between levels
 - Stair shafts: **one staffer per cell** en route (queues down the column; destination workplaces may stack)
+- Elevator shafts: shared car (cap 6); waiters/riders stack on the car/landing; no free vertical climb
 - Selling housing prunes roster/allocations for that room
 - Build-phase **undo / revert** covers room place/remove, recruit/unrecruit, mods, and workplace allocations
 

@@ -12,6 +12,7 @@ import { roomAnchorCell } from '@/calculations/interiorGraph';
 import { roomCells } from '@/calculations/grid';
 import { computeRoomStats } from '@/calculations/combat';
 import { getBlueprint } from '@/model/blueprints';
+import { planElevatorRide, isElevatorVerticalStep } from '@/model/elevators';
 import { hasInfraKind } from '@/model/infra';
 import { addMessage } from '@/model/messages';
 import { isManaSpringRoom } from '@/model/pipes';
@@ -366,8 +367,15 @@ function isVerticalStep(from: Cell, to: Cell): boolean {
 }
 
 function isCellOccupiedByOtherStaff(state: GameState, cell: Cell, exceptId: string): boolean {
+  // Elevator landings allow stacking; waiters/riders never block cell locks.
+  if (hasInfraKind(state.tower, cell.col, cell.row, 'elevator')) return false;
   return state.staff.some(
-    (s) => s.id !== exceptId && s.pos.col === cell.col && s.pos.row === cell.row,
+    (s) =>
+      s.id !== exceptId &&
+      s.pos.col === cell.col &&
+      s.pos.row === cell.row &&
+      s.status !== 'waiting_elevator' &&
+      s.status !== 'riding_elevator',
   );
 }
 
@@ -375,10 +383,28 @@ function arriveStatus(kind: StaffKind): 'stationed' | 'working' {
   return kind === 'laborer' ? 'working' : 'stationed';
 }
 
+function beginElevatorWait(state: GameState, unit: StaffUnit): boolean {
+  const ride = planElevatorRide(state.tower, unit.path, unit.pathIndex);
+  if (!ride) return false;
+  unit.status = 'waiting_elevator';
+  unit.elevatorShaftId = ride.shaftId;
+  unit.elevatorExitRow = ride.exitRow;
+  unit.elevatorExitPathIndex = ride.exitPathIndex;
+  unit.elevatorWaitElapsed = 0;
+  unit.moveCooldown = 0;
+  return true;
+}
+
 /** Advance staff movement during the attack phase. */
 export function stepStaff(state: GameState, dt: number): void {
   for (const unit of state.staff) {
-    if (unit.status === 'stationed' || unit.status === 'working' || unit.status === 'idle') {
+    if (
+      unit.status === 'stationed' ||
+      unit.status === 'working' ||
+      unit.status === 'idle' ||
+      unit.status === 'waiting_elevator' ||
+      unit.status === 'riding_elevator'
+    ) {
       continue;
     }
 
@@ -403,6 +429,12 @@ export function stepStaff(state: GameState, dt: number): void {
     const next = unit.path[unit.pathIndex + 1];
     const vertical = isVerticalStep(unit.pos, next);
     const enteringWorkplace = isInRoomFootprint(workplace, next);
+
+    // Vertical elevator progress requires riding the car — never free-step.
+    if (vertical && isElevatorVerticalStep(state.tower, unit.pos, next)) {
+      beginElevatorWait(state, unit);
+      continue;
+    }
 
     // One staffer per cell en route; destination workplaces may hold several.
     if (!enteringWorkplace && isCellOccupiedByOtherStaff(state, next, unit.id)) {
@@ -457,7 +489,13 @@ export function tickLaborerRepairs(state: GameState, dt: number): void {
   // Retarget laborers whose job is done or room gone; assign idle ones.
   for (const unit of state.staff) {
     if (unit.kind !== 'laborer') continue;
-    if (unit.status === 'moving') continue;
+    if (
+      unit.status === 'moving' ||
+      unit.status === 'waiting_elevator' ||
+      unit.status === 'riding_elevator'
+    ) {
+      continue;
+    }
     const room = unit.targetWorkplaceId
       ? state.tower.rooms.find((r) => r.id === unit.targetWorkplaceId)
       : undefined;

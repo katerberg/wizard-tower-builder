@@ -1,4 +1,4 @@
-import type { Blueprint } from './types';
+import type { Blueprint, InfraKind } from './types';
 
 /** Infrastructure blueprints painted on the infra layer (same cell grid as rooms). */
 export const INFRA_BLUEPRINTS: Blueprint[] = [
@@ -27,6 +27,19 @@ export const INFRA_BLUEPRINTS: Blueprint[] = [
     infraKind: 'pipe',
     description: 'Thin logistics line on structure. Empty cells auto-place a Spire Block when legal.',
   },
+  {
+    id: 'elevator',
+    name: 'Elevator',
+    glyph: '=',
+    color: '#ecc94b',
+    size: { w: 1, h: 1 },
+    cost: 8,
+    baseHp: 0,
+    category: 'infra',
+    infraKind: 'elevator',
+    description:
+      'Fast vertical shaft. Contiguous cells in a column form one shaft with a shared car (up to 6 staff). Empty cells auto-place a Spire Block when legal.',
+  },
 ];
 
 export function getInfraBlueprint(id: string): Blueprint | undefined {
@@ -35,4 +48,15 @@ export function getInfraBlueprint(id: string): Blueprint | undefined {
 
 export function isInfraBlueprint(id: string): boolean {
   return INFRA_BLUEPRINTS.some((b) => b.id === id);
+}
+
+export function infraBlueprintIdForKind(kind: InfraKind): string {
+  switch (kind) {
+    case 'stair':
+      return 'staircase';
+    case 'pipe':
+      return 'pipe';
+    case 'elevator':
+      return 'elevator';
+  }
 }

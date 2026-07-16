@@ -56,6 +56,17 @@ describe('findInteriorPath', () => {
     expect(path[0]).toEqual({ col: 4, row: 0 });
     expect(path[path.length - 1]).toEqual({ col: 4, row: 2 });
   });
+
+  it('finds a path via elevator shaft cells', () => {
+    let tower = towerWithRooms();
+    tower = placeInfra(tower, { col: 4, row: 0 }, 'elevator');
+    tower = placeInfra(tower, { col: 4, row: 1 }, 'elevator');
+    tower = placeInfra(tower, { col: 4, row: 2 }, 'elevator');
+    expect(canSoldierTraverse(tower, { col: 4, row: 0 }, { col: 4, row: 1 })).toBe(true);
+    const path = findInteriorPath(tower, { col: 4, row: 0 }, { col: 4, row: 2 });
+    expect(path.length).toBeGreaterThan(0);
+    expect(path[path.length - 1]).toEqual({ col: 4, row: 2 });
+  });
 });
 
 describe('infra placement', () => {
@@ -63,9 +74,14 @@ describe('infra placement', () => {
     const tower = createTower();
     const stair = getInfraBlueprint('staircase')!;
     const pipe = getInfraBlueprint('pipe')!;
+    const elevator = getInfraBlueprint('elevator')!;
     expect(canPlaceInfra(tower, stair, { col: 1, row: 0 }).ok).toBe(true);
     const withStair = placeInfra(tower, { col: 1, row: 0 }, 'stair');
     expect(canPlaceInfra(withStair, pipe, { col: 1, row: 0 }).ok).toBe(true);
     expect(placeInfra(withStair, { col: 1, row: 0 }, 'pipe').infra['1,0']?.kind).toBe('pipe');
+    expect(canPlaceInfra(withStair, elevator, { col: 1, row: 0 }).ok).toBe(true);
+    expect(placeInfra(withStair, { col: 1, row: 0 }, 'elevator').infra['1,0']?.kind).toBe(
+      'elevator',
+    );
   });
 });

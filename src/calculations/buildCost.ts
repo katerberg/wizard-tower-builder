@@ -1,12 +1,12 @@
 import { getBlueprint } from '@/model/blueprints';
-import { getInfraBlueprint } from '@/model/infraBlueprints';
+import { getInfraBlueprint, infraBlueprintIdForKind } from '@/model/infraBlueprints';
 import { getModification, modificationCost } from '@/model/modifications';
 import type { BuildBaseline, Room, Tower } from '@/model/types';
 
 export function infraBuildCost(tower: Tower): number {
   let cost = 0;
   for (const cell of Object.values(tower.infra ?? {})) {
-    const bp = getInfraBlueprint(cell.kind === 'stair' ? 'staircase' : 'pipe');
+    const bp = getInfraBlueprint(infraBlueprintIdForKind(cell.kind));
     cost += bp?.cost ?? 0;
   }
   return cost;

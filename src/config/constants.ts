@@ -54,6 +54,10 @@ export const LABORER_REPAIR_HP_PER_SEC = 2;
 
 export const STAFF_HORIZONTAL_SPEED = 2;
 export const STAFF_STAIR_SPEED = 0.4;
+/** Elevator car vertical speed (~5× stairs). */
+export const STAFF_ELEVATOR_SPEED = 2;
+/** Max staff riding one elevator car. */
+export const ELEVATOR_CAPACITY = 6;
 /** @deprecated Use STAFF_HORIZONTAL_SPEED. */
 export const SOLDIER_HORIZONTAL_SPEED = STAFF_HORIZONTAL_SPEED;
 /** @deprecated Use STAFF_STAIR_SPEED. */
@@ -120,6 +124,7 @@ export const colors = {
   text: '#e2e8f0',
   pathDebug: '#63b3ed',
   infraStair: '#a0aec0',
+  infraElevator: '#ecc94b',
   infraPipe: '#4299e1',
   /** Pipe not yet connected to a water (or steam) seed. */
   infraPipeDry: '#718096',

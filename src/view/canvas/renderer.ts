@@ -280,6 +280,11 @@ export class Renderer {
       const { x, y } = cellTopLeft(col, row, scrollY, viewportHeight);
       if (cell.kind === 'pipe') {
         this.drawPipeCell(tower, col, row, x, y, 1, pipeFluidColor(pipeFluids[key] ?? 'unassigned'));
+      } else if (cell.kind === 'elevator') {
+        const carHere = snapshot.game.elevators.some(
+          (c) => c.col === col && c.row === row,
+        );
+        this.drawElevatorShaft(x, y, 1, undefined, carHere);
       } else {
         this.drawStairLine(x, y, 1);
       }
@@ -367,6 +372,36 @@ export class Renderer {
     ctx.restore();
   }
 
+  /** Dual-rail elevator shaft; optional car platform when the car is on this cell. */
+  private drawElevatorShaft(
+    x: number,
+    y: number,
+    alpha: number,
+    strokeOverride?: string,
+    showCar = false,
+  ): void {
+    const { ctx } = this;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.lineCap = 'butt';
+    ctx.strokeStyle = strokeOverride ?? colors.infraElevator;
+    ctx.lineWidth = 2;
+    const left = x + CELL_SIZE * 0.28;
+    const right = x + CELL_SIZE * 0.72;
+    ctx.beginPath();
+    ctx.moveTo(left, y + 1);
+    ctx.lineTo(left, y + CELL_SIZE - 1);
+    ctx.moveTo(right, y + 1);
+    ctx.lineTo(right, y + CELL_SIZE - 1);
+    ctx.stroke();
+    if (showCar) {
+      ctx.fillStyle = strokeOverride ?? colors.infraElevator;
+      const pad = CELL_SIZE * 0.08;
+      ctx.fillRect(left + pad, y + CELL_SIZE * 0.55, right - left - pad * 2, CELL_SIZE * 0.28);
+    }
+    ctx.restore();
+  }
+
   private drawWorkers(snapshot: Snapshot, scrollY: number, viewportHeight: number): void {
     const { ctx } = this;
     const byCell = new Map<string, typeof snapshot.game.staff>();
@@ -442,6 +477,8 @@ export class Renderer {
             pipeStroke,
             extra,
           );
+        } else if (ghost.infraKind === 'elevator') {
+          this.drawElevatorShaft(x, y, 0.75, ghost.valid ? undefined : stroke, false);
         } else {
           this.drawStairLine(x, y, 0.75, ghost.valid ? undefined : stroke);
         }

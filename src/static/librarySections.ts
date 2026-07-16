@@ -35,6 +35,7 @@ export const BLUEPRINT_LIBRARY_SECTION: Record<string, LibrarySectionId> = {
 
   staircase: 'infrastructure',
   pipe: 'infrastructure',
+  elevator: 'infrastructure',
 
   turretRoom: 'damagers',
   slotRoom: 'damagers',
