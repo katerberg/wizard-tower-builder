@@ -14,6 +14,13 @@ export function handleSpellIntent(ctx: HandlerContext, intent: Intent): void {
   switch (intent.type) {
     case 'selectSpell':
       if (ctx.game.phase === 'attack') {
+        if (intent.spellId) {
+          const spell = getSpell(intent.spellId);
+          if (spell?.targeting === 'self') {
+            handleCastAt(ctx, intent.spellId, { col: 0, row: 0 });
+            return;
+          }
+        }
         ctx.view.selectedSpellId = intent.spellId;
         ctx.view.castAnchor = null;
       }
