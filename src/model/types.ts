@@ -8,6 +8,9 @@ export type InfraKind = 'stair' | 'pipe';
 
 export type Fluid = 'water' | 'steam' | 'unassigned';
 
+export type HousingKind = 'guardroom' | 'chamber' | 'quarters';
+export type StaffKind = 'soldier' | 'mage' | 'laborer';
+
 export interface Blueprint {
   id: string;
   name: string;
@@ -19,8 +22,10 @@ export interface Blueprint {
   description: string;
   category?: BlueprintCategory;
   infraKind?: InfraKind;
-  /** Soldiers may path through structure cells when true (default). */
+  /** Staff may path through structure cells when true (default). */
   passable?: boolean;
+  /** When set, this blueprint is housing for the matching staff kind. */
+  housing?: HousingKind;
 }
 
 export interface InfraCell {
@@ -50,23 +55,43 @@ export interface Tower {
   infra: Record<string, InfraCell>;
 }
 
-export type SoldierStatus = 'moving' | 'stationed';
+export type StaffStatus = 'idle' | 'moving' | 'stationed' | 'working';
 
-export interface Soldier {
+export interface StaffUnit {
   id: string;
-  homeBarracksId: string;
-  targetSlotId: string;
+  kind: StaffKind;
+  homeHousingId: string;
+  /** Slot, mana spring, or damaged room id. */
+  targetWorkplaceId: string | null;
   pos: Cell;
   path: Cell[];
   pathIndex: number;
   moveCooldown: number;
-  status: SoldierStatus;
-  /** Column locked while traversing stairs vertically. */
-  stairColumn: number | null;
+  status: StaffStatus;
 }
 
+/** @deprecated Prefer StaffUnit. */
+export type Soldier = StaffUnit;
+/** @deprecated Prefer StaffStatus. */
+export type SoldierStatus = StaffStatus;
+
 /** Snapshot of tower + gold at the start of a build phase (planning baseline). */
-export interface BuildBaseline { tower: Tower; currency: number }
+export interface BuildBaseline {
+  tower: Tower;
+  currency: number;
+  housingRecruited: Record<string, number>;
+  slotAllocations: Record<string, number>;
+  manaSpringAllocations: Record<string, number>;
+}
+
+/** One undo frame for tower layout + draft staff economy. */
+export interface BuildDraftSnapshot {
+  tower: Tower;
+  housingRecruited: Record<string, number>;
+  slotAllocations: Record<string, number>;
+  manaSpringAllocations: Record<string, number>;
+  buildRecruitSpend: number;
+}
 
 export interface Wizard {
   hp: number;
@@ -239,15 +264,16 @@ export interface GameState {
   rngState: number;
   devMode: boolean;
   roomEffectTimers: Record<string, number>;
-  soldiers: Soldier[];
-  /** Recruited soldier count per barracks room (build phase). */
-  barracksRecruited: Record<string, number>;
+  /** Attack-phase staff entities (cleared at wave end; rosters persist). */
+  staff: StaffUnit[];
+  /** Recruited count per housing room (build phase). */
+  housingRecruited: Record<string, number>;
   /** Headcount allocated per slot room for the upcoming wave (build phase). */
   slotAllocations: Record<string, number>;
-  /** Gold spent recruiting soldiers this build phase (commits on wave start). */
+  /** Desired magi headcount per mana spring (0..MANA_SPRING_STAFF_CAPACITY). */
+  manaSpringAllocations: Record<string, number>;
+  /** Gold spent recruiting staff this build phase (commits on wave start). */
   buildRecruitSpend: number;
-  /** Stair columns currently in use for vertical movement. */
-  stairColumnLocks: Record<number, string>;
   /** Seconds remaining before each spell can be cast again. */
   spellCooldowns: Record<string, number>;
   /** Active Kindling trap patches (fire school). */

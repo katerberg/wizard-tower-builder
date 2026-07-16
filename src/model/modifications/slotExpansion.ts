@@ -1,5 +1,5 @@
 import type { ModificationDef } from './types';
-import { isSlotRoom } from '@/model/soldiers/capacity';
+import { isSlotRoom } from '@/model/staff/capacity';
 
 export const slotExpansion: ModificationDef = {
   id: 'slotExpansion',

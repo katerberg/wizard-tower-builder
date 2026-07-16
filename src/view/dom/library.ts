@@ -1,4 +1,4 @@
-import { selectLibraryBlueprints } from '@/store/selectors';
+import { selectLibrarySections } from '@/store/selectors';
 import type { Store } from '@/store/store';
 
 export function createLibrary(root: HTMLElement, store: Store): () => void {
@@ -40,7 +40,7 @@ export function createLibrary(root: HTMLElement, store: Store): () => void {
 
     root.hidden = false;
     const inSelectMode = snapshot.view.selectedBlueprintId === null;
-    const blueprints = selectLibraryBlueprints(snapshot);
+    const sections = selectLibrarySections(snapshot);
 
     const hand = `
       <button class="tool ${inSelectMode ? 'selected' : ''}" data-tool="select" data-tip-kind="tool" data-tip-id="select">
@@ -48,25 +48,34 @@ export function createLibrary(root: HTMLElement, store: Store): () => void {
         <span class="tool-name">Select</span>
       </button>`;
 
-    const items = blueprints
-      .map((b) => {
-        const selected = b.selected ? 'selected' : '';
-        const poor = b.affordable ? '' : 'unaffordable';
-        const tag = b.category === 'infra' ? 'infra' : 'structure';
-        const hp = b.category === 'infra' ? 'utility' : `${b.baseHp} hp`;
+    const sectionHtml = sections
+      .map((section) => {
+        const items = section.items
+          .map((b) => {
+            const selected = b.selected ? 'selected' : '';
+            const poor = b.affordable ? '' : 'unaffordable';
+            const tag = b.category === 'infra' ? 'infra' : 'structure';
+            const sizeLabel = `${b.sizeW}×${b.sizeH}`;
+            return `
+            <button class="blueprint ${selected} ${poor}" data-tool="blueprint" data-blueprint="${b.id}" data-category="${tag}" data-tip-kind="blueprint" data-tip-id="${b.id}">
+              <span class="bp-glyph">${b.glyph}</span>
+              <span class="bp-name">${b.name}</span>
+              <span class="bp-meta">${sizeLabel} · ${b.cost}g</span>
+            </button>`;
+          })
+          .join('');
         return `
-        <button class="blueprint ${selected} ${poor}" data-tool="blueprint" data-blueprint="${b.id}" data-category="${tag}" data-tip-kind="blueprint" data-tip-id="${b.id}">
-          <span class="bp-glyph">${b.glyph}</span>
-          <span class="bp-name">${b.name}</span>
-          <span class="bp-meta">${b.sizeW}x${b.sizeH} · ${b.cost} gold · ${hp}</span>
-        </button>`;
+          <section class="library-section" data-section="${section.id}">
+            <h3 class="library-section-title">${section.label}</h3>
+            <div class="blueprint-grid">${items}</div>
+          </section>`;
       })
       .join('');
 
     root.innerHTML = `
       <h2>Build</h2>
       ${hand}
-      <div class="blueprint-list">${items}</div>
-      <p class="hint">Select: inspect rooms · Structure/Infra blueprints: click or drag · right-click removes room or infra · Esc cancels.</p>`;
+      <div class="library-sections">${sectionHtml}</div>
+      <p class="hint">Select: inspect · Blueprints: click or drag · right-click removes · Esc cancels.</p>`;
   };
 }

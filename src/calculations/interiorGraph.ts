@@ -27,10 +27,10 @@ export function canSoldierTraverse(tower: Tower, from: Cell, to: Cell): boolean 
   if (dc + dr !== 1) return false;
 
   if (dr > 0) {
-    return (
-      hasInfraKind(tower, from.col, from.row, 'stair') &&
-      hasInfraKind(tower, to.col, to.row, 'stair')
-    );
+    // A stair on the lower floor reaches the floor above (either direction).
+    // Stair on row N connects N ↔ N+1; it does not connect N-1 → N.
+    const lowerRow = Math.min(from.row, to.row);
+    return hasInfraKind(tower, from.col, lowerRow, 'stair');
   }
   return true;
 }

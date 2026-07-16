@@ -1,6 +1,6 @@
 import type { Cell } from '@/model/types';
 
-export type TowerLayer = 'rooms' | 'infra' | 'soldiers';
+export type TowerLayer = 'rooms' | 'infra' | 'workers';
 
 export type Intent =
   | { type: 'beginRun' }
@@ -13,8 +13,10 @@ export type Intent =
   | { type: 'addModification'; roomId: string; modId: string }
   | { type: 'upgradeModification'; roomId: string; modId: string }
   | { type: 'sellRoom'; roomId: string }
-  | { type: 'recruitSoldier'; barracksRoomId: string }
+  | { type: 'recruitStaff'; housingRoomId: string }
+  | { type: 'unrecruitStaff'; housingRoomId: string }
   | { type: 'setSlotAllocation'; slotRoomId: string; count: number }
+  | { type: 'setManaSpringAllocation'; springRoomId: string; count: number }
   | { type: 'toggleLayer'; layer: TowerLayer }
   | { type: 'closeModal' }
   | { type: 'startWave' }

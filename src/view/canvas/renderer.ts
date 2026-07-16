@@ -1,4 +1,11 @@
-import { CELL_SIZE, GRID_COLS, SUB_CELL_SIZE, SUB_CELLS_PER_MACRO, colors } from '@/config/constants';
+import {
+  CELL_SIZE,
+  GRID_COLS,
+  STAFF_GLYPHS,
+  SUB_CELL_SIZE,
+  SUB_CELLS_PER_MACRO,
+  colors,
+} from '@/config/constants';
 import { parseKey, roomCells } from '@/calculations/grid';
 import { sameMacroCell } from '@/calculations/subGrid';
 import { getBlueprint } from '@/model/blueprints';
@@ -61,8 +68,8 @@ export class Renderer {
     if (snapshot.game.devMode) this.drawPaths(snapshot, scrollY, viewportHeight);
     const wizardPos = selectWizardPosition(snapshot);
     this.drawEnemies(snapshot, wizardPos, scrollY, viewportHeight, 'climbers');
-    if (snapshot.view.layerVisibility.soldiers) {
-      this.drawSoldiers(snapshot, scrollY, viewportHeight);
+    if (snapshot.view.layerVisibility.workers) {
+      this.drawWorkers(snapshot, scrollY, viewportHeight);
     }
     this.drawWizard(snapshot, scrollY, viewportHeight);
     this.drawCastAimLine(snapshot, scrollY, viewportHeight);
@@ -360,25 +367,25 @@ export class Renderer {
     ctx.restore();
   }
 
-  private drawSoldiers(snapshot: Snapshot, scrollY: number, viewportHeight: number): void {
+  private drawWorkers(snapshot: Snapshot, scrollY: number, viewportHeight: number): void {
     const { ctx } = this;
-    const byCell = new Map<string, typeof snapshot.game.soldiers>();
-    for (const soldier of snapshot.game.soldiers) {
-      const key = `${soldier.pos.col},${soldier.pos.row}`;
+    const byCell = new Map<string, typeof snapshot.game.staff>();
+    for (const unit of snapshot.game.staff) {
+      const key = `${unit.pos.col},${unit.pos.row}`;
       const group = byCell.get(key);
-      if (group) group.push(soldier);
-      else byCell.set(key, [soldier]);
+      if (group) group.push(unit);
+      else byCell.set(key, [unit]);
     }
 
-    const radius = Math.max(2, CELL_SIZE * 0.05);
-    const spacing = CELL_SIZE * 0.16;
-    const perRow = 4;
+    const fontSize = Math.max(10, CELL_SIZE * 0.28);
+    const spacing = CELL_SIZE * 0.22;
+    const perRow = 3;
 
     for (const group of byCell.values()) {
       for (let i = 0; i < group.length; i++) {
-        const soldier = group[i];
-        const { x: cx, y: cy } = cellCenter(soldier.pos.col, soldier.pos.row, scrollY, viewportHeight);
-        if (cy + radius < 0 || cy - radius > viewportHeight) continue;
+        const unit = group[i];
+        const { x: cx, y: cy } = cellCenter(unit.pos.col, unit.pos.row, scrollY, viewportHeight);
+        if (cy + fontSize < 0 || cy - fontSize > viewportHeight) continue;
 
         const row = Math.floor(i / perRow);
         const col = i % perRow;
@@ -386,10 +393,18 @@ export class Renderer {
         const x = cx + (col - (rowCount - 1) / 2) * spacing;
         const y = cy + (row - (Math.ceil(group.length / perRow) - 1) / 2) * spacing;
 
-        ctx.beginPath();
-        ctx.arc(x, y, radius, 0, Math.PI * 2);
-        ctx.fillStyle = soldier.status === 'stationed' ? colors.soldier : '#9ae6b4';
-        ctx.fill();
+        const fill =
+          unit.kind === 'mage'
+            ? colors.mage
+            : unit.kind === 'laborer'
+              ? colors.laborer
+              : colors.soldier;
+        ctx.fillStyle =
+          unit.status === 'stationed' || unit.status === 'working' ? fill : `${fill}aa`;
+        ctx.font = `bold ${fontSize}px monospace`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(STAFF_GLYPHS[unit.kind], x, y);
       }
     }
   }

@@ -4,7 +4,7 @@ import {
   SLOT_BASE_DAMAGE,
   SLOT_FIRE_EFFICIENCY,
 } from '@/config/constants';
-import { stationedSoldiersInSlot } from '@/model/soldiers';
+import { stationedSoldiersInSlot } from '@/model/staff';
 import type { RoomBehaviorDef } from './types';
 
 /** Fires a volley using stationed soldiers with crowding efficiency. */

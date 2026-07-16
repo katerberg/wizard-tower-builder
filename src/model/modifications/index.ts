@@ -1,7 +1,9 @@
 import type { Room, RoomStats, Tower } from '../types';
 import type { ModificationDef } from './types';
-import { barracksExpansion } from './barracksExpansion';
 import { boilerExpansion } from './boilerExpansion';
+import { chamberExpansion } from './chamberExpansion';
+import { guardroomExpansion } from './guardroomExpansion';
+import { quartersExpansion } from './quartersExpansion';
 import { slotExpansion } from './slotExpansion';
 import { spikes } from './spikes';
 
@@ -12,7 +14,9 @@ const DEFAULT_REFUND_RATE = 0.5;
 /** Every modification the game knows about. Add new types here. */
 export const MODIFICATIONS: ModificationDef[] = [
   spikes,
-  barracksExpansion,
+  guardroomExpansion,
+  chamberExpansion,
+  quartersExpansion,
   slotExpansion,
   boilerExpansion,
 ];
