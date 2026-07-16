@@ -8,10 +8,14 @@ Stack: **TypeScript**, **Vite**, **HTML5 Canvas** (board), **DOM** (UI chrome). 
 
 The run alternates between two phases:
 
-1. **Build** — Spend currency to place rooms on a grid. Rooms must obey gravity and support rules (see below). Use the **Select** tool to inspect rooms and add modifications. Pick a **blueprint** to place or replace rooms. Right-click to remove. When the tower is stable, start the wave.
-2. **Attack** — Enemies spawn at the base and pathfind up the **exterior** of the tower toward the wizard at the top. The wizard auto-attacks nearby climbers; **Turret rooms** fire independently; **spikes** (a modification) damage climbers on contact. **Gold Mine rooms** pay out when a wave clears. Survive the wave to earn currency and return to build. Lose if the wizard’s HP reaches zero.
+1. **Build** — Spend gold to place rooms and infra on a grid. Rooms must obey gravity and support rules (see below). Paint **stairs** and **pipes**; recruit staff into housing; allocate slot/spring headcounts. Use the **Select** tool to inspect rooms and add modifications. Pick a **blueprint** to place or replace rooms. Right-click to remove. When the tower is stable, start the wave.
+2. **Attack** — Enemies spawn at the base and pathfind up the **exterior** of the tower toward the wizard at the top. Staff path on the **interior** (stairs through passable rooms) to slots, mana springs, and repair jobs. Defenses: wizard **Wand Strike** (auto) plus a four-spell hotbar; **Turret** / **Steam Turret** rooms; soldier **Slots**; **spikes** (modification). **Gold Mines** pay out when a wave clears; mana regenerates from staffed springs. Survive the wave to earn gold and return to build. Lose if the wizard’s HP reaches zero.
 
 Progression is linear and escalating for now (designed so branching roguelike paths can be added later).
+
+### Spells
+
+Mana powers the wizard’s hotbar (keys **1–4** to select, click to aim/cast during attack). Three elemental schools ship today — **fire**, **air**, and **earth** — swapped via the HUD school picker in **dev mode**. Wand Strike is always on and not part of any school kit. Water school, spell shop / grimoire unlocks, and Mana Well rooms remain deferred. School design notes live under `.cursor/plans/spell_school_*.plan.md`.
 
 ### Tower placement rules
 
@@ -34,9 +38,10 @@ Unstable towers (floating rooms or illegal cantilevers) are highlighted on the b
 | Remove room          | Right-click grid (build phase)                      |
 | Undo / revert layout | HUD buttons (build phase)                           |
 | Start wave           | HUD button (when tower is stable)                   |
+| Cast spell           | Hotkeys **1–4**, then click (attack phase)          |
 | Scroll tower         | Mouse wheel on board                                |
 
-Dev mode toggles are available via intents (`toggleDevMode`, `devAddCurrency`, `devSkipWave`) for local testing.
+Dev mode toggles are available via intents (`toggleDevMode`, `devAddCurrency`, `devSkipWave`, `devSetSpellSchool`) for local testing.
 
 ### Enemy movement
 
@@ -165,10 +170,11 @@ Mount points: `#board`, `#stage`, `#hud`, `#library`, `#message-log`, `#modal-ro
 |------|---------|
 | **Tower** | Collection of rooms + occupancy grid |
 | **Room** | Placed blueprint instance (origin, size, hp, modifications) |
-| **Blueprint** | Room type definition (cost, size, base hp, description) — structure rooms and specialty rooms (Turret, Gold Mine, housing, Slot, Mana Spring, …) |
-| **Modification** | Leveled add-on on any room (spikes, housing/slot expansions, …) |
-| **Infra layer** | Per-cell overlay (stair, pipe, elevator) on the same grid as rooms; one kind per cell |
+| **Blueprint** | Room type definition (cost, size, base hp, description) — structure rooms and specialty rooms (Turret, Steam Turret, Gold Mine, housing, Slot, Boiler, Mana Spring, …) |
+| **Modification** | Leveled add-on on a room (spikes, housing/slot/boiler expansions, …) |
+| **Infra layer** | Per-cell overlay (`stair` or `pipe`) on the same grid as rooms; one kind per cell (elevators deferred) |
 | **Staff** | Mobile units (soldier / mage / laborer) recruited into housing; route to workplaces during attack |
+| **Spell / school** | Hotbar ability spending mana; fire · air · earth kits today (water deferred) |
 | **Layer** | Visibility/edit plane: `rooms`, `infra`, or `workers` (Maps-style toggles) |
 | **Phase** | `build` or `attack` within a run |
 | **Scene** | `menu`, `run`, `gameOver`, `victory` |
@@ -182,7 +188,7 @@ Mount points: `#board`, `#stage`, `#hud`, `#library`, `#message-log`, `#modal-ro
 src/
   main.ts                 # Shell bootstrap
   config/constants.ts     # Grid size, tuning, colors
-  model/                  # Game entities, phases, tower rules, waves, mods
+  model/                  # Game entities, phases, tower, waves, mods, pipes, staff, spells
   calculations/           # Grid, pathfinding, combat, economy, camera math
   store/
     store.ts              # Store class
@@ -244,23 +250,25 @@ flowchart TB
 | **Pathfinding** | Interior/infra graph for staff; exterior graph for enemies (unchanged) |
 | **Logistics** | Warn-only before wave; hover/click shows broken routes |
 
-**Implementation status:** Housing + staff workplaces shipped (see [`docs/HOUSING.md`](docs/HOUSING.md)). Pipes/boilers/springs shipped ([`docs/PIPES.md`](docs/PIPES.md)). Elevators and mid-wave pipe breaks remain deferred.
+**Implementation status:** Housing + staff workplaces shipped (see [`docs/HOUSING.md`](docs/HOUSING.md)). Pipes/boilers/springs shipped ([`docs/PIPES.md`](docs/PIPES.md)). Fire · air · earth spell schools shipped. Elevators and mid-wave pipe breaks remain deferred.
 
 ## Deferred / not in v1
 
-- Elevators, dynamic pipe/network breaks on room destruction
-- Soldier death/targeting, pipe damage
+Still not done:
+
+- Elevators; dynamic pipe/network breaks on room destruction
+- Soldier death / targeting; pipe damage
 - Advanced mage tech (research / combat casting) — housing basics shipped in [`docs/HOUSING.md`](docs/HOUSING.md)
-- Multiple currencies beyond gold, roguelike map branching
-- Alternative enemy movement modes (fly, attack overhangs, etc.) — default is `under_overhang` exterior climb
+- Multiple currencies beyond gold; roguelike map branching
+- Alternative enemy movement modes (fly, attack overhangs, etc.) — all enemies use `under_overhang`
 - Visual polish beyond ASCII-style glyphs on canvas
-- Training rooms (troops of certain types that are then required to populate rooms of other types)
-- Economy rooms of various types
-- Research rooms
+- Training rooms (troops of certain types required to populate other rooms)
+- Research rooms; Mana Well / spell shop / grimoire unlocks
 - Movement-controlling structures (e.g. moats, parapets, cornices)
-- Structures (crenels, murderholes beyond existing turrets)
-- Way more spells
-- Way more turret types
+- Structures such as crenels / murderholes beyond existing turrets
+- Water school and further spell kits
+- Additional turret / economy room types beyond Gold Mine, Boiler, Mana Spring, Turret, and Steam Turret
+- Infra/mod repair and mid-wave building (laborers repair room HP only today)
 
 ## License
 
