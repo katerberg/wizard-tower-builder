@@ -1,9 +1,33 @@
+import {
+  LABORER_RECRUIT_COST,
+  MAGE_RECRUIT_COST,
+  SOLDIER_RECRUIT_COST,
+} from '@/config/constants';
 import { BLUEPRINTS, getBlueprint } from '@/model/blueprints';
 import { INFRA_BLUEPRINTS, getInfraBlueprint, isInfraBlueprint } from '@/model/infraBlueprints';
 import { planInfraPlacement } from '@/model/infraPlacement';
-import { selectConnectivityReport } from '@/model/soldiers/connectivity';
-import { selectPipeConnectivityReport } from '@/model/pipes';
-import { barracksCapacity, isBarracksRoom, isSlotRoom, slotCapacity } from '@/model/soldiers/capacity';
+import { selectLogisticsReport, selectConnectivityReport } from '@/model/staff/connectivity';
+import { isManaSpringRoom, selectPipeConnectivityReport } from '@/model/pipes';
+import {
+  housingCapacity,
+  isHousingRoom,
+  isSlotRoom,
+  manaSpringStaffCapacity,
+  slotCapacity,
+  housingKindOf,
+  staffKindForHousing,
+} from '@/model/staff/capacity';
+
+function recruitCostFor(kind: StaffKind): number {
+  switch (kind) {
+    case 'soldier':
+      return SOLDIER_RECRUIT_COST;
+    case 'mage':
+      return MAGE_RECRUIT_COST;
+    case 'laborer':
+      return LABORER_RECRUIT_COST;
+  }
+}
 import { netBuildCost, remainingBuildGold } from '@/calculations/buildCost';
 import { computeRoomStats } from '@/calculations/combat';
 import { roomCells } from '@/calculations/grid';
@@ -31,6 +55,11 @@ import {
 import { aoeCells } from '@/model/spells/fireball';
 import { canPlace, getUnstableRoomIds, towersEqual } from '@/model/tower';
 import { getBuildTool } from '@/static/buildTools';
+import {
+  LIBRARY_SECTIONS,
+  librarySectionFor,
+  type LibrarySectionId,
+} from '@/static/librarySections';
 import type {
   Blueprint,
   Cell,
@@ -39,6 +68,7 @@ import type {
   PlacementReason,
   Room,
   RoomStats,
+  StaffKind,
 } from '@/model/types';
 import type { Snapshot } from './store';
 
@@ -81,9 +111,14 @@ export function selectBuildUndoState(snapshot: Snapshot): BuildUndoState {
   if (!inBuild || !baseline) {
     return { canUndo: false, canRevert: false };
   }
+  const staffChanged =
+    JSON.stringify(game.housingRecruited) !== JSON.stringify(baseline.housingRecruited) ||
+    JSON.stringify(game.slotAllocations) !== JSON.stringify(baseline.slotAllocations) ||
+    JSON.stringify(game.manaSpringAllocations) !== JSON.stringify(baseline.manaSpringAllocations) ||
+    game.buildRecruitSpend !== 0;
   return {
     canUndo: snapshot.buildUndoDepth > 0,
-    canRevert: !towersEqual(game.tower, baseline.tower),
+    canRevert: !towersEqual(game.tower, baseline.tower) || staffChanged,
   };
 }
 
@@ -159,6 +194,36 @@ export interface LibraryBlueprintItem {
   affordable: boolean;
   selected: boolean;
   category: 'structure' | 'infra';
+  section: LibrarySectionId;
+}
+
+export interface LibrarySection {
+  id: LibrarySectionId;
+  label: string;
+  items: LibraryBlueprintItem[];
+}
+
+function toLibraryItem(
+  b: Blueprint,
+  remainingGold: number,
+  selectedBlueprintId: string | null,
+  category: 'structure' | 'infra',
+): LibraryBlueprintItem | null {
+  const section = librarySectionFor(b.id);
+  if (!section) return null;
+  return {
+    id: b.id,
+    name: b.name,
+    glyph: b.glyph,
+    sizeW: b.size.w,
+    sizeH: b.size.h,
+    cost: b.cost,
+    baseHp: b.baseHp,
+    affordable: remainingGold >= b.cost,
+    selected: selectedBlueprintId === b.id,
+    category,
+    section,
+  };
 }
 
 export function selectLibraryBlueprints(snapshot: Snapshot): LibraryBlueprintItem[] {
@@ -166,33 +231,25 @@ export function selectLibraryBlueprints(snapshot: Snapshot): LibraryBlueprintIte
   const { remainingGold } = selectBuildEconomy(snapshot);
   const unlocked = new Set(game.player.unlockedBlueprints);
 
-  const structure = BLUEPRINTS.filter((b) => unlocked.has(b.id)).map((b) => ({
-    id: b.id,
-    name: b.name,
-    glyph: b.glyph,
-    sizeW: b.size.w,
-    sizeH: b.size.h,
-    cost: b.cost,
-    baseHp: b.baseHp,
-    affordable: remainingGold >= b.cost,
-    selected: view.selectedBlueprintId === b.id,
-    category: 'structure' as const,
-  }));
+  const structure = BLUEPRINTS.filter((b) => unlocked.has(b.id))
+    .map((b) => toLibraryItem(b, remainingGold, view.selectedBlueprintId, 'structure'))
+    .filter((b): b is LibraryBlueprintItem => b !== null);
 
-  const infra = INFRA_BLUEPRINTS.map((b) => ({
-    id: b.id,
-    name: b.name,
-    glyph: b.glyph,
-    sizeW: b.size.w,
-    sizeH: b.size.h,
-    cost: b.cost,
-    baseHp: b.baseHp,
-    affordable: remainingGold >= b.cost,
-    selected: view.selectedBlueprintId === b.id,
-    category: 'infra' as const,
-  }));
+  const infra = INFRA_BLUEPRINTS.map((b) =>
+    toLibraryItem(b, remainingGold, view.selectedBlueprintId, 'infra'),
+  ).filter((b): b is LibraryBlueprintItem => b !== null);
 
   return [...structure, ...infra];
+}
+
+/** Blueprints grouped into sidebar sections (empty sections omitted). */
+export function selectLibrarySections(snapshot: Snapshot): LibrarySection[] {
+  const items = selectLibraryBlueprints(snapshot);
+  return LIBRARY_SECTIONS.map((def) => ({
+    id: def.id,
+    label: def.label,
+    items: items.filter((item) => item.section === def.id),
+  })).filter((section) => section.items.length > 0);
 }
 
 export interface RoomModificationOption {
@@ -228,11 +285,15 @@ export interface RoomInspector {
   isBuildPhase: boolean;
   modifications: RoomModificationOption[];
   canRemove: boolean;
-  barracksRecruited?: number;
-  barracksCapacity?: number;
+  housingRecruited?: number;
+  housingCapacity?: number;
+  housingStaffKind?: 'soldier' | 'mage' | 'laborer';
+  recruitCost?: number;
   slotAllocated?: number;
   slotCapacity?: number;
   slotConnected?: boolean;
+  manaSpringAllocated?: number;
+  manaSpringCapacity?: number;
   /** Contextual build warning shown on this room (missing stairs, support, …). */
   buildAlert?: string;
 }
@@ -253,14 +314,19 @@ export function selectRoomBuildAlerts(snapshot: Snapshot): RoomBuildAlert[] {
   }
 
   for (const room of game.tower.rooms) {
-    if (isBarracksRoom(room) && (game.barracksRecruited[room.id] ?? 0) < 1) {
-      alerts.push({ roomId: room.id, message: 'Soldier deserted — recruit a replacement' });
+    const housing = housingKindOf(room);
+    if (housing && (game.housingRecruited[room.id] ?? 0) < 1) {
+      const kind = staffKindForHousing(housing);
+      const label =
+        kind === 'soldier' ? 'Soldier' : kind === 'mage' ? 'Mage' : 'Laborer';
+      alerts.push({ roomId: room.id, message: `${label} deserted — recruit a replacement` });
     }
   }
 
-  for (const slot of selectConnectivityReport(game).slots) {
-    if (slot.warning) {
-      alerts.push({ roomId: slot.slotId, message: slot.warning });
+  const logistics = selectLogisticsReport(game);
+  for (const workplace of logistics.workplaces) {
+    if (workplace.warning) {
+      alerts.push({ roomId: workplace.roomId, message: workplace.warning });
     }
   }
 
@@ -272,10 +338,14 @@ export function selectRoomBuildAlerts(snapshot: Snapshot): RoomBuildAlert[] {
 }
 
 export function selectConnectivityWarnings(snapshot: Snapshot): string[] {
-  return selectConnectivityReport(snapshot.game).warnings;
+  return selectLogisticsReport(snapshot.game).warnings;
 }
 
-export { selectConnectivityReport };
+export function selectLogisticsWarnings(snapshot: Snapshot): string[] {
+  return selectLogisticsReport(snapshot.game).warnings;
+}
+
+export { selectConnectivityReport, selectLogisticsReport };
 
 export function selectRoomInspector(snapshot: Snapshot, roomId: string): RoomInspector | null {
   const room = selectRoomById(snapshot, roomId);
@@ -361,6 +431,9 @@ export function selectRoomInspector(snapshot: Snapshot, roomId: string): RoomIns
     };
   });
 
+  const housing = housingKindOf(room);
+  const staffKind = housing ? staffKindForHousing(housing) : undefined;
+
   return {
     room,
     blueprint,
@@ -368,13 +441,19 @@ export function selectRoomInspector(snapshot: Snapshot, roomId: string): RoomIns
     isBuildPhase,
     modifications,
     canRemove: isBuildPhase,
-    barracksRecruited: isBarracksRoom(room) ? (game.barracksRecruited[room.id] ?? 0) : undefined,
-    barracksCapacity: isBarracksRoom(room) ? barracksCapacity(room) : undefined,
+    housingRecruited: isHousingRoom(room) ? (game.housingRecruited[room.id] ?? 0) : undefined,
+    housingCapacity: isHousingRoom(room) ? housingCapacity(room) : undefined,
+    housingStaffKind: staffKind,
+    recruitCost: staffKind ? recruitCostFor(staffKind) : undefined,
     slotAllocated: isSlotRoom(room) ? (game.slotAllocations[room.id] ?? 0) : undefined,
     slotCapacity: isSlotRoom(room) ? slotCapacity(room) : undefined,
     slotConnected: isSlotRoom(room)
       ? selectConnectivityReport(game).slots.find((s) => s.slotId === room.id)?.connected ?? true
       : undefined,
+    manaSpringAllocated: isManaSpringRoom(room)
+      ? (game.manaSpringAllocations[room.id] ?? 0)
+      : undefined,
+    manaSpringCapacity: isManaSpringRoom(room) ? manaSpringStaffCapacity() : undefined,
     buildAlert: selectRoomBuildAlerts(snapshot).find((a) => a.roomId === room.id)?.message,
   };
 }

@@ -11,7 +11,13 @@ import {
 import type { BuildBaseline } from '@/model/types';
 
 function baseline(tower = createTower(), currency = 48): BuildBaseline {
-  return { tower: structuredClone(tower), currency };
+  return {
+    tower: structuredClone(tower),
+    currency,
+    housingRecruited: {},
+    slotAllocations: {},
+    manaSpringAllocations: {},
+  };
 }
 
 describe('towerBuildCost', () => {

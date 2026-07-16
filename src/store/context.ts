@@ -1,11 +1,11 @@
-import type { GameState, Tower } from '@/model/types';
+import type { BuildDraftSnapshot, GameState } from '@/model/types';
 import type { ViewState } from './intents';
 
 /** Mutable store state passed to intent handlers. */
 export interface StoreRefs {
   game: GameState;
   view: ViewState;
-  buildHistory: Tower[];
+  buildHistory: BuildDraftSnapshot[];
 }
 
 export interface HandlerContext extends StoreRefs {

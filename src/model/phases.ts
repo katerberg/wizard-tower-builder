@@ -3,7 +3,7 @@ import { addMessage } from './messages';
 import { resetBoilerRuntime } from './boilers';
 import { lockPipeFluids } from './pipes';
 import { resetSteamTurretRuntime } from './steamTurrets';
-import { clearSoldiersAfterWave, deploySoldiersForWave } from './soldiers';
+import { clearStaffAfterWave, deployStaffForWave } from './staff';
 import { reward } from '../calculations/economy';
 import { runWaveClearedEffects } from './modifications/effects';
 import { refillMana, resetAirState, resetFireState, resetSpellCooldowns } from './spells';
@@ -15,6 +15,9 @@ export function captureBuildBaseline(state: GameState): void {
   state.buildBaseline = {
     tower: structuredClone(state.tower),
     currency: state.player.currency,
+    housingRecruited: structuredClone(state.housingRecruited),
+    slotAllocations: structuredClone(state.slotAllocations),
+    manaSpringAllocations: structuredClone(state.manaSpringAllocations),
   };
   state.buildRecruitSpend = 0;
 }
@@ -38,7 +41,7 @@ export function beginWave(state: GameState): void {
   state.tower = lockPipeFluids(state.tower);
   resetBoilerRuntime(state);
   resetSteamTurretRuntime(state);
-  deploySoldiersForWave(state);
+  deployStaffForWave(state);
   refillMana(state);
   resetSpellCooldowns(state);
   resetFireState(state);
@@ -60,7 +63,7 @@ export function endWave(state: GameState): void {
   state.levelIndex += 1;
   state.waveIndex += 1;
   state.phase = 'build';
-  clearSoldiersAfterWave(state);
+  clearStaffAfterWave(state);
   state.boilerRuntime = {};
   state.steamTurretRuntime = {};
   captureBuildBaseline(state);

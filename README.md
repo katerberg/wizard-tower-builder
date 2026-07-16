@@ -165,11 +165,11 @@ Mount points: `#board`, `#stage`, `#hud`, `#library`, `#message-log`, `#modal-ro
 |------|---------|
 | **Tower** | Collection of rooms + occupancy grid |
 | **Room** | Placed blueprint instance (origin, size, hp, modifications) |
-| **Blueprint** | Room type definition (cost, size, base hp, description) — structure rooms and specialty rooms (Turret, Gold Mine, Barracks, Slot) |
-| **Modification** | Leveled add-on on any room (spikes, barracks/slot expansions, …) |
+| **Blueprint** | Room type definition (cost, size, base hp, description) — structure rooms and specialty rooms (Turret, Gold Mine, housing, Slot, Mana Spring, …) |
+| **Modification** | Leveled add-on on any room (spikes, housing/slot expansions, …) |
 | **Infra layer** | Per-cell overlay (stair, pipe, elevator) on the same grid as rooms; one kind per cell |
-| **Soldier** | Mobile unit recruited into barracks; routes to slots during attack phase |
-| **Layer** | Visibility/edit plane: `rooms`, `infra`, or `soldiers` (Maps-style toggles) |
+| **Staff** | Mobile units (soldier / mage / laborer) recruited into housing; route to workplaces during attack |
+| **Layer** | Visibility/edit plane: `rooms`, `infra`, or `workers` (Maps-style toggles) |
 | **Phase** | `build` or `attack` within a run |
 | **Scene** | `menu`, `run`, `gameOver`, `victory` |
 | **Intent** | Typed action dispatched to the store |
@@ -215,50 +215,50 @@ flowchart TB
   subgraph layers [Tower layers same cell grid]
     R[rooms - structure occupancy]
     I[infra - stair or pipe per cell]
-    S[soldiers - attack-phase positions]
+    W[workers - attack-phase staff]
   end
   subgraph build [Build phase - untimed]
     P[Place rooms and infra]
-    Rec[Recruit soldiers into barracks]
-    Alloc[Set headcount per slot]
+    Rec[Recruit staff into housing]
+    Alloc[Set slot and spring headcounts]
   end
   subgraph attack [Attack phase]
-    Pay[Wave-start soldier upkeep]
+    Pay[Wave-start staff upkeep]
     Route[Auto-assign closest paths]
     Move[Move via interior graph]
-    Fire[Slot volleys when stationed]
+    Work[Slots fire / magi staff springs / laborers repair]
   end
   P --> Rec --> Alloc
-  Alloc --> Pay --> Route --> Move --> Fire
+  Alloc --> Pay --> Route --> Move --> Work
 ```
 
 | Concept | Behavior |
 |---------|----------|
-| **Layers** | `rooms`, `infra`, `soldiers` — toggled for display; tool selection drives editing |
+| **Layers** | `rooms`, `infra`, `workers` — toggled for display; tool selection drives editing |
 | **Infra granularity** | Same `(col, row)` as rooms; **one** of stair *or* pipe per cell (forces wider towers) |
-| **Barracks** | Houses soldiers (5→10 via mod); recruit in build; upkeep charged at wave start |
+| **Housing** | Guardroom (soldiers 3→6), chamber (magi 1→2), quarters (laborers 6→12) |
 | **Slot** | Player sets headcount; auto-assign closest; fires during attack (2→4 via mod) |
-| **Stairs** | Cheap ad-hoc infra; **only** way to move vertically; one soldier per column |
-| **Movement** | Soldiers start in barracks each wave; **attack phase only** |
-| **Pathfinding** | Interior/infra graph for soldiers; exterior graph for enemies (unchanged) |
-| **Connectivity** | Warn-only before wave; hover/click shows broken routes |
+| **Mana spring** | Water + stationed magi; regen falls off with more magi (cap 5) |
+| **Stairs** | Cheap ad-hoc infra; **only** way to move vertically; one staffer per cell en route |
+| **Movement** | Staff spawn from housing each wave; **attack phase only** |
+| **Pathfinding** | Interior/infra graph for staff; exterior graph for enemies (unchanged) |
+| **Logistics** | Warn-only before wave; hover/click shows broken routes |
 
-**Implementation status:** Phases 0–6 implemented (barracks, slots, stairs, soldiers, layers, connectivity warnings). Elevators, pipe logistics gameplay, and mana economy remain deferred.
+**Implementation status:** Housing + staff workplaces shipped (see [`docs/HOUSING.md`](docs/HOUSING.md)). Pipes/boilers/springs shipped ([`docs/PIPES.md`](docs/PIPES.md)). Elevators and mid-wave pipe breaks remain deferred.
 
 ## Deferred / not in v1
 
 - Elevators, dynamic pipe/network breaks on room destruction
-- Spells (magic turret mana cost is planned — see `docs/PIPES.md`)
 - Soldier death/targeting, pipe damage
+- Advanced mage tech (research / combat casting) — housing basics shipped in [`docs/HOUSING.md`](docs/HOUSING.md)
 - Multiple currencies beyond gold, roguelike map branching
 - Alternative enemy movement modes (fly, attack overhangs, etc.) — default is `under_overhang` exterior climb
 - Visual polish beyond ASCII-style glyphs on canvas
 - Training rooms (troops of certain types that are then required to populate rooms of other types)
-- Housing rooms of various types
 - Economy rooms of various types
-- Research rooms ()
+- Research rooms
 - Movement-controlling structures (e.g. moats, parapets, cornices)
-- Structures (crenels, turrets, murderholes)
+- Structures (crenels, murderholes beyond existing turrets)
 - Way more spells
 - Way more turret types
 

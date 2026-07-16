@@ -40,7 +40,7 @@ export class Store {
         modal: null,
         cameraScrollY: 0,
         viewportHeight: MIN_VIEWPORT_HEIGHT,
-        layerVisibility: { rooms: true, infra: true, soldiers: true },
+        layerVisibility: { rooms: true, infra: true, workers: true },
         connectivityFocusSlotId: null,
       },
       buildHistory: [],
@@ -136,7 +136,14 @@ export class Store {
   }
 
   private recordBuildStep(): void {
-    this.refs.buildHistory.push(structuredClone(this.refs.game.tower));
+    const { game } = this.refs;
+    this.refs.buildHistory.push({
+      tower: structuredClone(game.tower),
+      housingRecruited: structuredClone(game.housingRecruited),
+      slotAllocations: structuredClone(game.slotAllocations),
+      manaSpringAllocations: structuredClone(game.manaSpringAllocations),
+      buildRecruitSpend: game.buildRecruitSpend,
+    });
   }
 
   private clearBuildHistory(): void {

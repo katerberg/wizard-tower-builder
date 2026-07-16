@@ -6,7 +6,7 @@ import {
   WIZARD_DEFAULTS,
 } from '@/config/constants';
 import { sameMacroCell, macroCellOfNode } from '@/calculations/subGrid';
-import { resetSoldierCounter, stepSoldiers } from './soldiers';
+import { resetStaffCounter, stepStaff, tickLaborerRepairs } from './staff';
 import { tickBoilers } from './boilers';
 import { tickManaSprings } from './manaSprings';
 import { tickSteamTurrets } from './steamTurrets';
@@ -69,11 +69,11 @@ export function createInitialState(seed: string | number = 'wizard'): GameState 
     rngState: seedFrom(seed),
     devMode: false,
     roomEffectTimers: {},
-    soldiers: [],
-    barracksRecruited: {},
+    staff: [],
+    housingRecruited: {},
     slotAllocations: {},
+    manaSpringAllocations: {},
     buildRecruitSpend: 0,
-    stairColumnLocks: {},
     spellCooldowns: {},
     kindlingPatches: [],
     wallOfFlameSegments: [],
@@ -86,7 +86,7 @@ export function createInitialState(seed: string | number = 'wizard'): GameState 
     steamTurretRuntime: {},
     buildBaseline: null,
   };
-  resetSoldierCounter();
+  resetStaffCounter();
   captureBuildBaseline(state);
   return state;
 }
@@ -272,8 +272,9 @@ export function step(state: GameState, dt: number): void {
   tickFireEffects(state, dt, (spellName) => buildSpellContext(state, spellName));
   tickAirEffects(state, dt, (spellName) => buildSpellContext(state, spellName));
 
-  // Soldier movement during attack.
-  stepSoldiers(state, dt);
+  // Staff movement and laborer repairs during attack.
+  stepStaff(state, dt);
+  tickLaborerRepairs(state, dt);
 
   // Room behaviors (turret rooms, slot volleys) and modifications (spikes) act on enemies this tick.
   runRoomEffects(state, dt);
