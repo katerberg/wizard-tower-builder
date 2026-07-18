@@ -1,5 +1,7 @@
 import {
-  ENEMY_ATTACK_COOLDOWN,
+  CARRIER_HOVER_MACRO_RANGE,
+  CARRIER_KAMIKAZE_LIFETIME_MACRO,
+  CARRIER_LAUNCH_INTERVAL,
   MAX_LIVE_ENEMIES,
   MAX_MANA,
   STARTING_CURRENCY,
@@ -12,9 +14,21 @@ import { tickBoilers } from './boilers';
 import { tickManaSprings } from './manaSprings';
 import { tickSteamTurrets } from './steamTurrets';
 import { STARTING_BLUEPRINT_IDS } from './blueprints';
-import { computeDamage, type Combatant } from '../calculations/combat';
-import { spawnNode } from '../calculations/exteriorGraph';
+import {
+  faceOf,
+  flySpawnBandForLevel,
+  isWalkable,
+  spawnAirNode,
+  spawnNode,
+} from '../calculations/exteriorGraph';
 import { getEnemyTemplate } from './enemies';
+import {
+  attackBlockingRoom,
+  attackWizard,
+  closestRoomToEnemy,
+  enemyTouchesRoom,
+  greedyStepTowardRoom,
+} from './enemies/flierCombat';
 import { addMessage } from './messages';
 import { findPath } from '../calculations/pathfinding';
 import { runEnemyStepEffects, runRoomEffects } from './modifications/effects';
@@ -124,6 +138,10 @@ const namePools: Record<string, readonly string[]> = {
   skirmisher: wispNames,
   elite: bruteNames,
   brute: bruteNames,
+  striker: wispNames,
+  kamikaze: wispNames,
+  carrier: bruteNames,
+  carrierKamikaze: wispNames,
   // Legacy ids for tests / saves
   goblin: goblinNames,
   wisp: wispNames,
@@ -169,7 +187,10 @@ export function takeEnemyName(templateId: string): string {
 }
 
 function spawnEnemy(state: GameState, template: EnemyTemplate, side: 'left' | 'right'): void {
-  const pos = spawnNode(state.tower, side);
+  const wizardPos = getEffectiveWizardPosition(state);
+  const pos = template.movement.canFly
+    ? spawnAirNode(state.tower, side, flySpawnBandForLevel(state.levelIndex), wizardPos)
+    : spawnNode(state.tower, side);
   const enemy: Enemy = {
     id: `enemy-${enemyCounter++}`,
     templateId: template.id,
@@ -180,6 +201,28 @@ function spawnEnemy(state: GameState, template: EnemyTemplate, side: 'left' | 'r
     currentHp: template.stats.maxHp,
     moveCooldown: 0,
     attackCooldown: 0,
+    lastMacroKey: `${macroCellOfNode(pos).col},${macroCellOfNode(pos).row}`,
+    macroCellsMoved: 0,
+  };
+  state.enemies.push(enemy);
+}
+
+function spawnCarrierDrone(state: GameState, carrier: Enemy): void {
+  const template = getEnemyTemplate('carrierKamikaze');
+  if (!template) return;
+  const enemy: Enemy = {
+    id: `enemy-${enemyCounter++}`,
+    templateId: template.id,
+    name: pickName(template.id),
+    pos: { ...carrier.pos, face: faceOf(state.tower, carrier.pos.col, carrier.pos.row) },
+    path: [],
+    pathIndex: 0,
+    currentHp: template.stats.maxHp,
+    moveCooldown: 0,
+    attackCooldown: 0,
+    lifetimeMacroCells: CARRIER_KAMIKAZE_LIFETIME_MACRO,
+    macroCellsMoved: 0,
+    lastMacroKey: `${macroCellOfNode(carrier.pos).col},${macroCellOfNode(carrier.pos).row}`,
   };
   state.enemies.push(enemy);
 }
@@ -188,8 +231,30 @@ function reached(a: ExteriorNode, b: ExteriorNode): boolean {
   return sameMacroCell(a, b);
 }
 
-function enemyCombatant(template: EnemyTemplate): Combatant {
-  return { attack: template.stats.strength, defense: 0, dexterity: template.stats.dexterity };
+function macroManhattan(a: ExteriorNode, b: ExteriorNode): number {
+  const am = macroCellOfNode(a);
+  const bm = macroCellOfNode(b);
+  return Math.abs(am.col - bm.col) + Math.abs(am.row - bm.row);
+}
+
+function trackMacroMovement(enemy: Enemy): void {
+  const m = macroCellOfNode(enemy.pos);
+  const key = `${m.col},${m.row}`;
+  if (enemy.lastMacroKey && enemy.lastMacroKey !== key) {
+    enemy.macroCellsMoved = (enemy.macroCellsMoved ?? 0) + 1;
+  }
+  enemy.lastMacroKey = key;
+  if (
+    enemy.lifetimeMacroCells !== undefined
+    && (enemy.macroCellsMoved ?? 0) >= enemy.lifetimeMacroCells
+  ) {
+    enemy.currentHp = 0;
+  }
+}
+
+function wizardGoalKey(pos: ExteriorNode): string {
+  const m = macroCellOfNode(pos);
+  return `${m.col},${m.row}`;
 }
 
 /** Advance one fixed timestep. Only meaningful during the attack phase. */
@@ -218,6 +283,9 @@ export function step(state: GameState, dt: number): void {
     state.spawnTimer = spawnIntervalFor(templateId);
   }
 
+  const goalKey = wizardGoalKey(wizardPos);
+  const launches: Enemy[] = [];
+
   for (const enemy of state.enemies) {
     if (enemy.currentHp <= 0) continue;
     const template = getEnemyTemplate(enemy.templateId);
@@ -225,34 +293,56 @@ export function step(state: GameState, dt: number): void {
 
     if (enemy.airborne) continue;
 
-    if (enemy.path.length === 0) {
+    // Fliers always repath when the wizard moves; crawlers keep prior stale-path refresh.
+    const needsRepath =
+      enemy.path.length === 0
+      || (template.movement.canFly && enemy.pathGoalKey !== goalKey)
+      || (
+        enemy.path.length > 0
+        && enemy.pathIndex >= enemy.path.length - 1
+        && !reached(enemy.pos, wizardPos)
+      );
+
+    if (needsRepath) {
       enemy.path = findPath(state.tower, enemy.pos, wizardPos, template.movement);
       enemy.pathIndex = 0;
+      enemy.pathGoalKey = goalKey;
     }
 
-    // Stale or partial path: keep climbing toward the wizard instead of freezing.
-    if (
-      enemy.path.length > 0 &&
-      enemy.pathIndex >= enemy.path.length - 1 &&
-      !reached(enemy.pos, wizardPos)
-    ) {
-      enemy.path = findPath(state.tower, enemy.pos, wizardPos, template.movement);
-      enemy.pathIndex = 0;
+    // Carriers hover in a band and launch drones instead of closing to melee.
+    if (template.carrier) {
+      const dist = macroManhattan(enemy.pos, wizardPos);
+      enemy.carrierLaunchTimer = (enemy.carrierLaunchTimer ?? 0) - dt;
+      if (enemy.carrierLaunchTimer <= 0) {
+        launches.push(enemy);
+        enemy.carrierLaunchTimer = CARRIER_LAUNCH_INTERVAL;
+      }
+      if (dist <= CARRIER_HOVER_MACRO_RANGE) {
+        continue;
+      }
     }
 
     if (reached(enemy.pos, wizardPos)) {
-      enemy.attackCooldown -= dt;
-      if (enemy.attackCooldown <= 0) {
-        const result = computeDamage(enemyCombatant(template), wizard, state.rngState);
-        state.rngState = result.rngState;
-        if (result.dodged) {
-          addMessage(state, `The wizard dodges ${enemy.name} the ${template.type}.`, 'combat');
-        } else {
-          const dealt = mitigateWizardDamage(state, result.damage);
-          wizard.hp = Math.max(0, wizard.hp - dealt);
-          addMessage(state, `${enemy.name} the ${template.type} hits the wizard for ${dealt}.`, 'combat');
+      attackWizard(state, enemy, template, wizard, mitigateWizardDamage, dt);
+      continue;
+    }
+
+    // No air path: press the closest room and attack when adjacent.
+    if (template.movement.canFly && enemy.path.length === 0) {
+      const room = closestRoomToEnemy(state, enemy);
+      if (room && enemyTouchesRoom(enemy, room)) {
+        attackBlockingRoom(state, enemy, template, dt);
+        continue;
+      }
+      enemy.moveCooldown -= dt;
+      if (enemy.moveCooldown <= 0 && room) {
+        const stepTo = greedyStepTowardRoom(enemy, room, (col, row) =>
+          isWalkable(state.tower, col, row, template.movement));
+        if (stepTo) {
+          enemy.pos = stepTo;
+          trackMacroMovement(enemy);
         }
-        enemy.attackCooldown = ENEMY_ATTACK_COOLDOWN;
+        enemy.moveCooldown = (1 / template.speed) * blizzardSlowMultiplier(state, enemy);
       }
       continue;
     }
@@ -271,11 +361,20 @@ export function step(state: GameState, dt: number): void {
       }
       enemy.pathIndex += 1;
       enemy.pos = nextPos;
+      trackMacroMovement(enemy);
       enemy.moveCooldown = (1 / template.speed) * blizzardSlowMultiplier(state, enemy);
-      runEnemyStepEffects(state, enemy);
+      if (!template.movement.canFly) {
+        runEnemyStepEffects(state, enemy);
+        onEnemyWallStep(state, enemy);
+      }
       runKindlingPatchStepEffects(state, enemy);
       runFaultPatchStepEffects(state, enemy);
-      onEnemyWallStep(state, enemy);
+    }
+  }
+
+  for (const carrier of launches) {
+    if (carrier.currentHp > 0 && state.enemies.length < MAX_LIVE_ENEMIES) {
+      spawnCarrierDrone(state, carrier);
     }
   }
 

@@ -1,9 +1,15 @@
 import { faceOf, surfaceContacts } from '../../calculations/exteriorGraph';
+import { getEnemyTemplate } from '../enemies';
 import { applyDiscombobulated } from './air/discombobulated';
 import { resolveSubCellDisplacement } from './air/displacement';
 import { applyCollisionDamage, detachEnemy, wasOnWall } from './air/fallCollision';
 import { GUST_PUSH_SUB_CELLS } from './air/constants';
-import { gustAffectedCells, computePushDelta, enemyInGustCell } from './air/push';
+import {
+  gustAffectedCells,
+  computePushDelta,
+  computePushDeltaFromCenter,
+  enemyInGustCell,
+} from './air/push';
 import type { SpellDef } from './types';
 
 export const gust: SpellDef = {
@@ -26,14 +32,19 @@ export const gust: SpellDef = {
       if (!inBlast) continue;
 
       const enemyMacro = cells.find((c) => enemyInGustCell(enemy.pos, c))!;
-      const delta = computePushDelta(ctx.state.tower, enemyMacro);
-      const hadWall = wasOnWall(ctx.state.tower, enemy.pos);
+      const template = getEnemyTemplate(enemy.templateId);
+      const isFlier = template?.movement.canFly === true;
+      const delta = isFlier
+        ? computePushDeltaFromCenter(enemyMacro, target.cell)
+        : computePushDelta(ctx.state.tower, enemyMacro);
+      const hadWall = !isFlier && wasOnWall(ctx.state.tower, enemy.pos);
       const push = resolveSubCellDisplacement(
         ctx.state.tower,
         enemy.pos,
         delta.dc,
         delta.dr,
         GUST_PUSH_SUB_CELLS,
+        isFlier,
       );
 
       enemy.pos = {
@@ -44,16 +55,19 @@ export const gust: SpellDef = {
       };
       enemy.path = [];
       enemy.pathIndex = 0;
+      enemy.pathGoalKey = undefined;
 
-      if (push.hitRoom) {
+      if (push.hitRoom && !isFlier) {
         applyCollisionDamage(ctx.state, enemy, 'Gust');
       }
 
-      const afterContacts = surfaceContacts(ctx.state.tower, enemy.pos.col, enemy.pos.row);
-      if (hadWall && afterContacts.size === 0) {
-        detachEnemy(ctx.state, enemy);
-      } else if (hadWall) {
-        applyDiscombobulated(enemy);
+      if (!isFlier) {
+        const afterContacts = surfaceContacts(ctx.state.tower, enemy.pos.col, enemy.pos.row);
+        if (hadWall && afterContacts.size === 0) {
+          detachEnemy(ctx.state, enemy);
+        } else if (hadWall) {
+          applyDiscombobulated(enemy);
+        }
       }
       hits += 1;
     }

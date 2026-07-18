@@ -1,6 +1,6 @@
 import { SUB_CELLS_PER_MACRO } from '@/config/constants';
 import { faceOf } from '../../../calculations/exteriorGraph';
-import type { Cell, GameState, Tower, WallOfFlameSegment } from '../../types';
+import type { Cell, ExteriorFace, GameState, Tower, WallOfFlameSegment } from '../../types';
 import { WALL_OF_FLAME_MAX_CELLS } from './constants';
 
 export function gridLine(from: Cell, to: Cell): Cell[] | null {
@@ -34,6 +34,34 @@ export function sameFaceEndpoints(tower: Tower, from: Cell, to: Cell): boolean {
   const toSubCol = to.col * SUB_CELLS_PER_MACRO + offset;
   const toSubRow = to.row * SUB_CELLS_PER_MACRO + offset;
   return faceOf(tower, fromSubCol, fromSubRow) === faceOf(tower, toSubCol, toSubRow);
+}
+
+/** True when a macro cell is empty air (no room) — valid for open-air Wall of Flame. */
+export function isOpenAirMacro(tower: Tower, cell: Cell): boolean {
+  return !Object.prototype.hasOwnProperty.call(tower.occupancy, `${cell.col},${cell.row}`);
+}
+
+/**
+ * Wall of Flame may be drawn on one shared exterior face, or entirely in open air
+ * so players can cut flier lanes.
+ */
+export function validWallOfFlameSegment(tower: Tower, from: Cell, to: Cell): boolean {
+  const cells = gridLine(from, to);
+  if (!cells) return false;
+  const allAir = cells.every((c) => isOpenAirMacro(tower, c));
+  if (allAir) return true;
+  return sameFaceEndpoints(tower, from, to);
+}
+
+export function wallSegmentFace(tower: Tower, from: Cell, to: Cell): ExteriorFace {
+  const cells = gridLine(from, to);
+  if (cells?.every((c) => isOpenAirMacro(tower, c))) return 'air';
+  const offset = Math.floor(SUB_CELLS_PER_MACRO / 2);
+  return faceOf(
+    tower,
+    from.col * SUB_CELLS_PER_MACRO + offset,
+    from.row * SUB_CELLS_PER_MACRO + offset,
+  );
 }
 
 export function segmentContainsCell(segment: WallOfFlameSegment, col: number, row: number): boolean {

@@ -1,8 +1,10 @@
 # Flying enemies
 
-Design plan for air-lane attackers that bypass wall-hugging defenses, pressure tall towers, and force coverage away from the shell. Extends the stubbed `MovementKind: 'fly'` / `canFly` profile already in `src/model/types.ts`.
+Design + implementation notes for air-lane attackers that bypass wall-hugging defenses, pressure tall towers, and force coverage away from the shell.
 
-**Working names** below are placeholders. Numbers (height bands, speeds, budgets) are flexible until playtest.
+**Status:** Implemented (striker / kamikaze / carrier + open-air Wall of Flame). Numbers (height bands, speeds, budgets) remain flexible for playtest.
+
+**Working names** (striker, kamikaze, carrier, carrierKamikaze) are placeholders.
 
 ---
 

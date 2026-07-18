@@ -1,5 +1,5 @@
 import { cellKey } from './grid';
-import { isWalkable, neighbors } from './exteriorGraph';
+import { faceOf, isWalkable, neighbors } from './exteriorGraph';
 import type { ExteriorNode, MovementProfile, Tower } from '../model/types';
 
 // Manhattan distance: enemies move one orthogonal step at a time along surfaces.
@@ -7,10 +7,16 @@ function heuristic(ac: number, ar: number, bc: number, br: number): number {
   return Math.abs(ac - bc) + Math.abs(ar - br);
 }
 
+function nodeKey(n: ExteriorNode): string {
+  return cellKey(n.col, n.row);
+}
+
 /**
- * A* over the exterior surface graph from `start` to `goal`. Returns the full
- * node path including both endpoints, or [] when unreachable. Pure: no
- * dependency on rng, DOM, or the store.
+ * A* over the exterior surface graph (or open air for fliers) from `start` to `goal`.
+ * Returns the full node path including both endpoints, or [] when unreachable.
+ *
+ * Fliers may step onto `goal` even when it is not normally fly-walkable (wizard perch
+ * engagement), so they can enter the wizard's space without skimming walls elsewhere.
  */
 export function findPath(
   tower: Tower,
@@ -18,12 +24,18 @@ export function findPath(
   goal: ExteriorNode,
   profile: MovementProfile,
 ): ExteriorNode[] {
-  if (!isWalkable(tower, goal.col, goal.row, profile) || !isWalkable(tower, start.col, start.row, profile)) {
-    return [];
-  }
+  const startOk = isWalkable(tower, start.col, start.row, profile);
+  const goalOk = isWalkable(tower, goal.col, goal.row, profile);
+  if (!startOk) return [];
+  if (!goalOk && !profile.canFly) return [];
 
-  const startKey = cellKey(start.col, start.row);
-  const goalKey = cellKey(goal.col, goal.row);
+  const startKey = nodeKey(start);
+  const goalKey = nodeKey(goal);
+  const goalNode: ExteriorNode = {
+    col: goal.col,
+    row: goal.row,
+    face: profile.canFly && !goalOk ? 'air' : faceOf(tower, goal.col, goal.row),
+  };
 
   const open = new Set<string>([startKey]);
   const cameFrom = new Map<string, ExteriorNode>();
@@ -51,8 +63,18 @@ export function findPath(
     const node = nodeByKey.get(current)!;
     const currentG = gScore.get(current) ?? Infinity;
 
-    for (const n of neighbors(tower, node.col, node.row, profile)) {
-      const nKey = cellKey(n.col, n.row);
+    const nextNodes = neighbors(tower, node.col, node.row, profile);
+    // Allow a final lunge onto the wizard goal for fliers.
+    if (profile.canFly && !goalOk) {
+      const ortho =
+        Math.abs(node.col - goal.col) + Math.abs(node.row - goal.row) === 1;
+      if (ortho) {
+        nextNodes.push(goalNode);
+      }
+    }
+
+    for (const n of nextNodes) {
+      const nKey = nodeKey(n);
       const tentative = currentG + 1;
       if (tentative < (gScore.get(nKey) ?? Infinity)) {
         cameFrom.set(nKey, node);

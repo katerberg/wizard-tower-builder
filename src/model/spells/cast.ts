@@ -9,7 +9,7 @@ import { applyWindDamage } from './air/windDamage';
 import { tornadoGridLine } from './air/tornado';
 import { applyFireDamage } from './fire/fireDamage';
 import { isValidKindlingPlacement } from './fire/kindling';
-import { gridLine, sameFaceEndpoints } from './fire/wall';
+import { gridLine, validWallOfFlameSegment } from './fire/wall';
 import { blizzard } from './blizzard';
 import { boulder } from './boulder';
 import { earthquake, roomIdAtCell } from './earthquake';
@@ -250,7 +250,7 @@ export function canCastSpell(state: GameState, spellId: string, target?: SpellTa
       || gridDistance(state, getWizardPosition(state.tower), target.to) > spell.range) {
       return { ok: false, reason: 'out_of_range' };
     }
-    if (!sameFaceEndpoints(state.tower, target.from, target.to)) {
+    if (!validWallOfFlameSegment(state.tower, target.from, target.to)) {
       return { ok: false, reason: 'invalid_segment' };
     }
     if (!gridLine(target.from, target.to)) {

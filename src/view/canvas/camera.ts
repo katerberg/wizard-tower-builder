@@ -58,11 +58,11 @@ const SURFACE_INSET = 2;
 export const GROUND_LINE_INSET = 4;
 
 /** Draw radius for one sub-cell (1×1 fine grid) enemy glyph. */
-export function enemyDrawRadius(tier: EnemySizeTier = 'swarm'): number {
+export function enemyDrawRadius(tier: EnemySizeTier = 'small'): number {
   switch (tier) {
-    case 'boss':
+    case 'large':
       return SUB_CELL_SIZE * 0.46;
-    case 'elite':
+    case 'medium':
       return SUB_CELL_SIZE * 0.4;
     default:
       return SUB_CELL_SIZE * 0.36;
@@ -86,6 +86,10 @@ export function exteriorNodeDrawCenter(
       ? subY - radius - SURFACE_INSET
       : subY + SUB_CELL_SIZE - radius - SURFACE_INSET;
 
+  if (pos.face === 'air') {
+    // Center in the sub-cell so fliers read as airborne, not shell-climbing.
+    return { x: subX + SUB_CELL_SIZE / 2, y: subY + SUB_CELL_SIZE / 2 };
+  }
   if (pos.face === 'right') {
     return { x: (pos.col + 1) * SUB_CELL_SIZE - radius - SURFACE_INSET, y: surfaceY };
   }
