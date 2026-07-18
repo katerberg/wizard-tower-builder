@@ -43,9 +43,13 @@ Unstable towers (floating rooms or illegal cantilevers) are highlighted on the b
 
 Dev mode toggles are available via intents (`toggleDevMode`, `devAddCurrency`, `devSkipWave`, `devSetSpellSchool`) for local testing.
 
+### World danger
+
+As the tower grows taller, the world gets more dangerous. Later waves introduce harder angles of attack (for example higher air-spawn bands for fliers). Exact curves and extra systems are planned separately; see [`docs/FLYING.md`](docs/FLYING.md) for the flying-enemy slice.
+
 ### Enemy movement
 
-Enemies are surface crawlers, not fliers. Pathfinding (`src/calculations/`) builds a one-cell-thick "shell" of empty cells that hug the tower on a **flat** surface: the ground (row 0), the left and right walls of rooms, ledges on top of rooms, and the pockets beneath overhangs. A cell that only touches a room diagonally is clinging to a bare corner — it is _not_ a surface, so enemies never perch there. Cells out in open air are never walkable, so enemies must follow the structure up to the wizard.
+Enemies are surface crawlers today (fliers planned in [`docs/FLYING.md`](docs/FLYING.md)). Pathfinding (`src/calculations/`) builds a one-cell-thick "shell" of empty cells that hug the tower on a **flat** surface: the ground (row 0), the left and right walls of rooms, ledges on top of rooms, and the pockets beneath overhangs. A cell that only touches a room diagonally is clinging to a bare corner — it is _not_ a surface, so enemies never perch there. Cells out in open air are never walkable for crawlers, so they must follow the structure up to the wizard.
 
 Most steps are orthogonal: enemies climb flat walls and ledges one cell at a time. The single exception is a constrained **corner-wrap** — a diagonal step that wraps the outer corner of one solid block (exactly one of the two cells flanking the diagonal is a room, the other open). This lets a crawler move flat-to-flat _around_ a convex corner (e.g. from a wall onto the roof above it) without ever standing on the corner, while still forbidding free-air leaps (no room between the cells) and squeezing through a diagonal gap (a room on both sides). A\* uses a Manhattan metric with a uniform step cost.
 
@@ -261,7 +265,7 @@ Still not done:
 - Soldier death / targeting; pipe damage
 - Advanced mage tech (research / combat casting) — housing basics shipped in [`docs/HOUSING.md`](docs/HOUSING.md)
 - Multiple currencies beyond gold; roguelike map branching
-- Alternative enemy movement modes (fly, attack overhangs, etc.) — all enemies use `under_overhang`
+- Alternative enemy movement modes — fliers planned in [`docs/FLYING.md`](docs/FLYING.md); attack-overhang / face-transfer still deferred; crawlers use `under_overhang`
 - Visual polish beyond ASCII-style glyphs on canvas
 - Training rooms (troops of certain types required to populate other rooms)
 - Research rooms; Mana Well / spell shop / grimoire unlocks
