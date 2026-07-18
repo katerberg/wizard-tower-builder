@@ -17,6 +17,7 @@ import { getUnstableRoomIds } from '@/model/tower';
 import { resolvePipeFluids, previewPipeFluidAt, pipeVisualLinks, type PipeFluid } from '@/model/pipes';
 import { selectCastPreview, selectGhostPlacement, selectRoomBuildAlerts, selectWizardPosition } from '@/store/selectors';
 import type { Snapshot } from '@/store/store';
+import type { ExteriorFace } from '@/model/types';
 import { BOARD_WIDTH, cellCenter, cellTopLeft, enemyDrawRadius, exteriorNodeDrawCenter, GROUND_LINE_INSET, visibleRowRange } from './camera';
 
 function pipeFluidColor(fluid: PipeFluid): string {
@@ -648,7 +649,7 @@ export class Renderer {
 
       const template = getEnemyTemplate(enemy.templateId);
       const pos = this.interpolatedEnemyPos(enemy, snapshot);
-      const tier = template?.sizeTier ?? 'swarm';
+      const tier = template?.sizeTier ?? 'small';
       const r = enemyDrawRadius(tier);
 
       let x: number;
@@ -675,16 +676,16 @@ export class Renderer {
       ctx.textBaseline = 'middle';
       ctx.fillText(template?.glyph ?? 'e', x, y);
 
-      if (template && tier !== 'swarm') {
+      if (template && tier !== 'small') {
         this.drawHpBar(x - r, y - r - 6, r * 2, enemy.currentHp / template.stats.maxHp);
       }
     }
   }
 
   private interpolatedEnemyPos(
-    enemy: { id: string; pos: { col: number; row: number; face: 'left' | 'right' | 'top' } },
+    enemy: { id: string; pos: { col: number; row: number; face: ExteriorFace } },
     snapshot: Snapshot,
-  ): { col: number; row: number; face: 'left' | 'right' | 'top' } {
+  ): { col: number; row: number; face: ExteriorFace } {
     const prev = snapshot.previousEnemyPositions.get(enemy.id);
     const t = snapshot.renderAlpha;
     if (!prev || t >= 1) return enemy.pos;

@@ -48,7 +48,7 @@ describe('visibleRowRange', () => {
 
 describe('exteriorNodeDrawCenter', () => {
   const viewportHeight = TEST_VIEWPORT_HEIGHT;
-  const radius = enemyDrawRadius('swarm');
+  const radius = enemyDrawRadius('small');
 
   it('snaps climbers on the left exterior flush to the room edge per sub-cell', () => {
     const subCol = 5 * 3 + 1;
@@ -97,13 +97,13 @@ describe('exteriorNodeDrawCenter', () => {
 });
 
 describe('enemyDrawRadius', () => {
-  it('fits swarm glyphs within one sub-cell', () => {
-    expect(enemyDrawRadius('swarm') * 2).toBeLessThanOrEqual(SUB_CELL_SIZE - 2);
+  it('fits small glyphs within one sub-cell', () => {
+    expect(enemyDrawRadius('small') * 2).toBeLessThanOrEqual(SUB_CELL_SIZE - 2);
   });
 
-  it('scales elites and bosses up slightly but stays sub-cell sized', () => {
-    expect(enemyDrawRadius('elite')).toBeGreaterThan(enemyDrawRadius('swarm'));
-    expect(enemyDrawRadius('boss')).toBeGreaterThan(enemyDrawRadius('elite'));
-    expect(enemyDrawRadius('boss') * 2).toBeLessThanOrEqual(SUB_CELL_SIZE);
+  it('scales medium and large up slightly but stays sub-cell sized', () => {
+    expect(enemyDrawRadius('medium')).toBeGreaterThan(enemyDrawRadius('small'));
+    expect(enemyDrawRadius('large')).toBeGreaterThan(enemyDrawRadius('medium'));
+    expect(enemyDrawRadius('large') * 2).toBeLessThanOrEqual(SUB_CELL_SIZE);
   });
 });

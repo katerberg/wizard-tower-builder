@@ -142,7 +142,7 @@ export interface Wizard {
   attackCooldown: number;
 }
 
-export type ExteriorFace = 'left' | 'right' | 'top';
+export type ExteriorFace = 'left' | 'right' | 'top' | 'air';
 
 export interface ExteriorNode { col: number; row: number; face: ExteriorFace }
 
@@ -156,7 +156,7 @@ export interface MovementProfile {
   canTransferFaces: boolean;
 }
 
-export type EnemySizeTier = 'swarm' | 'elite' | 'boss';
+export type EnemySizeTier = 'small' | 'medium' | 'large';
 
 export interface EnemyTemplate {
   id: string;
@@ -168,6 +168,10 @@ export interface EnemyTemplate {
   currencyReward: number;
   movement: MovementProfile;
   sizeTier: EnemySizeTier;
+  /** Contact attack then self-remove (kamikaze). */
+  kamikaze?: boolean;
+  /** Hover off-tower and launch weaker kamikazes. */
+  carrier?: boolean;
   dropChance?: number;
   dropItemId?: string;
 }
@@ -205,6 +209,15 @@ export interface Enemy {
   airborneTimer?: number;
   /** Tornado segment keys inside. */
   tornadoInside?: string[];
+  /** Carrier-launched kamikazes: macro cells traveled before self-destruct. */
+  lifetimeMacroCells?: number;
+  /** Macro cells moved since spawn (carrier kamikaze leash). */
+  macroCellsMoved?: number;
+  lastMacroKey?: string;
+  /** Carrier launch cooldown accumulator. */
+  carrierLaunchTimer?: number;
+  /** Last wizard macro key used for flier repath (`col,row`). */
+  pathGoalKey?: string;
 }
 
 export type GameMessageKind = 'info' | 'combat' | 'economy';
@@ -234,6 +247,7 @@ export interface KindlingPatch {
 
 export interface WallOfFlameSegment {
   cells: Cell[];
+  /** Tower face, or `air` for open-air lanes. */
   face: ExteriorFace;
   expiresAt: number;
   tickTimer: number;

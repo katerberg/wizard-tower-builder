@@ -44,7 +44,10 @@ export function exteriorSubAt(macroCol: number, macroRow: number, face: Exterior
       return { col: macroCol * SUB_CELLS_PER_MACRO - 1, row: midSubRow, face: 'left' };
     case 'right':
       return { col: (macroCol + 1) * SUB_CELLS_PER_MACRO, row: midSubRow, face: 'right' };
+    case 'air':
+      return { col: midSubCol, row: midSubRow, face: 'air' };
     case 'top':
+    default:
       return { col: midSubCol, row: baseSubRow, face: 'top' };
   }
 }

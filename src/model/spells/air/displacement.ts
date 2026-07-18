@@ -9,8 +9,13 @@ function isRoomSub(tower: Tower, subCol: number, subRow: number): boolean {
 }
 
 /** True when a sub-cell cannot be entered during a knock-back. */
-export function isDisplacementBlocked(tower: Tower, subCol: number, subRow: number): boolean {
-  if (!inAirBounds(tower, subCol, subRow)) return true;
+export function isDisplacementBlocked(
+  tower: Tower,
+  subCol: number,
+  subRow: number,
+  canFly = false,
+): boolean {
+  if (!inAirBounds(tower, subCol, subRow, canFly)) return true;
   return isRoomSub(tower, subCol, subRow);
 }
 
@@ -23,6 +28,7 @@ export interface DisplacementResult {
 /**
  * Move up to `steps` sub-cells along (dc, dr) from `start`.
  * Room tiles block entry; one bounce reflects remaining travel off the obstacle.
+ * Fliers use extended air bounds so gust can shove them off-viewport (still in play).
  */
 export function resolveSubCellDisplacement(
   tower: Tower,
@@ -30,6 +36,7 @@ export function resolveSubCellDisplacement(
   dc: number,
   dr: number,
   steps: number,
+  canFly = false,
 ): DisplacementResult {
   if (steps <= 0 || (dc === 0 && dr === 0)) {
     return { pos: { col: start.col, row: start.row }, hitRoom: false, hitBoundary: false };
@@ -46,7 +53,7 @@ export function resolveSubCellDisplacement(
     const nextCol = pos.col + dir.dc;
     const nextRow = pos.row + dir.dr;
 
-    if (!inAirBounds(tower, nextCol, nextRow)) {
+    if (!inAirBounds(tower, nextCol, nextRow, canFly)) {
       hitBoundary = true;
       break;
     }

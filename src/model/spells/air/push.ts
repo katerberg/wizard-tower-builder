@@ -20,6 +20,17 @@ export function computePushDelta(tower: Tower, cell: Cell): PushDelta {
   return { dc: 0, dr: -1 };
 }
 
+/** Push away from the gust center-point (fliers). */
+export function computePushDeltaFromCenter(enemyMacro: Cell, gustCenter: Cell): PushDelta {
+  const dc = Math.sign(enemyMacro.col - gustCenter.col);
+  const dr = Math.sign(enemyMacro.row - gustCenter.row);
+  if (dc === 0 && dr === 0) {
+    // On the center cell — shove outward horizontally by default.
+    return { dc: enemyMacro.col < Math.floor(GRID_COLS / 2) ? -1 : 1, dr: 0 };
+  }
+  return { dc, dr };
+}
+
 export function gustAffectedCells(center: Cell): Cell[] {
   return [
     center,

@@ -118,6 +118,9 @@ function buildRoomContext(
  */
 export function runEnemyStepEffects(state: GameState, enemy: Enemy): void {
   if (enemy.currentHp <= 0) return;
+  const template = getEnemyTemplate(enemy.templateId);
+  // Spikes and shell contact hazards miss fliers.
+  if (template?.movement.canFly) return;
   for (const room of state.tower.rooms) {
     const cells = roomCells(room.origin, room.size);
     const touches = enemyTouchesFootprint(enemy, cells);
