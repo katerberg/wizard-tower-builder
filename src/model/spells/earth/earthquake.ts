@@ -1,10 +1,10 @@
 import { roomCells } from '@/calculations/grid';
 import { macroCellOfNode } from '@/calculations/subGrid';
 import { addMessage } from '@/model/messages';
-import { computeRoomStats } from '@/calculations/combat';
+import { computeStructureStats } from '@/calculations/combat';
 import { getBlueprint } from '@/model/blueprints';
-import { removeRoom, roomAt } from '@/model/tower';
-import type { Cell, GameState, Room, Tower } from '@/model/types';
+import { removeStructure, structureAt } from '@/model/tower';
+import type { Cell, GameState, Structure, Tower } from '@/model/types';
 import type { SpellCastContext } from '../types';
 import {
   QUAKE_ENEMY_DAMAGE_PER_CHARGE,
@@ -13,7 +13,7 @@ import {
 } from './constants';
 import { ensureEarthState, spendAllCharge } from './charge';
 
-function roomsAdjacent(a: Room, b: Room): boolean {
+function structuresAdjacent(a: Structure, b: Structure): boolean {
   const cellsA = roomCells(a.origin, a.size);
   const cellsB = roomCells(b.origin, b.size);
   for (const ca of cellsA) {
@@ -24,49 +24,49 @@ function roomsAdjacent(a: Room, b: Room): boolean {
   return false;
 }
 
-function roomTouchesGround(room: Room): boolean {
-  return room.origin.row === 0 || roomCells(room.origin, room.size).some((c) => c.row === 0);
+function structureTouchesGround(piece: Structure): boolean {
+  return piece.origin.row === 0 || roomCells(piece.origin, piece.size).some((c) => c.row === 0);
 }
 
-function roomMaxRow(room: Room): number {
-  return room.origin.row + room.size.h - 1;
+function structureMaxRow(piece: Structure): number {
+  return piece.origin.row + piece.size.h - 1;
 }
 
 /**
- * Support spine from tip down to ground: BFS among room-adjacency,
- * preferring downward neighbors, until a ground-touching room is reached.
+ * Support spine from tip down to ground: BFS among structure-adjacency,
+ * preferring downward neighbors, until a ground-touching piece is reached.
  */
-export function supportSpineToGround(tower: Tower, tipRoomId: string): Room[] {
-  const tip = tower.rooms.find((r) => r.id === tipRoomId);
+export function supportSpineToGround(tower: Tower, tipStructureId: string): Structure[] {
+  const structures = tower.structures ?? [];
+  const tip = structures.find((s) => s.id === tipStructureId);
   if (!tip) return [];
 
-  const adj = new Map<string, Room[]>();
-  for (const room of tower.rooms) adj.set(room.id, []);
-  for (let i = 0; i < tower.rooms.length; i++) {
-    for (let j = i + 1; j < tower.rooms.length; j++) {
-      const a = tower.rooms[i];
-      const b = tower.rooms[j];
-      if (roomsAdjacent(a, b)) {
+  const adj = new Map<string, Structure[]>();
+  for (const piece of structures) adj.set(piece.id, []);
+  for (let i = 0; i < structures.length; i++) {
+    for (let j = i + 1; j < structures.length; j++) {
+      const a = structures[i];
+      const b = structures[j];
+      if (structuresAdjacent(a, b)) {
         adj.get(a.id)!.push(b);
         adj.get(b.id)!.push(a);
       }
     }
   }
 
-  // BFS with parent pointers; explore lower rooms first
   const queue: string[] = [tip.id];
   const parent = new Map<string, string | null>([[tip.id, null]]);
   let groundId: string | null = null;
 
   while (queue.length > 0) {
     const id = queue.shift()!;
-    const room = tower.rooms.find((r) => r.id === id)!;
-    if (roomTouchesGround(room)) {
+    const piece = structures.find((s) => s.id === id)!;
+    if (structureTouchesGround(piece)) {
       groundId = id;
       break;
     }
     const neighbors = [...(adj.get(id) ?? [])].sort(
-      (a, b) => roomMaxRow(a) - roomMaxRow(b) || a.origin.col - b.origin.col,
+      (a, b) => structureMaxRow(a) - structureMaxRow(b) || a.origin.col - b.origin.col,
     );
     for (const n of neighbors) {
       if (parent.has(n.id)) continue;
@@ -76,32 +76,30 @@ export function supportSpineToGround(tower: Tower, tipRoomId: string): Room[] {
   }
 
   if (!groundId) {
-    // No path to ground — return tip only
     return [tip];
   }
 
-  const path: Room[] = [];
+  const path: Structure[] = [];
   let cur: string | null = groundId;
   while (cur) {
-    const room = tower.rooms.find((r) => r.id === cur)!;
-    path.push(room);
+    const piece = structures.find((s) => s.id === cur)!;
+    path.push(piece);
     cur = parent.get(cur) ?? null;
   }
-  path.reverse(); // tip → … → ground? wait we walked ground→tip via parent from tip
-  // parent links tip→…→ground when reconstructing from groundId upward to tip
-  // path currently ground...tip if we pushed while walking parent from ground
-  // We pushed ground first then parents toward tip, then reversed → tip…ground. Good.
+  path.reverse();
   return path;
 }
 
-function enemyNearRooms(state: GameState, rooms: Room[]): { enemyId: string; nearTip: boolean }[] {
-  const tip = rooms[0];
+function enemyNearStructures(
+  state: GameState,
+  pieces: Structure[],
+): { enemyId: string; nearTip: boolean }[] {
+  const tip = pieces[0];
   const tipCells = new Set(roomCells(tip.origin, tip.size).map((c) => `${c.col},${c.row}`));
   const allCells = new Set<string>();
-  for (const room of rooms) {
-    for (const c of roomCells(room.origin, room.size)) {
+  for (const piece of pieces) {
+    for (const c of roomCells(piece.origin, piece.size)) {
       allCells.add(`${c.col},${c.row}`);
-      // ortho adjacent exterior-ish: include adjacent empty cells as "along path"
       for (const [dc, dr] of [
         [0, 1],
         [0, -1],
@@ -128,12 +126,12 @@ function enemyNearRooms(state: GameState, rooms: Room[]): { enemyId: string; nea
   return out;
 }
 
-export function castEarthquake(state: GameState, tipRoomId: string, ctx: SpellCastContext): void {
+export function castEarthquake(state: GameState, tipStructureId: string, ctx: SpellCastContext): void {
   ensureEarthState(state);
   const spent = spendAllCharge(state);
   if (spent <= 0) return;
 
-  const spine = supportSpineToGround(state.tower, tipRoomId);
+  const spine = supportSpineToGround(state.tower, tipStructureId);
   if (spine.length === 0) {
     addMessage(state, 'Earthquake finds no structure to crack.', 'info');
     return;
@@ -141,12 +139,11 @@ export function castEarthquake(state: GameState, tipRoomId: string, ctx: SpellCa
 
   addMessage(
     state,
-    `Earthquake cascades through ${spine.length} room(s) (${spent} Charge)!`,
+    `Earthquake cascades through ${spine.length} framing piece(s) (${spent} Charge)!`,
     'combat',
   );
 
-  // Enemies along path
-  for (const { enemyId, nearTip } of enemyNearRooms(state, spine)) {
+  for (const { enemyId, nearTip } of enemyNearStructures(state, spine)) {
     const enemy = state.enemies.find((e) => e.id === enemyId);
     if (!enemy) continue;
     let damage = spent * QUAKE_ENEMY_DAMAGE_PER_CHARGE;
@@ -154,14 +151,13 @@ export function castEarthquake(state: GameState, tipRoomId: string, ctx: SpellCa
     ctx.damageEnemy(enemy, Math.max(1, damage));
   }
 
-  // Room HP damage (~1/3 maxHp), may destroy
   const destroyed: string[] = [];
-  for (const room of spine) {
-    const live = state.tower.rooms.find((r) => r.id === room.id);
+  for (const piece of spine) {
+    const live = (state.tower.structures ?? []).find((s) => s.id === piece.id);
     if (!live) continue;
     const blueprint = getBlueprint(live.blueprintId);
     if (!blueprint) continue;
-    const stats = computeRoomStats(live, blueprint);
+    const stats = computeStructureStats(live, blueprint);
     const dmg = Math.max(1, Math.ceil(stats.maxHp * QUAKE_ROOM_HP_FRACTION));
     live.hp = Math.max(0, live.hp - dmg);
     addMessage(state, `${blueprint.name} takes ${dmg} structural damage (${live.hp}/${stats.maxHp}).`, 'combat');
@@ -169,11 +165,10 @@ export function castEarthquake(state: GameState, tipRoomId: string, ctx: SpellCa
   }
 
   for (const id of destroyed) {
-    const room = state.tower.rooms.find((r) => r.id === id);
-    const name = room ? getBlueprint(room.blueprintId)?.name ?? 'Room' : 'Room';
-    state.tower = removeRoom(state.tower, id);
+    const piece = (state.tower.structures ?? []).find((s) => s.id === id);
+    const name = piece ? getBlueprint(piece.blueprintId)?.name ?? 'Structure' : 'Structure';
+    state.tower = removeStructure(state.tower, id);
     addMessage(state, `${name} collapses under the quake!`, 'combat');
-    // Clear paths so climbers repath
     for (const enemy of state.enemies) {
       enemy.path = [];
       enemy.pathIndex = 0;
@@ -181,7 +176,8 @@ export function castEarthquake(state: GameState, tipRoomId: string, ctx: SpellCa
   }
 }
 
+/** Tip id for earthquake — prefer structure under the cell (framing is the quake target). */
 export function roomIdAtCell(tower: Tower, cell: Cell): string | null {
-  const room = roomAt(tower, cell.col, cell.row);
-  return room?.id ?? null;
+  const structure = structureAt(tower, cell.col, cell.row);
+  return structure?.id ?? null;
 }

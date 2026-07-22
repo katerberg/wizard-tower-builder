@@ -17,22 +17,22 @@ import { addTornadoSegment } from '@/model/spells/air/tick';
 import { computePushDelta } from '@/model/spells/air/push';
 import { isDisplacementBlocked, resolveSubCellDisplacement } from '@/model/spells/air/displacement';
 import { tickAirborneEnemies } from '@/model/spells/air/fallCollision';
-import { createRoom, createTower, getWizardPosition, placeRoom } from '@/model/tower';
+import { createStructure, createTower, getWizardPosition, placeStructure } from '@/model/tower';
 import type { GameState } from '@/model/types';
 import { makeTestEnemy, subAt, wallSubAt } from '@/test/subCells';
 import { FLIGHT_ASCENT_SUB_ROWS } from '@/model/spells/air/constants';
 
 function towerWithStem(state: GameState): GameState {
   const stem = getBlueprint('stem')!;
-  state.tower = placeRoom(createTower(), createRoom('r0', stem, { col: 8, row: 0 }));
+  state.tower = placeStructure(createTower(), createStructure('r0', stem, { col: 8, row: 0 }));
   return state;
 }
 
 function towerWithStemStack(state: GameState): GameState {
   const stem = getBlueprint('stem')!;
   let tower = createTower();
-  tower = placeRoom(tower, createRoom('r0', stem, { col: 8, row: 0 }));
-  tower = placeRoom(tower, createRoom('r1', stem, { col: 8, row: 1 }));
+  tower = placeStructure(tower, createStructure('r0', stem, { col: 8, row: 0 }));
+  tower = placeStructure(tower, createStructure('r1', stem, { col: 8, row: 1 }));
   state.tower = tower;
   return state;
 }
@@ -40,9 +40,9 @@ function towerWithStemStack(state: GameState): GameState {
 function towerWithStemTall(state: GameState): GameState {
   const stem = getBlueprint('stem')!;
   let tower = createTower();
-  tower = placeRoom(tower, createRoom('r0', stem, { col: 8, row: 0 }));
-  tower = placeRoom(tower, createRoom('r1', stem, { col: 8, row: 1 }));
-  tower = placeRoom(tower, createRoom('r2', stem, { col: 8, row: 2 }));
+  tower = placeStructure(tower, createStructure('r0', stem, { col: 8, row: 0 }));
+  tower = placeStructure(tower, createStructure('r1', stem, { col: 8, row: 1 }));
+  tower = placeStructure(tower, createStructure('r2', stem, { col: 8, row: 2 }));
   state.tower = tower;
   return state;
 }

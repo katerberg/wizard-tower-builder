@@ -38,6 +38,7 @@ export function applyIntent(ctx: HandlerContext, intent: Intent): void {
       break;
 
     case 'sellRoom':
+    case 'sellStructure':
     case 'undoBuild':
     case 'revertBuild':
       handleBuildIntent(ctx, intent);

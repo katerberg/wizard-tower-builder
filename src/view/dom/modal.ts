@@ -1,4 +1,4 @@
-import { selectRoomInspector, type RoomInspector } from '@/store/selectors';
+import { selectRoomInspector, selectStructureInspector, type RoomInspector } from '@/store/selectors';
 import type { Store } from '@/store/store';
 
 export function createModal(root: HTMLElement, store: Store): () => void {
@@ -15,6 +15,8 @@ export function createModal(root: HTMLElement, store: Store): () => void {
       store.dispatch({ type: 'closeModal' });
     } else if (action === 'sellRoom' && target?.dataset.room) {
       store.dispatch({ type: 'sellRoom', roomId: target.dataset.room });
+    } else if (action === 'sellStructure' && target?.dataset.structure) {
+      store.dispatch({ type: 'sellStructure', structureId: target.dataset.structure });
     } else if (action === 'addModification' && target?.dataset.room && target.dataset.mod) {
       store.dispatch({ type: 'addModification', roomId: target.dataset.room, modId: target.dataset.mod });
     } else if (action === 'upgradeModification' && target?.dataset.room && target.dataset.mod) {
@@ -66,7 +68,10 @@ export function createModal(root: HTMLElement, store: Store): () => void {
     const snapshot = store.getSnapshot();
     const { game, view } = snapshot;
     const modal = view.modal;
-    if (!modal || (game.phase === 'attack' && modal.kind === 'room')) {
+    if (
+      !modal ||
+      (game.phase === 'attack' && (modal.kind === 'room' || modal.kind === 'structure'))
+    ) {
       root.innerHTML = '';
       return;
     }
@@ -75,6 +80,9 @@ export function createModal(root: HTMLElement, store: Store): () => void {
     if (modal.kind === 'room') {
       const inspector = selectRoomInspector(snapshot, modal.roomId);
       body = inspector ? roomBody(inspector) : '<p>Room no longer exists.</p>';
+    } else if (modal.kind === 'structure') {
+      const inspector = selectStructureInspector(snapshot, modal.structureId);
+      body = inspector ? structureBody(inspector) : '<p>Structure no longer exists.</p>';
     } else {
       body = helpBody();
     }
@@ -97,6 +105,22 @@ function staffTitle(kind: NonNullable<RoomInspector['housingStaffKind']>): strin
     case 'laborer':
       return 'Laborers';
   }
+}
+
+function structureBody(inspector: NonNullable<ReturnType<typeof selectStructureInspector>>): string {
+  const { structure, blueprint, maxHp, isBuildPhase, canRemove, buildAlert } = inspector;
+  const remove = canRemove
+    ? `<button class="danger" data-action="sellStructure" data-structure="${structure.id}">Remove framing</button>`
+    : '';
+  const alertHtml = buildAlert ? `<p class="warning">${buildAlert}</p>` : '';
+  return `
+    <h3>${blueprint.name}</h3>
+    <p class="hint">Framing — holds the tower up. Rooms and infra sit on top.</p>
+    ${alertHtml}
+    <div class="stat"><span>Size</span><strong>${structure.size.w}x${structure.size.h}</strong></div>
+    <div class="stat"><span>HP</span><strong>${structure.hp} / ${maxHp}</strong></div>
+    <div class="stat"><span>Origin</span><strong>(${structure.origin.col}, ${structure.origin.row})</strong></div>
+    ${isBuildPhase ? remove : ''}`;
 }
 
 function roomBody(inspector: RoomInspector): string {
@@ -186,12 +210,17 @@ function roomBody(inspector: RoomInspector): string {
     ? `<p class="warning">${inspector.buildAlert}</p>`
     : '';
 
+  const framingHtml = inspector.underStructure
+    ? `<div class="stat framing-secondary"><span>Framing</span><strong>${inspector.underStructure.name} · ${inspector.underStructure.hp}/${inspector.underStructure.maxHp}</strong></div>`
+    : '';
+
   return `
     <h3>${blueprint.name}</h3>
     ${alertHtml}
     <div class="stat"><span>Size</span><strong>${room.size.w}x${room.size.h}</strong></div>
     <div class="stat"><span>HP</span><strong>${room.hp} / ${stats.maxHp}</strong></div>
     <div class="stat"><span>Origin</span><strong>(${room.origin.col}, ${room.origin.row})</strong></div>
+    ${framingHtml}
     ${specialty}
     <h4>Modifications</h4>
     <div class="mod-list">${rows}</div>
@@ -203,12 +232,11 @@ function helpBody(): string {
   return `
     <h3>How to play</h3>
     <ul class="help-list">
-      <li>Recruit staff in housing (guardroom, chamber, quarters), allocate slots and mana springs, connect with stairs.</li>
-      <li>Workers move during the attack phase; slots fire when soldiers arrive; magi staff springs; laborers repair damage.</li>
-      <li>Use the Select tool and click a room to add modifications or remove it.</li>
-      <li>Pick a blueprint to place or replace rooms; Esc cancels the blueprint.</li>
-      <li>Enemies climb the outside toward your wizard at the top.</li>
-      <li>Rearrange freely until you start the wave.</li>
+      <li>Build framing (spires / buttresses), then place rooms on top. Infra and rooms auto-add framing when needed.</li>
+      <li>Recruit staff in housing, allocate slots and mana springs, connect floors with stairs.</li>
+      <li>Crawlers climb the outside of framing and rooms; fliers pass through bare framing and only rooms block them.</li>
+      <li>Workers need stairs to change floors even on empty framing.</li>
+      <li>Right-click sells the room first (framing stays); click again to sell framing.</li>
       <li>Clear all 10 waves before the wizard's HP runs out.</li>
     </ul>`;
 }

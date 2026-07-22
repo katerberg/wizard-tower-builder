@@ -152,9 +152,15 @@ export class Store {
 
   private closeModalIfRoomMissing(): void {
     const modal = this.refs.view.modal;
-    if (modal?.kind !== 'room') return;
-    const exists = this.refs.game.tower.rooms.some((r) => r.id === modal.roomId);
-    if (!exists) this.refs.view.modal = null;
+    if (modal?.kind === 'room') {
+      const exists = this.refs.game.tower.rooms.some((r) => r.id === modal.roomId);
+      if (!exists) this.refs.view.modal = null;
+      return;
+    }
+    if (modal?.kind === 'structure') {
+      const exists = (this.refs.game.tower.structures ?? []).some((s) => s.id === modal.structureId);
+      if (!exists) this.refs.view.modal = null;
+    }
   }
 
   private enforceAttackPhaseView(): void {

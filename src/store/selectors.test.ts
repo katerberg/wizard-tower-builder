@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { getBlueprint } from '@/model/blueprints';
-import { createRoom, placeRoom } from '@/model/tower';
+import { createRoom, createStructure, placeRoom, placeStructure } from '@/model/tower';
 import { Store } from '@/store/store';
 import {
   selectLibraryBlueprints,
@@ -14,6 +14,13 @@ import {
 function placeStem(store: Store, cell: { col: number; row: number }): void {
   store.dispatch({ type: 'selectBlueprint', blueprintId: 'stem' });
   store.dispatch({ type: 'placeSelectedAt', cell });
+}
+
+function placeTurretOnStem(store: Store, cell: { col: number; row: number }): string {
+  placeStem(store, cell);
+  store.dispatch({ type: 'selectBlueprint', blueprintId: 'turretRoom' });
+  store.dispatch({ type: 'placeSelectedAt', cell });
+  return store.getSnapshot().game.tower.rooms.find((r) => r.origin.col === cell.col && r.origin.row === cell.row)!.id;
 }
 
 describe('selectLibraryBlueprints', () => {
@@ -68,8 +75,11 @@ describe('selectRoomBuildAlerts', () => {
   it('flags allocated slots that lack a stair path', () => {
     const store = new Store('alert-slot');
     const { game } = store.getSnapshot();
+    const stem = getBlueprint('stem')!;
     const guardroomBp = getBlueprint('guardroomRoom')!;
     const slotBp = getBlueprint('slotRoom')!;
+    game.tower = placeStructure(game.tower, createStructure('sb1', stem, { col: 4, row: 0 }));
+    game.tower = placeStructure(game.tower, createStructure('ss1', stem, { col: 10, row: 0 }));
     game.tower = placeRoom(game.tower, createRoom('b1', guardroomBp, { col: 4, row: 0 }));
     game.tower = placeRoom(game.tower, createRoom('s1', slotBp, { col: 10, row: 0 }));
     game.housingRecruited.b1 = 1;
@@ -82,6 +92,8 @@ describe('selectRoomBuildAlerts', () => {
   it('flags guardrooms with no recruited soldiers', () => {
     const store = new Store('alert-guardroom');
     const { game } = store.getSnapshot();
+    const stem = getBlueprint('stem')!;
+    game.tower = placeStructure(game.tower, createStructure('sb1', stem, { col: 4, row: 0 }));
     game.tower = placeRoom(game.tower, createRoom('b1', getBlueprint('guardroomRoom')!, { col: 4, row: 0 }));
     game.housingRecruited.b1 = 0;
 
@@ -117,8 +129,7 @@ describe('selectRoomInspector', () => {
 
   it('exposes add affordance for unmodified spikes in build phase', () => {
     const store = new Store('insp1');
-    placeStem(store, { col: 8, row: 0 });
-    const roomId = store.getSnapshot().game.tower.rooms[0].id;
+    const roomId = placeTurretOnStem(store, { col: 8, row: 0 });
     const inspector = selectRoomInspector(store.getSnapshot(), roomId);
     expect(inspector).not.toBeNull();
     const spikes = inspector!.modifications.find((m) => m.id === 'spikes');
@@ -130,9 +141,8 @@ describe('selectRoomInspector', () => {
 
   it('disables modification actions outside build phase', () => {
     const store = new Store('insp2');
-    placeStem(store, { col: 8, row: 0 });
+    const roomId = placeTurretOnStem(store, { col: 8, row: 0 });
     store.dispatch({ type: 'startWave' });
-    const roomId = store.getSnapshot().game.tower.rooms[0].id;
     const inspector = selectRoomInspector(store.getSnapshot(), roomId);
     expect(inspector?.isBuildPhase).toBe(false);
     expect(inspector?.modifications.every((m) => m.action === 'none')).toBe(true);

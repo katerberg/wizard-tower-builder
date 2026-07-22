@@ -12,20 +12,22 @@ import {
   isElevatorVerticalStep,
   stepElevators,
 } from '@/model/elevators';
-import { createRoom, createTower, placeRoom } from '@/model/tower';
+import { createRoom,
+  createStructure, createTower, placeRoom,
+  placeStructure } from '@/model/tower';
 import { deployStaffForWave, stepStaff } from '@/model/staff';
 
 function towerWithElevatorShaft() {
   const state = createInitialState('elevator-base');
   state.tower = createTower();
+  const stem = getBlueprint('stem')!;
   const guardroomBp = getBlueprint('guardroomRoom')!;
   const slotBp = getBlueprint('slotRoom')!;
+  for (const row of [0, 1, 2, 3]) {
+    state.tower = placeStructure(state.tower, createStructure(`m${row}`, stem, { col: 3, row }));
+  }
   state.tower = placeRoom(state.tower, createRoom('b1', guardroomBp, { col: 3, row: 0 }));
   state.tower = placeRoom(state.tower, createRoom('s1', slotBp, { col: 3, row: 3 }));
-  // Stem cells for shaft mid floors.
-  const stem = getBlueprint('stem')!;
-  state.tower = placeRoom(state.tower, createRoom('m1', stem, { col: 3, row: 1 }));
-  state.tower = placeRoom(state.tower, createRoom('m2', stem, { col: 3, row: 2 }));
   for (const row of [0, 1, 2, 3]) {
     state.tower = placeInfra(state.tower, { col: 3, row }, 'elevator');
   }
@@ -80,8 +82,8 @@ describe('elevator interior graph', () => {
   it('allows horizontal walk across elevator cells for adjacent-shaft transfer', () => {
     let tower = createTower();
     const stem = getBlueprint('stem')!;
-    tower = placeRoom(tower, createRoom('a', stem, { col: 4, row: 0 }));
-    tower = placeRoom(tower, createRoom('b', stem, { col: 5, row: 0 }));
+    tower = placeStructure(tower, createStructure('a', stem, { col: 4, row: 0 }));
+    tower = placeStructure(tower, createStructure('b', stem, { col: 5, row: 0 }));
     tower = placeInfra(tower, { col: 4, row: 0 }, 'elevator');
     tower = placeInfra(tower, { col: 5, row: 0 }, 'elevator');
     expect(canSoldierTraverse(tower, { col: 4, row: 0 }, { col: 5, row: 0 })).toBe(true);
@@ -134,17 +136,20 @@ describe('elevator runtime', () => {
     state.slotAllocations.s1 = ELEVATOR_CAPACITY + 1;
     // Slot base capacity is 2 — place enough slots.
     const slotBp = getBlueprint('slotRoom')!;
+    const stem = getBlueprint('stem')!;
     for (let i = 0; i < ELEVATOR_CAPACITY; i++) {
       const id = `sExtra${i}`;
-      state.tower = placeRoom(state.tower, createRoom(id, slotBp, { col: 4 + (i % 4), row: 3 }));
-      // Connect horizontally via stems at row 3 if needed — soldiers path to their slot.
+      const col = 4 + (i % 4);
+      if (!state.tower.structureOccupancy[`${col},3`]) {
+        state.tower = placeStructure(state.tower, createStructure(`stem${col}`, stem, { col, row: 3 }));
+      }
+      state.tower = placeRoom(state.tower, createRoom(id, slotBp, { col, row: 3 }));
       state.slotAllocations[id] = 1;
     }
-    // Ensure row 3 walkable horizontally from elevator: place stems under slots.
-    const stem = getBlueprint('stem')!;
+    // Ensure row 3 walkable horizontally from elevator.
     for (let c = 4; c <= 7; c++) {
-      if (!state.tower.occupancy[`${c},3`]) {
-        state.tower = placeRoom(state.tower, createRoom(`stem${c}`, stem, { col: c, row: 3 }));
+      if (!state.tower.structureOccupancy[`${c},3`]) {
+        state.tower = placeStructure(state.tower, createStructure(`stem${c}`, stem, { col: c, row: 3 }));
       }
     }
     state.slotAllocations.s1 = 1;

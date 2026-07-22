@@ -2,7 +2,7 @@ export interface Cell { col: number; row: number }
 
 export interface Modifier { attack?: number; defense?: number; hp?: number }
 
-export type BlueprintCategory = 'structure' | 'infra';
+export type BlueprintCategory = 'structure' | 'room' | 'infra';
 
 export type InfraKind = 'stair' | 'pipe' | 'elevator';
 
@@ -22,7 +22,7 @@ export interface Blueprint {
   description: string;
   category?: BlueprintCategory;
   infraKind?: InfraKind;
-  /** Staff may path through structure cells when true (default). */
+  /** Staff may path through this room when true (default). Ignored on structure blueprints. */
   passable?: boolean;
   /** When set, this blueprint is housing for the matching staff kind. */
   housing?: HousingKind;
@@ -37,6 +37,15 @@ export interface InfraCell {
 /** A modification instance attached to a room (one per type, leveled in place). */
 export interface RoomModification { id: string; level: number }
 
+/** Load-bearing framing piece (spire / buttress). */
+export interface Structure {
+  id: string;
+  blueprintId: string;
+  origin: Cell;
+  size: { w: number; h: number };
+  hp: number;
+}
+
 export interface Room {
   id: string;
   blueprintId: string;
@@ -48,8 +57,17 @@ export interface Room {
 
 export interface RoomStats { maxHp: number; attack: number; defense: number }
 
+/** Max HP for structure pieces (no room modifications). */
+export interface StructureStats { maxHp: number }
+
 export interface Tower {
+  /** Load-bearing framing (spires / buttresses). */
+  structures: Structure[];
+  /** cellKey → structureId */
+  structureOccupancy: Record<string, string>;
+  /** Functional rooms overlaid on structure. */
   rooms: Room[];
+  /** cellKey → roomId */
   occupancy: Record<string, string>;
   /** Per-cell infrastructure overlay (stair, pipe, or elevator — never two). */
   infra: Record<string, InfraCell>;
@@ -67,7 +85,7 @@ export interface StaffUnit {
   id: string;
   kind: StaffKind;
   homeHousingId: string;
-  /** Slot, mana spring, or damaged room id. */
+  /** Slot, mana spring, damaged room id, or damaged structure id. */
   targetWorkplaceId: string | null;
   pos: Cell;
   path: Cell[];

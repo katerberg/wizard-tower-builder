@@ -1,7 +1,7 @@
 import { getBlueprint } from '@/model/blueprints';
 import { getInfraBlueprint, infraBlueprintIdForKind } from '@/model/infraBlueprints';
 import { getModification, modificationCost } from '@/model/modifications';
-import type { BuildBaseline, Room, Tower } from '@/model/types';
+import type { BuildBaseline, Room, Structure, Tower } from '@/model/types';
 
 export function infraBuildCost(tower: Tower): number {
   let cost = 0;
@@ -10,6 +10,11 @@ export function infraBuildCost(tower: Tower): number {
     cost += bp?.cost ?? 0;
   }
   return cost;
+}
+
+export function structureBuildCost(structure: Structure): number {
+  const blueprint = getBlueprint(structure.blueprintId);
+  return blueprint?.cost ?? 0;
 }
 
 export function roomBuildCost(room: Room): number {
@@ -26,7 +31,9 @@ export function roomBuildCost(room: Room): number {
 }
 
 export function towerBuildCost(tower: Tower): number {
-  return tower.rooms.reduce((sum, room) => sum + roomBuildCost(room), 0) + infraBuildCost(tower);
+  const structures = (tower.structures ?? []).reduce((sum, s) => sum + structureBuildCost(s), 0);
+  const rooms = tower.rooms.reduce((sum, room) => sum + roomBuildCost(room), 0);
+  return structures + rooms + infraBuildCost(tower);
 }
 
 export function netBuildCost(baseline: BuildBaseline, draft: Tower): number {

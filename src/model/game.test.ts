@@ -3,7 +3,7 @@ import { FIXED_DT } from '@/config/constants';
 import { beginRun, createInitialState, prepareWaveNames, step, takeEnemyName } from './game';
 import { beginWave } from './phases';
 import { getBlueprint } from './blueprints';
-import { createRoom, placeRoom } from './tower';
+import { createStructure, placeStructure } from './tower';
 import { buildSpawnQueue, linearProgression } from './waves';
 
 describe('enemy naming', () => {
@@ -57,7 +57,7 @@ describe('attack-phase simulation', () => {
     // Tall vertical spire stack.
     const stem = getBlueprint('stem')!;
     for (let row = 0; row < 6; row++) {
-      state.tower = placeRoom(state.tower, createRoom(`r${row}`, stem, { col: 8, row }));
+      state.tower = placeStructure(state.tower, createStructure(`r${row}`, stem, { col: 8, row }));
     }
     const startCurrency = state.player.currency;
     beginWave(state);

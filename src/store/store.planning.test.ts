@@ -4,7 +4,7 @@ import { STARTING_CURRENCY, FIXED_DT } from '@/config/constants';
 import { getBlueprint } from '@/model/blueprints';
 import { createInitialState } from '@/model/game';
 import { beginWave, captureBuildBaseline } from '@/model/phases';
-import { createRoom, placeRoom, removeRoom, towersEqual } from '@/model/tower';
+import { createStructure, placeStructure, removeStructure, towersEqual } from '@/model/tower';
 import type { Cell } from '@/model/types';
 import { selectBuildUndoState, selectGhostPlacement } from '@/store/selectors';
 import { Store } from '@/store/store';
@@ -45,15 +45,15 @@ describe('build-phase planning commit', () => {
   it('returns gold on commit when rooms are removed during planning', () => {
     const state = createInitialState('interwave');
     const stem = getBlueprint('stem')!;
-    state.tower = placeRoom(state.tower, createRoom('extra', stem, { col: EXT_COL, row: 0 }));
+    state.tower = placeStructure(state.tower, createStructure('extra', stem, { col: EXT_COL, row: 0 }));
     beginWave(state);
 
     state.phase = 'build';
     state.player.currency = 30;
     captureBuildBaseline(state);
 
-    const added = state.tower.rooms.find((r) => r.id === 'extra')!;
-    state.tower = removeRoom(state.tower, added.id);
+    const added = state.tower.structures.find((r) => r.id === 'extra')!;
+    state.tower = removeStructure(state.tower, added.id);
 
     const net = netBuildCost(state.buildBaseline!, state.tower);
     expect(net).toBe(-3);
@@ -73,14 +73,14 @@ describe('build-phase undo and revert', () => {
 
   it('undoes the last successful placement', () => {
     const store = new Store('undo1');
-    const baselineRooms = store.getSnapshot().game.tower.rooms.length;
+    const baselineStructures = store.getSnapshot().game.tower.structures.length;
     placeStem(store, { col: EXT_COL, row: 0 });
     placeStem(store, { col: EXT_COL, row: 1 });
-    expect(store.getSnapshot().game.tower.rooms).toHaveLength(baselineRooms + 2);
+    expect(store.getSnapshot().game.tower.structures).toHaveLength(baselineStructures + 2);
 
     store.dispatch({ type: 'undoBuild' });
-    expect(store.getSnapshot().game.tower.rooms).toHaveLength(baselineRooms + 1);
-    expect(store.getSnapshot().game.tower.rooms[baselineRooms].origin).toEqual({ col: EXT_COL, row: 0 });
+    expect(store.getSnapshot().game.tower.structures).toHaveLength(baselineStructures + 1);
+    expect(store.getSnapshot().game.tower.structures[baselineStructures].origin).toEqual({ col: EXT_COL, row: 0 });
     expect(selectBuildUndoState(store.getSnapshot()).canUndo).toBe(true);
   });
 
@@ -111,24 +111,24 @@ describe('build-phase undo and revert', () => {
 
   it('replaces a spire with a buttress in one step and undoes atomically', () => {
     const store = new Store('replace');
-    const baselineRooms = store.getSnapshot().game.tower.rooms.length;
+    const baselineStructures = store.getSnapshot().game.tower.structures.length;
     placeStem(store, { col: EXT_COL, row: 0 });
     placeStem(store, { col: EXT_COL, row: 1 });
-    expect(store.getSnapshot().game.tower.rooms).toHaveLength(baselineRooms + 2);
+    expect(store.getSnapshot().game.tower.structures).toHaveLength(baselineStructures + 2);
 
     store.dispatch({ type: 'selectBlueprint', blueprintId: 'buttress2' });
     store.dispatch({ type: 'placeSelectedAt', cell: { col: EXT_COL, row: 1 } });
 
     const afterReplace = store.getSnapshot().game.tower;
-    expect(afterReplace.rooms).toHaveLength(baselineRooms + 2);
-    expect(afterReplace.rooms.some((r) => r.blueprintId === 'buttress2' && r.origin.col === EXT_COL && r.origin.row === 1)).toBe(true);
-    expect(afterReplace.rooms.some((r) => r.origin.row === 1 && r.origin.col === EXT_COL && r.blueprintId === 'stem')).toBe(false);
+    expect(afterReplace.structures).toHaveLength(baselineStructures + 2);
+    expect(afterReplace.structures.some((r) => r.blueprintId === 'buttress2' && r.origin.col === EXT_COL && r.origin.row === 1)).toBe(true);
+    expect(afterReplace.structures.some((r) => r.origin.row === 1 && r.origin.col === EXT_COL && r.blueprintId === 'stem')).toBe(false);
 
     store.dispatch({ type: 'undoBuild' });
     const undone = store.getSnapshot().game.tower;
-    expect(undone.rooms).toHaveLength(baselineRooms + 2);
-    expect(undone.rooms.some((r) => r.origin.row === 1 && r.origin.col === EXT_COL && r.blueprintId === 'stem')).toBe(true);
-    expect(undone.rooms.some((r) => r.origin.col === EXT_COL && r.origin.row === 1 && r.blueprintId === 'buttress2')).toBe(false);
+    expect(undone.structures).toHaveLength(baselineStructures + 2);
+    expect(undone.structures.some((r) => r.origin.row === 1 && r.origin.col === EXT_COL && r.blueprintId === 'stem')).toBe(true);
+    expect(undone.structures.some((r) => r.origin.col === EXT_COL && r.origin.row === 1 && r.blueprintId === 'buttress2')).toBe(false);
   });
 });
 
@@ -140,9 +140,9 @@ describe('build mode vs select mode', () => {
 
   it('does not place without a selected blueprint', () => {
     const store = new Store('select1');
-    const initialRooms = store.getSnapshot().game.tower.rooms.length;
+    const initialRooms = store.getSnapshot().game.tower.structures.length;
     store.dispatch({ type: 'placeSelectedAt', cell: { col: 8, row: 0 } });
-    expect(store.getSnapshot().game.tower.rooms).toHaveLength(initialRooms);
+    expect(store.getSnapshot().game.tower.structures).toHaveLength(initialRooms);
   });
 
   it('inspect opens modal and clears blueprint selection', () => {
@@ -150,17 +150,17 @@ describe('build mode vs select mode', () => {
     store.dispatch({ type: 'selectBlueprint', blueprintId: 'stem' });
     store.dispatch({ type: 'inspectRoomAt', cell: { col: 6, row: 1 } });
 
-    const roomId = store.getSnapshot().game.tower.rooms.find((r) => r.origin.col === 6 && r.origin.row === 1)!.id;
+    const structureId = store.getSnapshot().game.tower.structures.find((r) => r.origin.col === 6 && r.origin.row === 1)!.id;
     const { view } = store.getSnapshot();
-    expect(view.modal).toEqual({ kind: 'room', roomId });
+    expect(view.modal).toEqual({ kind: 'structure', structureId });
     expect(view.selectedBlueprintId).toBeNull();
   });
 
   it('closes the room modal after a successful placement', () => {
     const store = new Store('select3');
     store.dispatch({ type: 'inspectRoomAt', cell: { col: 6, row: 1 } });
-    const roomId = store.getSnapshot().game.tower.rooms.find((r) => r.origin.col === 6 && r.origin.row === 1)!.id;
-    expect(store.getSnapshot().view.modal).toEqual({ kind: 'room', roomId });
+    const roomId = store.getSnapshot().game.tower.structures.find((r) => r.origin.col === 6 && r.origin.row === 1)!.id;
+    expect(store.getSnapshot().view.modal).toEqual({ kind: 'structure', structureId: roomId });
 
     store.dispatch({ type: 'selectBlueprint', blueprintId: 'stem' });
     store.dispatch({ type: 'placeSelectedAt', cell: { col: EXT_COL, row: 0 } });

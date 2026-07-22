@@ -2,13 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { FIXED_DT } from '@/config/constants';
 import { createInitialState, step } from '@/model/game';
 import { getBlueprint } from '@/model/blueprints';
-import { createRoom, placeRoom } from '@/model/tower';
+import { createStructure, placeStructure } from '@/model/tower';
 import { buildSpawnQueue, linearProgression } from '@/model/waves';
 
 function tallTower(state: ReturnType<typeof createInitialState>) {
   const stem = getBlueprint('stem')!;
   for (let row = 0; row < 6; row++) {
-    state.tower = placeRoom(state.tower, createRoom(`r${row}`, stem, { col: 8, row }));
+    state.tower = placeStructure(state.tower, createStructure(`r${row}`, stem, { col: 8, row }));
   }
   return state;
 }

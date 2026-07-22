@@ -12,10 +12,16 @@ import { getBlueprint } from '@/model/blueprints';
 import { getEnemyTemplate } from '@/model/enemies';
 import { getModification } from '@/model/modifications';
 import { blizzardZoneCells } from '@/model/spells';
-import { computeRoomStats } from '@/calculations/combat';
-import { getUnstableRoomIds } from '@/model/tower';
+import { computeRoomStats, computeStructureStats } from '@/calculations/combat';
+import { getUnstableStructureIds } from '@/model/tower';
 import { resolvePipeFluids, previewPipeFluidAt, pipeVisualLinks, type PipeFluid } from '@/model/pipes';
-import { selectCastPreview, selectGhostPlacement, selectRoomBuildAlerts, selectWizardPosition } from '@/store/selectors';
+import {
+  selectCastPreview,
+  selectGhostPlacement,
+  selectRoomBuildAlerts,
+  selectStructureBuildAlerts,
+  selectWizardPosition,
+} from '@/store/selectors';
 import type { Snapshot } from '@/store/store';
 import type { ExteriorFace } from '@/model/types';
 import { BOARD_WIDTH, cellCenter, cellTopLeft, enemyDrawRadius, exteriorNodeDrawCenter, GROUND_LINE_INSET, visibleRowRange } from './camera';
@@ -56,6 +62,7 @@ export class Renderer {
     this.drawGrid(scrollY, viewportHeight);
     this.drawGround(scrollY, viewportHeight);
     if (snapshot.view.layerVisibility.rooms) {
+      this.drawStructures(snapshot, scrollY, viewportHeight);
       this.drawRooms(snapshot, scrollY, viewportHeight);
     }
     if (snapshot.view.layerVisibility.infra) {
@@ -77,6 +84,7 @@ export class Renderer {
     this.drawEnemies(snapshot, wizardPos, scrollY, viewportHeight, 'atWizard');
     // Room alerts last so tooltips stay above rooms, infra, and units.
     if (snapshot.view.layerVisibility.rooms) {
+      this.drawStructureAlerts(snapshot, scrollY, viewportHeight);
       this.drawRoomAlerts(snapshot, scrollY, viewportHeight);
     }
   }
@@ -136,10 +144,65 @@ export class Renderer {
     ctx.fillRect(0, groundTop, BOARD_WIDTH, GROUND_LINE_INSET);
   }
 
+  private drawStructures(snapshot: Snapshot, scrollY: number, viewportHeight: number): void {
+    const { ctx } = this;
+    const { minRow, maxRow } = visibleRowRange(scrollY, viewportHeight);
+    const unstable = getUnstableStructureIds(snapshot.game.tower);
+
+    for (const structure of snapshot.game.tower.structures ?? []) {
+      const roomMinRow = structure.origin.row;
+      const roomMaxRow = structure.origin.row + structure.size.h - 1;
+      if (roomMaxRow < minRow || roomMinRow > maxRow) continue;
+
+      // Skip drawing framing fully covered by a room — room layer paints on top.
+      const fullyCovered = roomCells(structure.origin, structure.size).every((c) =>
+        snapshot.game.tower.rooms.some((room) =>
+          roomCells(room.origin, room.size).some((rc) => rc.col === c.col && rc.row === c.row),
+        ),
+      );
+      if (fullyCovered) continue;
+
+      const blueprint = getBlueprint(structure.blueprintId);
+      const isInvalid = unstable.has(structure.id);
+      const topRow = roomMaxRow;
+      const { x, y } = cellTopLeft(structure.origin.col, topRow, scrollY, viewportHeight);
+      const w = structure.size.w * CELL_SIZE;
+      const h = structure.size.h * CELL_SIZE;
+
+      ctx.globalAlpha = 0.55;
+      ctx.fillStyle = blueprint?.color ?? colors.room;
+      ctx.fillRect(x + 3, y + 3, w - 6, h - 6);
+      ctx.globalAlpha = 1;
+      if (isInvalid) {
+        ctx.globalAlpha = 0.35;
+        ctx.fillStyle = colors.ghostInvalid;
+        ctx.fillRect(x + 3, y + 3, w - 6, h - 6);
+        ctx.globalAlpha = 1;
+      }
+      ctx.strokeStyle = isInvalid ? colors.ghostInvalid : colors.roomStroke;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x + 3, y + 3, w - 6, h - 6);
+
+      ctx.globalAlpha = 0.7;
+      ctx.fillStyle = colors.text;
+      ctx.font = `${Math.floor(CELL_SIZE * 0.4)}px monospace`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(blueprint?.glyph ?? 'I', x + w / 2, y + h / 2);
+      ctx.globalAlpha = 1;
+
+      if (blueprint) {
+        const stats = computeStructureStats(structure, blueprint);
+        if (structure.hp < stats.maxHp) {
+          this.drawHpBar(x + 4, y + 4, w - 8, structure.hp / stats.maxHp);
+        }
+      }
+    }
+  }
+
   private drawRooms(snapshot: Snapshot, scrollY: number, viewportHeight: number): void {
     const { ctx } = this;
     const { minRow, maxRow } = visibleRowRange(scrollY, viewportHeight);
-    const unstable = getUnstableRoomIds(snapshot.game.tower);
     const alerts = new Map(
       selectRoomBuildAlerts(snapshot).map((a) => [a.roomId, a.message] as const),
     );
@@ -151,7 +214,7 @@ export class Renderer {
 
       const blueprint = getBlueprint(room.blueprintId);
       const alert = alerts.get(room.id);
-      const isInvalid = unstable.has(room.id) || Boolean(alert);
+      const isInvalid = Boolean(alert);
       const topRow = roomMaxRow;
       const { x, y } = cellTopLeft(room.origin.col, topRow, scrollY, viewportHeight);
       const w = room.size.w * CELL_SIZE;
@@ -185,6 +248,36 @@ export class Renderer {
       if (room.modifications.length > 0) {
         this.drawModIndicators(room.modifications, x, y + h);
       }
+    }
+  }
+
+  private drawStructureAlerts(snapshot: Snapshot, scrollY: number, viewportHeight: number): void {
+    const hover = snapshot.view.hoveredCell;
+    if (!hover) return;
+
+    const alerts = new Map(
+      selectStructureBuildAlerts(snapshot).map((a) => [a.structureId, a.message] as const),
+    );
+    for (const structure of snapshot.game.tower.structures ?? []) {
+      const message = alerts.get(structure.id);
+      if (!message) continue;
+      const hovered = roomCells(structure.origin, structure.size).some(
+        (c) => c.col === hover.col && c.row === hover.row,
+      );
+      if (!hovered) continue;
+      // Prefer room alert when a room occupies the cell.
+      if (
+        snapshot.game.tower.rooms.some((room) =>
+          roomCells(room.origin, room.size).some((c) => c.col === hover.col && c.row === hover.row),
+        )
+      ) {
+        continue;
+      }
+
+      const topRow = structure.origin.row + structure.size.h - 1;
+      const { x, y } = cellTopLeft(structure.origin.col, topRow, scrollY, viewportHeight);
+      const w = structure.size.w * CELL_SIZE;
+      this.drawRoomAlert(message, x, y, w);
     }
   }
 

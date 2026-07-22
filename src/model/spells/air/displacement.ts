@@ -1,11 +1,14 @@
 import { inAirBounds } from '../../../calculations/exteriorGraph';
-import { cellKey } from '../../../calculations/grid';
 import { macroCol, macroRow } from '../../../calculations/subGrid';
+import { hasRoomAt, hasStructure } from '../../tower';
 import type { ExteriorNode, Tower } from '../../types';
 
-function isRoomSub(tower: Tower, subCol: number, subRow: number): boolean {
+/** Crawler knock-back solids = framing; flier solids = rooms only. */
+function isDisplacementSolid(tower: Tower, subCol: number, subRow: number, canFly: boolean): boolean {
   if (subCol < 0 || subRow < 0) return false;
-  return Object.prototype.hasOwnProperty.call(tower.occupancy, cellKey(macroCol(subCol), macroRow(subRow)));
+  const col = macroCol(subCol);
+  const row = macroRow(subRow);
+  return canFly ? hasRoomAt(tower, col, row) : hasStructure(tower, col, row);
 }
 
 /** True when a sub-cell cannot be entered during a knock-back. */
@@ -16,7 +19,7 @@ export function isDisplacementBlocked(
   canFly = false,
 ): boolean {
   if (!inAirBounds(tower, subCol, subRow, canFly)) return true;
-  return isRoomSub(tower, subCol, subRow);
+  return isDisplacementSolid(tower, subCol, subRow, canFly);
 }
 
 export interface DisplacementResult {
@@ -27,7 +30,8 @@ export interface DisplacementResult {
 
 /**
  * Move up to `steps` sub-cells along (dc, dr) from `start`.
- * Room tiles block entry; one bounce reflects remaining travel off the obstacle.
+ * Solid tiles block entry; one bounce reflects remaining travel off the obstacle.
+ * Crawlers collide with framing; fliers only with rooms (bare framing is open air).
  * Fliers use extended air bounds so gust can shove them off-viewport (still in play).
  */
 export function resolveSubCellDisplacement(
@@ -58,7 +62,7 @@ export function resolveSubCellDisplacement(
       break;
     }
 
-    if (isRoomSub(tower, nextCol, nextRow)) {
+    if (isDisplacementSolid(tower, nextCol, nextRow, canFly)) {
       hitRoom = true;
       if (!bounced) {
         bounced = true;

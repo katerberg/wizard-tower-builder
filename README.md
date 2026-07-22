@@ -8,8 +8,8 @@ Stack: **TypeScript**, **Vite**, **HTML5 Canvas** (board), **DOM** (UI chrome). 
 
 The run alternates between two phases:
 
-1. **Build** — Spend gold to place rooms and infra on a grid. Rooms must obey gravity and support rules (see below). Paint **stairs** and **pipes**; recruit staff into housing; allocate slot/spring headcounts. Use the **Select** tool to inspect rooms and add modifications. Pick a **blueprint** to place or replace rooms. Right-click to remove. When the tower is stable, start the wave.
-2. **Attack** — Enemies spawn at the base and pathfind up the **exterior** of the tower toward the wizard at the top. Staff path on the **interior** (stairs through passable rooms) to slots, mana springs, and repair jobs. Defenses: wizard **Wand Strike** (auto) plus a four-spell hotbar; **Turret** / **Steam Turret** rooms; soldier **Slots**; **spikes** (modification). **Gold Mines** pay out when a wave clears; mana regenerates from staffed springs. Survive the wave to earn gold and return to build. Lose if the wizard’s HP reaches zero.
+1. **Build** — Spend gold to place **framing** (spires / buttresses), **rooms**, and **infra**. Framing holds the tower up; rooms and infra sit on it (and auto-add Spire Blocks when needed). Paint **stairs** and **pipes**; recruit staff into housing; allocate slot/spring headcounts. Use the **Select** tool to inspect rooms (and bare framing). Right-click sells the room first (framing stays); click again to sell framing. When the tower is stable, start the wave.
+2. **Attack** — Enemies spawn at the base and pathfind toward the wizard. Staff path on the **interior** (horizontal through framing / passable rooms; **stairs/elevators** to change floors) to slots, mana springs, and repair jobs. Defenses: wizard **Wand Strike** (auto) plus a four-spell hotbar; **Turret** / **Steam Turret** rooms; soldier **Slots**; **spikes** (modification). **Gold Mines** pay out when a wave clears; mana regenerates from staffed springs. Survive the wave to earn gold and return to build. Lose if the wizard’s HP reaches zero.
 
 Progression is linear and escalating for now (designed so branching roguelike paths can be added later).
 
@@ -19,14 +19,18 @@ Mana powers the wizard’s hotbar (keys **1–4** to select, click to aim/cast d
 
 ### Tower placement rules
 
-Placement and post-removal validity share a single authority: `validateTower()`. Anything you can place must remain valid; anything that becomes invalid after a removal is flagged.
+The tower has three layers on each cell: **structure** (framing), **room** (optional overlay), and **infra** (stairs / pipes / elevators). Physics and stability use the structure layer only.
 
-- **Ground** — Row 0 is the floor; rooms can be placed directly on it.
-- **Spire blocks (1-wide)** — Must sit on the ground or directly on another room (spire or buttress). They cannot overhang empty space.
-- **Buttress (2 or 3 wide)** — Wide platforms; outer cells may cantilever at most **one step** beyond support below. Only buttress may “float” over gaps.
-- **Single tower** — All rooms must form **one connected mass** (4-way adjacency). New placements must touch the existing structure; you cannot start a second tower elsewhere on the grid.
+- **Ground** — Row 0 is the floor; framing can be placed directly on it.
+- **Spire blocks (1-wide)** — Framing that must sit on the ground or directly on framing below — no overhang.
+- **Buttress (2 or 3 wide)** — Wide framing; outer cells may cantilever at most **one step** beyond support below.
+- **Rooms** — Functional overlays (housing, generators, damagers). Every footprint cell needs framing; missing cells auto-place Spire Blocks when legal.
+- **Infra** — Same rule: must sit on framing; empty cells auto-place a Spire Block when legal.
+- **Single tower** — All framing must form **one connected mass** (4-way adjacency).
 
-Unstable towers (floating rooms or illegal cantilevers) are highlighted on the board and block starting a wave.
+Unstable towers (floating framing or illegal cantilevers) are highlighted and block starting a wave.
+
+Damage: enemy / flier hits damage **rooms** only. **Earthquake** damages **structure** along a support spine; destroyed framing also destroys any room on those cells. Selling a room leaves framing and infra; selling framing clears infra and any room on it.
 
 ### Controls
 
@@ -35,7 +39,8 @@ Unstable towers (floating rooms or illegal cantilevers) are highlighted on the b
 | Select / inspect     | **Select** tool (default), then click a room        |
 | Place / replace      | Pick a blueprint, click or drag on grid             |
 | Deselect blueprint   | **Esc**, Select tool, or click same blueprint again |
-| Remove room          | Right-click grid (build phase)                      |
+| Remove room / framing | Right-click grid (build phase) — room first, then framing |
+
 | Undo / revert layout | HUD buttons (build phase)                           |
 | Start wave           | HUD button (when tower is stable)                   |
 | Cast spell           | Hotkeys **1–4**, then click (attack phase)          |
@@ -49,9 +54,9 @@ As the tower grows taller, the world gets more dangerous. Later waves introduce 
 
 ### Enemy movement
 
-**Crawlers** path on a one-cell-thick exterior "shell" that hugs the tower: the ground (row 0), left/right walls, ledges, and pockets beneath overhangs. Open air is never walkable for them. Most steps are orthogonal; a constrained **corner-wrap** diagonal wraps convex shell corners. The live crawler profile is `under_overhang`.
+**Crawlers** path on a one-cell-thick exterior "shell" that hugs **framing and rooms**: the ground (row 0), left/right walls, ledges, and pockets beneath overhangs. Open air is never walkable for them. Most steps are orthogonal; a constrained **corner-wrap** diagonal wraps convex shell corners. The live crawler profile is `under_overhang`.
 
-**Fliers** (`docs/FLYING.md`) use the same grid but open-air cells that never touch room walls. They spawn from the sides at fixed height bands (rising with wave index), A\* through air around intact rooms, and repath when the wizard moves. Size tiers are `small` / `medium` / `large` (larger = slower). Templates: Striker (melee), Kamikaze, Carrier (launches short-lived drones). Wall of Flame can be placed in open air to cut lanes; spikes miss fliers.
+**Fliers** (`docs/FLYING.md`) treat **bare framing as open air** — only **rooms** are solid. They spawn from the sides at fixed height bands (rising with wave index), A\* through air around rooms, and repath when the wizard moves. Size tiers are `small` / `medium` / `large` (larger = slower). Templates: Striker (melee), Kamikaze, Carrier (launches short-lived drones). Wall of Flame can be placed in open air to cut lanes; spikes miss fliers. Fliers never damage framing.
 
 ## Getting started
 
@@ -170,7 +175,7 @@ Mount points: `#board`, `#stage`, `#hud`, `#library`, `#message-log`, `#modal-ro
 
 | Term | Meaning |
 |------|---------|
-| **Tower** | Collection of rooms + occupancy grid |
+| **Tower** | Structures (framing) + rooms + occupancy maps + infra |
 | **Room** | Placed blueprint instance (origin, size, hp, modifications) |
 | **Blueprint** | Room type definition (cost, size, base hp, description) — structure rooms and specialty rooms (Turret, Steam Turret, Gold Mine, housing, Slot, Boiler, Mana Spring, …) |
 | **Modification** | Leveled add-on on a room (spikes, housing/slot/boiler expansions, …) |
@@ -221,12 +226,13 @@ This game is primarily an **economy and infrastructure** puzzler: mundane struct
 ```mermaid
 flowchart TB
   subgraph layers [Tower layers same cell grid]
-    R[rooms - structure occupancy]
+    S[structure - framing occupancy]
+    R[rooms - functional overlay]
     I[infra - stair or pipe per cell]
     W[workers - attack-phase staff]
   end
   subgraph build [Build phase - untimed]
-    P[Place rooms and infra]
+    P[Place framing rooms and infra]
     Rec[Recruit staff into housing]
     Alloc[Set slot and spring headcounts]
   end

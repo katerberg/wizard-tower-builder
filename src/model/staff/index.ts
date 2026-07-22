@@ -10,7 +10,7 @@ import {
 import { findInteriorPath } from '@/calculations/interiorPathfinding';
 import { roomAnchorCell } from '@/calculations/interiorGraph';
 import { roomCells } from '@/calculations/grid';
-import { computeRoomStats } from '@/calculations/combat';
+import { computeRoomStats, computeStructureStats } from '@/calculations/combat';
 import { getBlueprint } from '@/model/blueprints';
 import { planElevatorRide, isElevatorVerticalStep } from '@/model/elevators';
 import { hasInfraKind } from '@/model/infra';
@@ -25,7 +25,8 @@ import {
   slotCapacity,
   staffKindForHousing,
 } from './capacity';
-import type { Cell, GameState, Room, StaffKind, StaffUnit } from '@/model/types';
+import { roomAt } from '@/model/tower';
+import type { Cell, GameState, Room, StaffKind, StaffUnit, Structure } from '@/model/types';
 
 let staffCounter = 0;
 
@@ -66,8 +67,55 @@ function workplaceAnchor(state: GameState, room: Room): Cell | null {
   return roomAnchorCell(state.tower, room.origin, room.size);
 }
 
+function isInFootprint(origin: Cell, size: { w: number; h: number }, cell: Cell): boolean {
+  return roomCells(origin, size).some((c) => c.col === cell.col && c.row === cell.row);
+}
+
 function isInRoomFootprint(room: Room, cell: Cell): boolean {
-  return roomCells(room.origin, room.size).some((c) => c.col === cell.col && c.row === cell.row);
+  return isInFootprint(room.origin, room.size, cell);
+}
+
+type RepairTarget =
+  | { kind: 'room'; room: Room; anchor: Cell; hpPct: number; assigned: number }
+  | { kind: 'structure'; structure: Structure; anchor: Cell; hpPct: number; assigned: number };
+
+function repairTargetId(target: RepairTarget): string {
+  return target.kind === 'room' ? target.room.id : target.structure.id;
+}
+
+function isInRepairFootprint(target: RepairTarget, cell: Cell): boolean {
+  if (target.kind === 'room') return isInRoomFootprint(target.room, cell);
+  return isInFootprint(target.structure.origin, target.structure.size, cell);
+}
+
+function findRepairTarget(state: GameState, id: string): RepairTarget | null {
+  const room = state.tower.rooms.find((r) => r.id === id);
+  if (room) {
+    const anchor = workplaceAnchor(state, room);
+    if (!anchor) return null;
+    const maxHp = roomMaxHp(room);
+    return {
+      kind: 'room',
+      room,
+      anchor,
+      hpPct: maxHp > 0 ? room.hp / maxHp : 1,
+      assigned: 0,
+    };
+  }
+  const structure = (state.tower.structures ?? []).find((s) => s.id === id);
+  if (structure) {
+    const anchor = roomAnchorCell(state.tower, structure.origin, structure.size);
+    if (!anchor) return null;
+    const maxHp = structureMaxHp(structure);
+    return {
+      kind: 'structure',
+      structure,
+      anchor,
+      hpPct: maxHp > 0 ? structure.hp / maxHp : 1,
+      assigned: 0,
+    };
+  }
+  return null;
 }
 
 export function stationedStaffInRoom(
@@ -237,8 +285,17 @@ function roomMaxHp(room: Room): number {
   return bp ? computeRoomStats(room, bp).maxHp : room.hp;
 }
 
-function isDamaged(room: Room): boolean {
+function structureMaxHp(structure: Structure): number {
+  const bp = getBlueprint(structure.blueprintId);
+  return bp ? computeStructureStats(structure, bp).maxHp : structure.hp;
+}
+
+function isDamagedRoom(room: Room): boolean {
   return room.hp < roomMaxHp(room);
+}
+
+function isDamagedStructure(structure: Structure): boolean {
+  return structure.hp < structureMaxHp(structure);
 }
 
 function laborerRepairMultiplier(index: number): number {
@@ -408,16 +465,24 @@ export function stepStaff(state: GameState, dt: number): void {
       continue;
     }
 
-    const workplace = unit.targetWorkplaceId
+    const workplaceRoom = unit.targetWorkplaceId
       ? state.tower.rooms.find((r) => r.id === unit.targetWorkplaceId)
       : undefined;
-    if (!workplace) {
+    const workplaceStructure =
+      !workplaceRoom && unit.targetWorkplaceId
+        ? (state.tower.structures ?? []).find((s) => s.id === unit.targetWorkplaceId)
+        : undefined;
+
+    if (!workplaceRoom && !workplaceStructure) {
       unit.status = 'idle';
       unit.targetWorkplaceId = null;
       continue;
     }
 
-    if (isInRoomFootprint(workplace, unit.pos)) {
+    const inFootprint = workplaceRoom
+      ? isInRoomFootprint(workplaceRoom, unit.pos)
+      : isInFootprint(workplaceStructure!.origin, workplaceStructure!.size, unit.pos);
+    if (inFootprint) {
       unit.status = arriveStatus(unit.kind);
       continue;
     }
@@ -428,7 +493,9 @@ export function stepStaff(state: GameState, dt: number): void {
 
     const next = unit.path[unit.pathIndex + 1];
     const vertical = isVerticalStep(unit.pos, next);
-    const enteringWorkplace = isInRoomFootprint(workplace, next);
+    const enteringWorkplace = workplaceRoom
+      ? isInRoomFootprint(workplaceRoom, next)
+      : isInFootprint(workplaceStructure!.origin, workplaceStructure!.size, next);
 
     // Vertical elevator progress requires riding the car — never free-step.
     if (vertical && isElevatorVerticalStep(state.tower, unit.pos, next)) {
@@ -452,7 +519,10 @@ export function stepStaff(state: GameState, dt: number): void {
     const speed = vertical ? STAFF_STAIR_SPEED : STAFF_HORIZONTAL_SPEED;
     unit.moveCooldown = 1 / speed;
 
-    if (isInRoomFootprint(workplace, unit.pos)) {
+    const arrived = workplaceRoom
+      ? isInRoomFootprint(workplaceRoom, unit.pos)
+      : isInFootprint(workplaceStructure!.origin, workplaceStructure!.size, unit.pos);
+    if (arrived) {
       unit.status = arriveStatus(unit.kind);
     }
   }
@@ -461,32 +531,38 @@ export function stepStaff(state: GameState, dt: number): void {
 /** @deprecated Use stepStaff. */
 export const stepSoldiers = stepStaff;
 
-/** Repair damaged rooms with stationed laborers; retarget when jobs end. */
+/** Repair damaged rooms/structures with stationed laborers; retarget when jobs end. */
 export function tickLaborerRepairs(state: GameState, dt: number): void {
-  const byRoom = new Map<string, StaffUnit[]>();
+  const byTarget = new Map<string, StaffUnit[]>();
   for (const unit of state.staff) {
     if (unit.kind !== 'laborer' || unit.status !== 'working' || !unit.targetWorkplaceId) continue;
-    const room = state.tower.rooms.find((r) => r.id === unit.targetWorkplaceId);
-    if (!room || !isInRoomFootprint(room, unit.pos)) continue;
-    const list = byRoom.get(room.id) ?? [];
+    const target = findRepairTarget(state, unit.targetWorkplaceId);
+    if (!target || !isInRepairFootprint(target, unit.pos)) continue;
+    const list = byTarget.get(repairTargetId(target)) ?? [];
     list.push(unit);
-    byRoom.set(room.id, list);
+    byTarget.set(repairTargetId(target), list);
   }
 
-  for (const [roomId, laborers] of byRoom) {
-    const room = state.tower.rooms.find((r) => r.id === roomId);
-    if (!room) continue;
-    const maxHp = roomMaxHp(room);
-    if (room.hp >= maxHp) continue;
+  for (const [targetId, laborers] of byTarget) {
+    const target = findRepairTarget(state, targetId);
+    if (!target) continue;
 
     let rate = 0;
     for (let i = 0; i < laborers.length; i++) {
       rate += LABORER_REPAIR_HP_PER_SEC * laborerRepairMultiplier(i);
     }
-    room.hp = Math.min(maxHp, room.hp + rate * dt);
+
+    if (target.kind === 'room') {
+      const maxHp = roomMaxHp(target.room);
+      if (target.room.hp >= maxHp) continue;
+      target.room.hp = Math.min(maxHp, target.room.hp + rate * dt);
+    } else {
+      const maxHp = structureMaxHp(target.structure);
+      if (target.structure.hp >= maxHp) continue;
+      target.structure.hp = Math.min(maxHp, target.structure.hp + rate * dt);
+    }
   }
 
-  // Retarget laborers whose job is done or room gone; assign idle ones.
   for (const unit of state.staff) {
     if (unit.kind !== 'laborer') continue;
     if (
@@ -496,10 +572,11 @@ export function tickLaborerRepairs(state: GameState, dt: number): void {
     ) {
       continue;
     }
-    const room = unit.targetWorkplaceId
-      ? state.tower.rooms.find((r) => r.id === unit.targetWorkplaceId)
-      : undefined;
-    if (!room || !isDamaged(room)) {
+    const target = unit.targetWorkplaceId ? findRepairTarget(state, unit.targetWorkplaceId) : null;
+    const stillDamaged =
+      target &&
+      (target.kind === 'room' ? isDamagedRoom(target.room) : isDamagedStructure(target.structure));
+    if (!stillDamaged) {
       unit.targetWorkplaceId = null;
       unit.status = 'idle';
       unit.path = [unit.pos];
@@ -517,39 +594,69 @@ function repathIdleLaborers(state: GameState): void {
   const idle = state.staff.filter((s) => s.kind === 'laborer' && s.status === 'idle');
   if (idle.length === 0) return;
 
-  const damaged = state.tower.rooms
-    .filter((r) => isDamaged(r) && workplaceAnchor(state, r))
-    .map((room) => {
-      const anchor = workplaceAnchor(state, room)!;
-      const maxHp = roomMaxHp(room);
-      const hpPct = maxHp > 0 ? room.hp / maxHp : 1;
-      const assigned = state.staff.filter(
-        (s) => s.kind === 'laborer' && s.targetWorkplaceId === room.id,
-      ).length;
-      return { room, anchor, hpPct, assigned };
-    });
+  const jobs: RepairTarget[] = [];
 
-  if (damaged.length === 0) return;
+  for (const room of state.tower.rooms) {
+    if (!isDamagedRoom(room)) continue;
+    const anchor = workplaceAnchor(state, room);
+    if (!anchor) continue;
+    const maxHp = roomMaxHp(room);
+    const assigned = state.staff.filter(
+      (s) => s.kind === 'laborer' && s.targetWorkplaceId === room.id,
+    ).length;
+    jobs.push({
+      kind: 'room',
+      room,
+      anchor,
+      hpPct: maxHp > 0 ? room.hp / maxHp : 1,
+      assigned,
+    });
+  }
+
+  for (const structure of state.tower.structures ?? []) {
+    if (!isDamagedStructure(structure)) continue;
+    // Prefer repairing the room overlay when both are damaged on the same footprint.
+    const coveredByDamagedRoom = roomCells(structure.origin, structure.size).some((c) => {
+      const room = roomAt(state.tower, c.col, c.row);
+      return room ? isDamagedRoom(room) : false;
+    });
+    if (coveredByDamagedRoom) continue;
+    const anchor = roomAnchorCell(state.tower, structure.origin, structure.size);
+    if (!anchor) continue;
+    const maxHp = structureMaxHp(structure);
+    const assigned = state.staff.filter(
+      (s) => s.kind === 'laborer' && s.targetWorkplaceId === structure.id,
+    ).length;
+    jobs.push({
+      kind: 'structure',
+      structure,
+      anchor,
+      hpPct: maxHp > 0 ? structure.hp / maxHp : 1,
+      assigned,
+    });
+  }
+
+  if (jobs.length === 0) return;
 
   for (const unit of idle) {
-    const unstaffed = damaged.filter((d) => d.assigned === 0);
-    const candidates = unstaffed.length > 0 ? unstaffed : damaged;
+    const unstaffed = jobs.filter((d) => d.assigned === 0);
+    const candidates = unstaffed.length > 0 ? unstaffed : jobs;
     candidates.sort((a, b) => {
-      if (a.hpPct !== b.hpPct) return a.hpPct - b.hpPct;
       const da =
         Math.abs(a.anchor.col - unit.pos.col) + Math.abs(a.anchor.row - unit.pos.row);
       const db =
         Math.abs(b.anchor.col - unit.pos.col) + Math.abs(b.anchor.row - unit.pos.row);
-      return da - db;
+      if (da !== db) return da - db;
+      return a.hpPct - b.hpPct;
     });
     const target = candidates[0];
     if (!target) break;
     const path = findInteriorPath(state.tower, unit.pos, target.anchor);
-    unit.targetWorkplaceId = target.room.id;
+    unit.targetWorkplaceId = repairTargetId(target);
     unit.path = path.length > 0 ? path : [unit.pos];
     unit.pathIndex = 0;
     unit.status =
-      path.length <= 1 && isInRoomFootprint(target.room, unit.pos) ? 'working' : 'moving';
+      path.length <= 1 && isInRepairFootprint(target, unit.pos) ? 'working' : 'moving';
     target.assigned += 1;
   }
 }

@@ -13,6 +13,7 @@ export type Intent =
   | { type: 'addModification'; roomId: string; modId: string }
   | { type: 'upgradeModification'; roomId: string; modId: string }
   | { type: 'sellRoom'; roomId: string }
+  | { type: 'sellStructure'; structureId: string }
   | { type: 'recruitStaff'; housingRoomId: string }
   | { type: 'unrecruitStaff'; housingRoomId: string }
   | { type: 'setSlotAllocation'; slotRoomId: string; count: number }
@@ -34,7 +35,10 @@ export type Intent =
   | { type: 'cancelCast' }
   | { type: 'setSimSpeed'; speed: 1 | 2 | 4 };
 
-export type ModalData = { kind: 'room'; roomId: string } | { kind: 'help' };
+export type ModalData =
+  | { kind: 'room'; roomId: string }
+  | { kind: 'structure'; structureId: string }
+  | { kind: 'help' };
 
 export interface ViewState {
   selectedBlueprintId: string | null;

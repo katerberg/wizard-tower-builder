@@ -1,18 +1,23 @@
 import { getBlueprint } from '@/model/blueprints';
 import { hasInfraKind } from '@/model/infra';
 import { isElevatorVerticalStep } from '@/model/elevators';
-import { roomAt } from '@/model/tower';
+import { hasStructure, roomAt } from '@/model/tower';
 import { inBounds, roomCells } from './grid';
 import type { Cell, Tower } from '@/model/types';
 
+/**
+ * Staff may stand on framing when there is no room, or when the room is passable.
+ * Impassable rooms (boiler, steam turret) block even though framing remains underneath.
+ */
 export function isPassableStructure(tower: Tower, col: number, row: number): boolean {
+  if (!hasStructure(tower, col, row)) return false;
   const room = roomAt(tower, col, row);
-  if (!room) return false;
+  if (!room) return true;
   const blueprint = getBlueprint(room.blueprintId);
   return blueprint?.passable !== false;
 }
 
-/** A cell staff may occupy: passable structure and/or stair/elevator infra. */
+/** A cell staff may occupy: passable framing/room and/or stair/elevator infra. */
 export function isSoldierWalkable(tower: Tower, col: number, row: number): boolean {
   if (!inBounds(col, row)) return false;
   if (hasInfraKind(tower, col, row, 'stair')) return true;
@@ -60,7 +65,7 @@ export function roomCenterCell(origin: Cell, size: { w: number; h: number }): Ce
   };
 }
 
-/** Pick a walkable cell inside a room footprint, preferring center. */
+/** Pick a walkable cell inside a footprint, preferring center. */
 export function roomAnchorCell(tower: Tower, origin: Cell, size: { w: number; h: number }): Cell | null {
   const center = roomCenterCell(origin, size);
   if (isSoldierWalkable(tower, center.col, center.row)) return center;

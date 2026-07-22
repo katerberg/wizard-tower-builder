@@ -1,6 +1,6 @@
 import { nextRandom } from './rng';
 import { aggregateModifierStats } from '../model/modifications';
-import type { Blueprint, Room, RoomStats } from '../model/types';
+import type { Blueprint, Room, RoomStats, Structure, StructureStats } from '../model/types';
 
 export interface Combatant { attack: number; defense: number; dexterity: number }
 
@@ -29,4 +29,8 @@ export function computeRoomStats(room: Room, blueprint: Blueprint): RoomStats {
     attack: bonus.attack ?? 0,
     defense: bonus.defense ?? 0,
   };
+}
+
+export function computeStructureStats(_structure: Structure, blueprint: Blueprint): StructureStats {
+  return { maxHp: blueprint.baseHp };
 }

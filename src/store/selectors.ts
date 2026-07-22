@@ -3,7 +3,7 @@ import {
   MAGE_RECRUIT_COST,
   SOLDIER_RECRUIT_COST,
 } from '@/config/constants';
-import { BLUEPRINTS, getBlueprint } from '@/model/blueprints';
+import { BLUEPRINTS, getBlueprint, isStructureBlueprint } from '@/model/blueprints';
 import { INFRA_BLUEPRINTS, getInfraBlueprint, isInfraBlueprint } from '@/model/infraBlueprints';
 import { planInfraPlacement } from '@/model/infraPlacement';
 import { selectLogisticsReport, selectConnectivityReport } from '@/model/staff/connectivity';
@@ -29,7 +29,7 @@ function recruitCostFor(kind: StaffKind): number {
   }
 }
 import { netBuildCost, remainingBuildGold } from '@/calculations/buildCost';
-import { computeRoomStats } from '@/calculations/combat';
+import { computeRoomStats, computeStructureStats } from '@/calculations/combat';
 import { roomCells } from '@/calculations/grid';
 import {
   canApplyModification,
@@ -54,7 +54,7 @@ import {
 } from '@/model/spells';
 import { MAX_CHARGE } from '@/model/spells/earth/constants';
 import { aoeCells } from '@/model/spells/fireball';
-import { canPlace, getUnstableRoomIds, roomAt, towersEqual } from '@/model/tower';
+import { canPlace, getUnstableStructureIds, planRoomPlacement, roomAt, structureAt, towersEqual } from '@/model/tower';
 import { getBuildTool } from '@/static/buildTools';
 import {
   LIBRARY_SECTIONS,
@@ -70,6 +70,7 @@ import type {
   Room,
   RoomStats,
   StaffKind,
+  Structure,
 } from '@/model/types';
 import type { Snapshot } from './store';
 
@@ -127,11 +128,15 @@ export function selectWizardPosition(snapshot: Snapshot): ExteriorNode {
   return getEffectiveWizardPosition(snapshot.game);
 }
 
-export interface TowerStability { stable: boolean; unstableRoomIds: Set<string> }
+export interface TowerStability { stable: boolean; unstableRoomIds: Set<string>; unstableStructureIds: Set<string> }
 
 export function selectTowerStability(snapshot: Snapshot): TowerStability {
-  const unstableRoomIds = getUnstableRoomIds(snapshot.game.tower);
-  return { stable: unstableRoomIds.size === 0, unstableRoomIds };
+  const unstableStructureIds = getUnstableStructureIds(snapshot.game.tower);
+  return {
+    stable: unstableStructureIds.size === 0,
+    unstableRoomIds: unstableStructureIds,
+    unstableStructureIds,
+  };
 }
 
 export function selectSelectedBlueprint(snapshot: Snapshot): Blueprint | undefined {
@@ -152,6 +157,8 @@ export interface GhostPlacement {
   infraKind?: InfraKind;
   /** When true, also preview the auto-placed Spire Block under empty cells. */
   needsStem?: boolean;
+  /** Extra framing cells previewed when placing a room on empty cells. */
+  stemCells?: Cell[];
 }
 
 export function selectGhostPlacement(snapshot: Snapshot): GhostPlacement | null {
@@ -170,17 +177,29 @@ export function selectGhostPlacement(snapshot: Snapshot): GhostPlacement | null 
       reason: plan.reason,
       infraKind: blueprint.infraKind,
       needsStem: plan.needsStem,
+      stemCells: plan.needsStem ? [view.hoveredCell] : [],
     };
   }
 
   const blueprint = selectSelectedBlueprint(snapshot);
   if (!blueprint) return null;
 
-  const result = canPlace(game.tower, blueprint, view.hoveredCell);
+  if (isStructureBlueprint(blueprint)) {
+    const result = canPlace(game.tower, blueprint, view.hoveredCell);
+    return {
+      cells: roomCells(view.hoveredCell, blueprint.size),
+      valid: result.ok,
+      reason: result.reason,
+    };
+  }
+
+  const plan = planRoomPlacement(game.tower, blueprint, view.hoveredCell);
   return {
     cells: roomCells(view.hoveredCell, blueprint.size),
-    valid: result.ok,
-    reason: result.reason,
+    valid: plan.ok,
+    reason: plan.reason,
+    needsStem: plan.stemCells.length > 0,
+    stemCells: plan.stemCells,
   };
 }
 
@@ -194,7 +213,7 @@ export interface LibraryBlueprintItem {
   baseHp: number;
   affordable: boolean;
   selected: boolean;
-  category: 'structure' | 'infra';
+  category: 'structure' | 'room' | 'infra';
   section: LibrarySectionId;
 }
 
@@ -208,7 +227,7 @@ function toLibraryItem(
   b: Blueprint,
   remainingGold: number,
   selectedBlueprintId: string | null,
-  category: 'structure' | 'infra',
+  category: 'structure' | 'room' | 'infra',
 ): LibraryBlueprintItem | null {
   const section = librarySectionFor(b.id);
   if (!section) return null;
@@ -232,15 +251,19 @@ export function selectLibraryBlueprints(snapshot: Snapshot): LibraryBlueprintIte
   const { remainingGold } = selectBuildEconomy(snapshot);
   const unlocked = new Set(game.player.unlockedBlueprints);
 
-  const structure = BLUEPRINTS.filter((b) => unlocked.has(b.id))
+  const framing = BLUEPRINTS.filter((b) => unlocked.has(b.id) && isStructureBlueprint(b))
     .map((b) => toLibraryItem(b, remainingGold, view.selectedBlueprintId, 'structure'))
+    .filter((b): b is LibraryBlueprintItem => b !== null);
+
+  const rooms = BLUEPRINTS.filter((b) => unlocked.has(b.id) && !isStructureBlueprint(b))
+    .map((b) => toLibraryItem(b, remainingGold, view.selectedBlueprintId, 'room'))
     .filter((b): b is LibraryBlueprintItem => b !== null);
 
   const infra = INFRA_BLUEPRINTS.map((b) =>
     toLibraryItem(b, remainingGold, view.selectedBlueprintId, 'infra'),
   ).filter((b): b is LibraryBlueprintItem => b !== null);
 
-  return [...structure, ...infra];
+  return [...framing, ...rooms, ...infra];
 }
 
 /** Blueprints grouped into sidebar sections (empty sections omitted). */
@@ -286,6 +309,8 @@ export interface RoomInspector {
   isBuildPhase: boolean;
   modifications: RoomModificationOption[];
   canRemove: boolean;
+  /** Framing under this room (secondary inspector info). */
+  underStructure?: { id: string; name: string; hp: number; maxHp: number };
   housingRecruited?: number;
   housingCapacity?: number;
   housingStaffKind?: 'soldier' | 'mage' | 'laborer';
@@ -299,8 +324,22 @@ export interface RoomInspector {
   buildAlert?: string;
 }
 
+export interface StructureInspector {
+  structure: Structure;
+  blueprint: Blueprint;
+  maxHp: number;
+  isBuildPhase: boolean;
+  canRemove: boolean;
+  buildAlert?: string;
+}
+
 export interface RoomBuildAlert {
   roomId: string;
+  message: string;
+}
+
+export interface StructureBuildAlert {
+  structureId: string;
   message: string;
 }
 
@@ -310,9 +349,6 @@ export function selectRoomBuildAlerts(snapshot: Snapshot): RoomBuildAlert[] {
   if (game.scene !== 'run' || game.phase !== 'build') return [];
 
   const alerts: RoomBuildAlert[] = [];
-  for (const roomId of getUnstableRoomIds(game.tower)) {
-    alerts.push({ roomId, message: 'Needs support' });
-  }
 
   for (const room of game.tower.rooms) {
     const housing = housingKindOf(room);
@@ -336,6 +372,15 @@ export function selectRoomBuildAlerts(snapshot: Snapshot): RoomBuildAlert[] {
   }
 
   return alerts;
+}
+
+export function selectStructureBuildAlerts(snapshot: Snapshot): StructureBuildAlert[] {
+  const { game } = snapshot;
+  if (game.scene !== 'run' || game.phase !== 'build') return [];
+  return [...getUnstableStructureIds(game.tower)].map((structureId) => ({
+    structureId,
+    message: 'Needs support',
+  }));
 }
 
 export function selectConnectivityWarnings(snapshot: Snapshot): string[] {
@@ -435,6 +480,18 @@ export function selectRoomInspector(snapshot: Snapshot, roomId: string): RoomIns
   const housing = housingKindOf(room);
   const staffKind = housing ? staffKindForHousing(housing) : undefined;
 
+  const under = structureAt(game.tower, room.origin.col, room.origin.row);
+  const underBp = under ? getBlueprint(under.blueprintId) : undefined;
+  const underStructure =
+    under && underBp
+      ? {
+          id: under.id,
+          name: underBp.name,
+          hp: under.hp,
+          maxHp: computeStructureStats(under, underBp).maxHp,
+        }
+      : undefined;
+
   return {
     room,
     blueprint,
@@ -442,6 +499,7 @@ export function selectRoomInspector(snapshot: Snapshot, roomId: string): RoomIns
     isBuildPhase,
     modifications,
     canRemove: isBuildPhase,
+    underStructure,
     housingRecruited: isHousingRoom(room) ? (game.housingRecruited[room.id] ?? 0) : undefined,
     housingCapacity: isHousingRoom(room) ? housingCapacity(room) : undefined,
     housingStaffKind: staffKind,
@@ -456,6 +514,26 @@ export function selectRoomInspector(snapshot: Snapshot, roomId: string): RoomIns
       : undefined,
     manaSpringCapacity: isManaSpringRoom(room) ? manaSpringStaffCapacity() : undefined,
     buildAlert: selectRoomBuildAlerts(snapshot).find((a) => a.roomId === room.id)?.message,
+  };
+}
+
+export function selectStructureInspector(
+  snapshot: Snapshot,
+  structureId: string,
+): StructureInspector | null {
+  const structure = (snapshot.game.tower.structures ?? []).find((s) => s.id === structureId);
+  if (!structure) return null;
+  const blueprint = getBlueprint(structure.blueprintId);
+  if (!blueprint) return null;
+  const isBuildPhase = snapshot.game.scene === 'run' && snapshot.game.phase === 'build';
+  return {
+    structure,
+    blueprint,
+    maxHp: computeStructureStats(structure, blueprint).maxHp,
+    isBuildPhase,
+    canRemove: isBuildPhase,
+    buildAlert: selectStructureBuildAlerts(snapshot).find((a) => a.structureId === structureId)
+      ?.message,
   };
 }
 
