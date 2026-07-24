@@ -609,7 +609,7 @@ export class Renderer {
     if (!preview || !target) return;
 
     const wizardPos = selectWizardPosition(snapshot);
-    const from = cellCenter(wizardPos.col, wizardPos.row, scrollY, viewportHeight);
+    const from = exteriorNodeDrawCenter(wizardPos, scrollY, viewportHeight, CELL_SIZE * 0.36);
     const to = cellCenter(target.col, target.row, scrollY, viewportHeight);
 
     const { ctx } = this;
@@ -719,7 +719,7 @@ export class Renderer {
 
     if (game.fortified) {
       const wizardPos = selectWizardPosition(snapshot);
-      const { x, y } = cellCenter(wizardPos.col, wizardPos.row, scrollY, viewportHeight);
+      const { x, y } = exteriorNodeDrawCenter(wizardPos, scrollY, viewportHeight, CELL_SIZE * 0.36);
       ctx.strokeStyle = '#a0aec0';
       ctx.lineWidth = 3;
       ctx.beginPath();
