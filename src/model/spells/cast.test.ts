@@ -10,13 +10,13 @@ import {
   resetSpellCooldowns,
   spellCooldownRemaining,
 } from '@/model/spells';
-import { createRoom, createTower, placeRoom } from '@/model/tower';
+import { createStructure, createTower, placeStructure } from '@/model/tower';
 import type { GameState } from '@/model/types';
 import { makeTestEnemy } from '@/test/subCells';
 
 function towerWithStem(state: GameState): GameState {
   const stem = getBlueprint('stem')!;
-  state.tower = placeRoom(createTower(), createRoom('r0', stem, { col: 8, row: 0 }));
+  state.tower = placeStructure(createTower(), createStructure('r0', stem, { col: 8, row: 0 }));
   return state;
 }
 

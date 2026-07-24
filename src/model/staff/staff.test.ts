@@ -9,7 +9,8 @@ import {
 } from '@/config/constants';
 import { createInitialState } from '@/model/game';
 import { getBlueprint } from '@/model/blueprints';
-import { createRoom, createTower, placeRoom } from '@/model/tower';
+import { createRoom,
+  createStructure, createTower, placeRoom, placeStructure } from '@/model/tower';
 import { placeInfra } from '@/model/infra';
 import { tickManaSprings } from '@/model/manaSprings';
 import {
@@ -24,8 +25,12 @@ import {
 function towerWithStairShaft() {
   const state = createInitialState('soldier-stairs');
   state.tower = createTower();
+  const stem = getBlueprint('stem')!;
   const guardroomBp = getBlueprint('guardroomRoom')!;
   const slotBp = getBlueprint('slotRoom')!;
+  state.tower = placeStructure(state.tower, createStructure('sg0', stem, { col: 3, row: 0 }));
+  state.tower = placeStructure(state.tower, createStructure('sg1', stem, { col: 3, row: 1 }));
+  state.tower = placeStructure(state.tower, createStructure('sg2', stem, { col: 3, row: 2 }));
   state.tower = placeRoom(state.tower, createRoom('b1', guardroomBp, { col: 3, row: 0 }));
   state.tower = placeRoom(state.tower, createRoom('s1', slotBp, { col: 3, row: 2 }));
   state.tower = placeInfra(state.tower, { col: 3, row: 0 }, 'stair');
@@ -141,26 +146,24 @@ describe('magi + mana springs', () => {
   function springWithChamber() {
     const state = createInitialState('mage-spring');
     state.tower = createTower();
+    const stem = getBlueprint('stem')!;
     // Staff shaft col 4; spring at (5,0); water adjacent on col 7.
-    state.tower = placeRoom(
-      state.tower,
-      createRoom('g0', getBlueprint('stem')!, { col: 4, row: 0 }),
-    );
-    state.tower = placeRoom(
-      state.tower,
-      createRoom('g1', getBlueprint('stem')!, { col: 4, row: 1 }),
-    );
+    state.tower = placeStructure(state.tower, createStructure('g0', stem, { col: 4, row: 0 }));
+    state.tower = placeStructure(state.tower, createStructure('g1', stem, { col: 4, row: 1 }));
+    state.tower = placeStructure(state.tower, createStructure('g2', stem, { col: 4, row: 2 }));
+    for (const [col, row, id] of [
+      [5, 0, 's50'],
+      [6, 0, 's60'],
+      [5, 1, 's51'],
+      [6, 1, 's61'],
+      [7, 0, 'w0'],
+      [7, 1, 'w1'],
+    ] as const) {
+      state.tower = placeStructure(state.tower, createStructure(id, stem, { col, row }));
+    }
     state.tower = placeRoom(
       state.tower,
       createRoom('spring', getBlueprint('manaSpringRoom')!, { col: 5, row: 0 }),
-    );
-    state.tower = placeRoom(
-      state.tower,
-      createRoom('w0', getBlueprint('stem')!, { col: 7, row: 0 }),
-    );
-    state.tower = placeRoom(
-      state.tower,
-      createRoom('w1', getBlueprint('stem')!, { col: 7, row: 1 }),
     );
     state.tower = placeRoom(
       state.tower,
@@ -206,34 +209,24 @@ describe('magi + mana springs', () => {
 });
 
 describe('laborer repairs', () => {
-  it('prefers singleton rooms then applies 50% falloff', () => {
+  it('prefers singleton jobs then applies 50% falloff', () => {
     const state = createInitialState('labor');
     state.tower = createTower();
+    const stem = getBlueprint('stem')!;
+    state.tower = placeStructure(state.tower, createStructure('sq', stem, { col: 3, row: 0 }));
+    state.tower = placeStructure(state.tower, createStructure('bridge4', stem, { col: 4, row: 0 }));
+    state.tower = placeStructure(state.tower, createStructure('r1', stem, { col: 5, row: 0 }));
+    state.tower = placeStructure(state.tower, createStructure('bridge6', stem, { col: 6, row: 0 }));
+    state.tower = placeStructure(state.tower, createStructure('r2', stem, { col: 7, row: 0 }));
     state.tower = placeRoom(
       state.tower,
       createRoom('q1', getBlueprint('quartersRoom')!, { col: 3, row: 0 }),
     );
-    state.tower = placeRoom(
-      state.tower,
-      createRoom('bridge4', getBlueprint('stem')!, { col: 4, row: 0 }),
-    );
-    state.tower = placeRoom(
-      state.tower,
-      createRoom('r1', getBlueprint('stem')!, { col: 5, row: 0 }),
-    );
-    state.tower = placeRoom(
-      state.tower,
-      createRoom('bridge6', getBlueprint('stem')!, { col: 6, row: 0 }),
-    );
-    state.tower = placeRoom(
-      state.tower,
-      createRoom('r2', getBlueprint('stem')!, { col: 7, row: 0 }),
-    );
     state.housingRecruited.q1 = 3;
     state.player.currency = 100;
 
-    const r1 = state.tower.rooms.find((r) => r.id === 'r1')!;
-    const r2 = state.tower.rooms.find((r) => r.id === 'r2')!;
+    const r1 = state.tower.structures.find((r) => r.id === 'r1')!;
+    const r2 = state.tower.structures.find((r) => r.id === 'r2')!;
     r1.hp = 5;
     r2.hp = 5;
 
@@ -252,7 +245,7 @@ describe('laborer repairs', () => {
       if (!l.targetWorkplaceId) continue;
       targets.set(l.targetWorkplaceId, (targets.get(l.targetWorkplaceId) ?? 0) + 1);
     }
-    // Prefer spreading: each damaged room should have at least one before stacking.
+    // Prefer spreading: each damaged piece should have at least one before stacking.
     expect(targets.get('r1') ?? 0).toBeGreaterThanOrEqual(1);
     expect(targets.get('r2') ?? 0).toBeGreaterThanOrEqual(1);
 
@@ -264,9 +257,8 @@ describe('laborer repairs', () => {
     }
     const before = r1.hp;
     tickLaborerRepairs(state, 1);
-    const expectedRate =
-      LABORER_REPAIR_HP_PER_SEC * (1 + 0.5 + 0.25);
-    expect(r1.hp).toBeCloseTo(Math.min(getBlueprint('stem')!.baseHp, before + expectedRate), 5);
+    const expectedRate = LABORER_REPAIR_HP_PER_SEC * (1 + 0.5 + 0.25);
+    expect(r1.hp).toBeCloseTo(Math.min(stem.baseHp, before + expectedRate), 5);
   });
 });
 
@@ -274,6 +266,9 @@ describe('recruitment totals', () => {
   it('sums recruited across guardrooms', () => {
     const state = createInitialState('sum');
     state.tower = createTower();
+    const stem = getBlueprint('stem')!;
+    state.tower = placeStructure(state.tower, createStructure('sb1', stem, { col: 2, row: 0 }));
+    state.tower = placeStructure(state.tower, createStructure('sb2', stem, { col: 4, row: 0 }));
     state.tower = placeRoom(
       state.tower,
       createRoom('b1', getBlueprint('guardroomRoom')!, { col: 2, row: 0 }),

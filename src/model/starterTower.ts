@@ -1,5 +1,5 @@
 import { getBlueprint } from './blueprints';
-import { createRoom, createTower, placeRoom } from './tower';
+import { createStructure, createTower, placeStructure } from './tower';
 import type { Cell, Tower } from './types';
 
 export interface StarterPlacement {
@@ -8,7 +8,7 @@ export interface StarterPlacement {
 }
 
 /**
- * Pre-built hollow wizard tower for wave 1. Placed bottom-to-top.
+ * Pre-built hollow wizard tower for wave 1. Placed bottom-to-top as framing only.
  *
  * ```text
  * row 5:  BB  BB   crown wings cantilever one step past the shaft (cols 5, 9)
@@ -42,7 +42,7 @@ export function createStarterTower(): Tower {
     if (!blueprint) {
       throw new Error(`Unknown starter blueprint: ${placement.blueprintId}`);
     }
-    tower = placeRoom(tower, createRoom(`starter-${index}`, blueprint, placement.origin));
+    tower = placeStructure(tower, createStructure(`starter-${index}`, blueprint, placement.origin));
   });
   return tower;
 }

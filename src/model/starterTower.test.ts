@@ -9,7 +9,8 @@ import { getWizardPosition, isOccupied, isTowerConnected, isTowerStable } from '
 describe('createStarterTower', () => {
   it('builds a stable connected tower', () => {
     const tower = createStarterTower();
-    expect(tower.rooms).toHaveLength(STARTER_TOWER_PLACEMENTS.length);
+    expect(tower.structures).toHaveLength(STARTER_TOWER_PLACEMENTS.length);
+    expect(tower.rooms).toHaveLength(0);
     expect(isTowerStable(tower)).toBe(true);
     expect(isTowerConnected(tower)).toBe(true);
   });
@@ -41,7 +42,8 @@ describe('createStarterTower', () => {
 describe('createInitialState starter economy', () => {
   it('includes the starter tower with zero net build cost', () => {
     const state = createInitialState('starter-econ');
-    expect(state.tower.rooms.length).toBeGreaterThan(0);
+    expect(state.tower.structures.length).toBeGreaterThan(0);
+    expect(state.tower.rooms.length).toBe(0);
     expect(state.buildBaseline).not.toBeNull();
     expect(netBuildCost(state.buildBaseline!, state.tower)).toBe(0);
     expect(remainingBuildGold(state.buildBaseline!, state.tower)).toBe(STARTING_CURRENCY);

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { GRID_COLS, SUB_CELLS_PER_MACRO } from '@/config/constants';
 import { exteriorSubAt, macroCenterSubCell } from './subGrid';
 import { getBlueprint } from '../model/blueprints';
-import { createRoom, createTower, placeRoom } from '../model/tower';
+import { createStructure, createTower, placeStructure } from '../model/tower';
 import type { MovementProfile, Tower } from '../model/types';
 import { isWalkable, neighbors, spawnNode, surfaceContacts, inAirBounds } from './exteriorGraph';
 import { findPath } from './pathfinding';
@@ -27,9 +27,9 @@ const surfaceClimb: MovementProfile = {
 // stem (5,0) -> stem (5,1) -> buttress3 (4,2): a T whose cap overhangs to cols 4 and 6.
 function tShape(): Tower {
   let tower = createTower();
-  tower = placeRoom(tower, createRoom('a', getBlueprint('stem')!, { col: 5, row: 0 }));
-  tower = placeRoom(tower, createRoom('b', getBlueprint('stem')!, { col: 5, row: 1 }));
-  tower = placeRoom(tower, createRoom('c', getBlueprint('buttress3')!, { col: 4, row: 2 }));
+  tower = placeStructure(tower, createStructure('a', getBlueprint('stem')!, { col: 5, row: 0 }));
+  tower = placeStructure(tower, createStructure('b', getBlueprint('stem')!, { col: 5, row: 1 }));
+  tower = placeStructure(tower, createStructure('c', getBlueprint('buttress3')!, { col: 4, row: 2 }));
   return tower;
 }
 
@@ -90,9 +90,9 @@ describe('isWalkable', () => {
 
 function verticalWall(): Tower {
   let tower = createTower();
-  tower = placeRoom(tower, createRoom('a', getBlueprint('stem')!, { col: 5, row: 0 }));
-  tower = placeRoom(tower, createRoom('b', getBlueprint('stem')!, { col: 5, row: 1 }));
-  tower = placeRoom(tower, createRoom('c', getBlueprint('stem')!, { col: 5, row: 2 }));
+  tower = placeStructure(tower, createStructure('a', getBlueprint('stem')!, { col: 5, row: 0 }));
+  tower = placeStructure(tower, createStructure('b', getBlueprint('stem')!, { col: 5, row: 1 }));
+  tower = placeStructure(tower, createStructure('c', getBlueprint('stem')!, { col: 5, row: 2 }));
   return tower;
 }
 
@@ -119,9 +119,9 @@ describe('neighbors', () => {
 
   it('does not squeeze through a diagonal gap between two rooms', () => {
     let tower = createTower();
-    tower = placeRoom(tower, createRoom('a', getBlueprint('stem')!, { col: 5, row: 0 }));
-    tower = placeRoom(tower, createRoom('b', getBlueprint('stem')!, { col: 5, row: 1 }));
-    tower = placeRoom(tower, createRoom('c', getBlueprint('stem')!, { col: 4, row: 2 }));
+    tower = placeStructure(tower, createStructure('a', getBlueprint('stem')!, { col: 5, row: 0 }));
+    tower = placeStructure(tower, createStructure('b', getBlueprint('stem')!, { col: 5, row: 1 }));
+    tower = placeStructure(tower, createStructure('c', getBlueprint('stem')!, { col: 4, row: 2 }));
     const gap = macroCenterSubCell(5, 2);
     expect(isWalkable(tower, gap.col, gap.row, underOverhang)).toBe(false);
     const wall = exteriorSubAt(5, 1, 'left');
@@ -148,7 +148,7 @@ describe('inAirBounds', () => {
   it('extends to the wizard row on a tall tower', () => {
     let tower = createTower();
     for (let row = 0; row <= 20; row++) {
-      tower = placeRoom(tower, createRoom(`r${row}`, getBlueprint('stem')!, { col: 8, row }));
+      tower = placeStructure(tower, createStructure(`r${row}`, getBlueprint('stem')!, { col: 8, row }));
     }
     const inBounds = getWizardPosition(tower);
     const out = macroCenterSubCell(8, 22);
@@ -159,8 +159,8 @@ describe('inAirBounds', () => {
 
 function gapTower(): Tower {
   let tower = createTower();
-  tower = placeRoom(tower, createRoom('left', getBlueprint('buttress2')!, { col: 5, row: 0 }));
-  tower = placeRoom(tower, createRoom('right', getBlueprint('buttress2')!, { col: 8, row: 0 }));
+  tower = placeStructure(tower, createStructure('left', getBlueprint('buttress2')!, { col: 5, row: 0 }));
+  tower = placeStructure(tower, createStructure('right', getBlueprint('buttress2')!, { col: 8, row: 0 }));
   return tower;
 }
 

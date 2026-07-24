@@ -16,4 +16,4 @@ Non-obvious notes for running/testing:
 - Per `.cursor/rules/verify-before-done.mdc`, no code change is complete until `npm run lint && npm test` both exit 0 (this mirrors CI in `.github/workflows/ci.yml`).
 - The app boots **directly into a run's build phase** with a pre-seeded tower — there is no main menu / "New game" screen to click through.
 - Core-loop smoke test: pick a blueprint (e.g. `Spire Block`) from the BUILD library, place it on a cell resting on the existing structure (gold decreases), then click `Start Wave` to enter the attack phase where enemies climb and the wizard fires.
-- Placement onto empty/disconnected cells is rejected ("Cannot build: disconnected"); rooms must obey gravity and connect to the single tower mass.
+- Placement onto empty/disconnected cells is rejected ("Cannot build: disconnected"); **framing** must obey gravity and connect to the single tower mass. Rooms and infra auto-add Spire Blocks when placed on empty legal cells.

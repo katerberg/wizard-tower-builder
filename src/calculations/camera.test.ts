@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { CELL_SIZE, VIEWPORT_AIR_ROWS } from '@/config/constants';
 import { getBlueprint } from '@/model/blueprints';
-import { createRoom, createTower, placeRoom, towerExtents } from '@/model/tower';
+import { createStructure, createTower, placeStructure, towerExtents } from '@/model/tower';
 import { clampScrollY, snapViewportHeight } from './camera';
 
 function cellTopY(row: number, scrollY: number, viewportHeight: number): number {
@@ -27,7 +27,7 @@ describe('clampScrollY', () => {
     let tower = createTower();
     const stem = getBlueprint('stem')!;
     for (let row = 0; row < 20; row++) {
-      tower = placeRoom(tower, createRoom(`r${row}`, stem, { col: 8, row }));
+      tower = placeStructure(tower, createStructure(`r${row}`, stem, { col: 8, row }));
     }
     const max = clampScrollY(99999, tower, TEST_VIEWPORT_HEIGHT);
     expect(max).toBeGreaterThan(0);
@@ -39,7 +39,7 @@ describe('clampScrollY', () => {
     let tower = createTower();
     const stem = getBlueprint('stem')!;
     for (let row = 0; row < 5; row++) {
-      tower = placeRoom(tower, createRoom(`r${row}`, stem, { col: 8, row }));
+      tower = placeStructure(tower, createStructure(`r${row}`, stem, { col: 8, row }));
     }
     const maxScroll = clampScrollY(99999, tower, TEST_VIEWPORT_HEIGHT);
     const { maxOccupiedRow } = towerExtents(tower);
@@ -58,7 +58,7 @@ describe('clampScrollY', () => {
     let tower = createTower();
     const stem = getBlueprint('stem')!;
     for (let row = 0; row < 20; row++) {
-      tower = placeRoom(tower, createRoom(`r${row}`, stem, { col: 8, row }));
+      tower = placeStructure(tower, createStructure(`r${row}`, stem, { col: 8, row }));
     }
     const shortMax = clampScrollY(99999, tower, TEST_VIEWPORT_HEIGHT);
     const tallMax = clampScrollY(99999, tower, TEST_VIEWPORT_HEIGHT * 2);

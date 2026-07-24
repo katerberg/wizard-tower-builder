@@ -18,22 +18,22 @@ import { addFaultPatch, runFaultPatchStepEffects } from '@/model/spells/earth/fa
 import { clearFortify, startFortify } from '@/model/spells/earth/fortify';
 import { tickBoulders, queueBoulder } from '@/model/spells/earth/boulder';
 import { buildSpellContext } from '@/model/spells/cast';
-import { createRoom, createTower, placeRoom } from '@/model/tower';
+import { createStructure, createTower, placeStructure } from '@/model/tower';
 import type { GameState } from '@/model/types';
 import { makeTestEnemy } from '@/test/subCells';
 
 function towerWithStem(state: GameState): GameState {
   const stem = getBlueprint('stem')!;
-  state.tower = placeRoom(createTower(), createRoom('r0', stem, { col: 8, row: 0 }));
+  state.tower = placeStructure(createTower(), createStructure('r0', stem, { col: 8, row: 0 }));
   return state;
 }
 
 function towerStack(state: GameState): GameState {
   const stem = getBlueprint('stem')!;
   let tower = createTower();
-  tower = placeRoom(tower, createRoom('r0', stem, { col: 8, row: 0 }));
-  tower = placeRoom(tower, createRoom('r1', stem, { col: 8, row: 1 }));
-  tower = placeRoom(tower, createRoom('r2', stem, { col: 8, row: 2 }));
+  tower = placeStructure(tower, createStructure('r0', stem, { col: 8, row: 0 }));
+  tower = placeStructure(tower, createStructure('r1', stem, { col: 8, row: 1 }));
+  tower = placeStructure(tower, createStructure('r2', stem, { col: 8, row: 2 }));
   state.tower = tower;
   return state;
 }
@@ -163,10 +163,10 @@ describe('Earthquake', () => {
     const state = towerStack(createInitialState('eq1'));
     beginWave(state);
     addCharge(state, 3);
-    const tipHpBefore = state.tower.rooms.find((r) => r.id === 'r2')!.hp;
+    const tipHpBefore = state.tower.structures.find((r) => r.id === 'r2')!.hp;
     const result = castSpell(state, 'earthquake', { kind: 'cell', cell: { col: 8, row: 2 } });
     expect(result.ok).toBe(true);
-    const tip = state.tower.rooms.find((r) => r.id === 'r2');
+    const tip = state.tower.structures.find((r) => r.id === 'r2');
     expect(tip).toBeTruthy();
     expect(tip!.hp).toBeLessThan(tipHpBefore);
   });

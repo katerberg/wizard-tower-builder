@@ -5,13 +5,17 @@ import { getBlueprint } from '@/model/blueprints';
 import { placeInfra } from '@/model/infra';
 import { canPlaceInfra } from '@/model/infra';
 import { getInfraBlueprint } from '@/model/infraBlueprints';
-import { createRoom, placeRoom } from '@/model/tower';
-import { createTower } from '@/model/tower';
+import { createRoom, createStructure, createTower, placeRoom, placeStructure } from '@/model/tower';
+
 
 function towerWithRooms() {
   let tower = createTower();
+  const stem = getBlueprint('stem')!;
   const guardroom = getBlueprint('guardroomRoom')!;
   const slot = getBlueprint('slotRoom')!;
+  tower = placeStructure(tower, createStructure('s0', stem, { col: 4, row: 0 }));
+  tower = placeStructure(tower, createStructure('s1', stem, { col: 4, row: 1 }));
+  tower = placeStructure(tower, createStructure('s2', stem, { col: 4, row: 2 }));
   tower = placeRoom(tower, createRoom('b1', guardroom, { col: 4, row: 0 }));
   tower = placeRoom(tower, createRoom('s1', slot, { col: 4, row: 2 }));
   return tower;

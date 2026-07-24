@@ -1,9 +1,20 @@
-import { getBlueprint } from '@/model/blueprints';
+import { getBlueprint, isStructureBlueprint } from '@/model/blueprints';
 import { isInfraBlueprint } from '@/model/infraBlueprints';
 import { canAffordBuild } from '@/calculations/buildCost';
 import { addMessage } from '@/model/messages';
 import { pruneHousingState, pruneOrphanStaffState, seedSpecialtyRoomDefaults } from '@/model/staff';
-import { canPlace, createRoom, placeRoomReplacing, removeRoom, roomAt, towersEqual } from '@/model/tower';
+import {
+  canPlace,
+  createRoom,
+  createStructure,
+  placeRoomReplacing,
+  placeStructureReplacing,
+  removeRoom,
+  removeStructure,
+  roomAt,
+  structureAt,
+  towersEqual,
+} from '@/model/tower';
 import type { HandlerContext } from '../context';
 import type { Intent } from '../intents';
 
@@ -17,6 +28,9 @@ export function handleBuildIntent(ctx: HandlerContext, intent: Intent): void {
       break;
     case 'sellRoom':
       sellRoomById(ctx, intent.roomId);
+      break;
+    case 'sellStructure':
+      sellStructureById(ctx, intent.structureId);
       break;
     case 'undoBuild':
       undoBuild(ctx);
@@ -43,8 +57,29 @@ function placeSelected(ctx: HandlerContext, cell: { col: number; row: number }):
     return;
   }
 
+  if (isStructureBlueprint(blueprint)) {
+    const structure = createStructure(ctx.nextRoomId(), blueprint, cell);
+    const placed = placeStructureReplacing(game.tower, structure, blueprint);
+    if (!placed.ok || !placed.tower) {
+      addMessage(game, `Cannot build here: ${placed.reason.replace(/_/g, ' ')}.`, 'info');
+      return;
+    }
+    if (!canAffordBuild(game.buildBaseline, placed.tower, 0, game.buildRecruitSpend)) {
+      addMessage(game, `Not enough gold for ${blueprint.name} (${blueprint.cost}).`, 'economy');
+      return;
+    }
+    ctx.recordBuildStep();
+    game.tower = placed.tower;
+    if (view.modal?.kind === 'room' || view.modal?.kind === 'structure') {
+      view.modal = null;
+    }
+    addMessage(game, `Placed ${blueprint.name}.`, 'info');
+    return;
+  }
+
   const room = createRoom(ctx.nextRoomId(), blueprint, cell);
-  const placed = placeRoomReplacing(game.tower, room, blueprint);
+  const structuresBefore = game.tower.structures?.length ?? 0;
+  const placed = placeRoomReplacing(game.tower, room, blueprint, () => ctx.nextRoomId());
   if (!placed.ok || !placed.tower) {
     addMessage(game, `Cannot build here: ${placed.reason.replace(/_/g, ' ')}.`, 'info');
     return;
@@ -56,15 +91,23 @@ function placeSelected(ctx: HandlerContext, cell: { col: number; row: number }):
   ctx.recordBuildStep();
   game.tower = placed.tower;
   seedSpecialtyRoomDefaults(game, room);
-  if (view.modal?.kind === 'room') {
+  if (view.modal?.kind === 'room' || view.modal?.kind === 'structure') {
     view.modal = null;
   }
-  addMessage(game, `Placed ${blueprint.name}.`, 'info');
+  const autoFraming = (placed.tower.structures?.length ?? 0) > structuresBefore;
+  addMessage(game, autoFraming ? `Placed ${blueprint.name} (with framing).` : `Placed ${blueprint.name}.`, 'info');
 }
 
 function removeAt(ctx: HandlerContext, cell: { col: number; row: number }): void {
   const room = roomAt(ctx.game.tower, cell.col, cell.row);
-  if (room) sellRoomById(ctx, room.id);
+  if (room) {
+    sellRoomById(ctx, room.id);
+    return;
+  }
+  const structure = structureAt(ctx.game.tower, cell.col, cell.row);
+  if (structure) {
+    sellStructureById(ctx, structure.id);
+  }
 }
 
 function sellRoomById(ctx: HandlerContext, roomId: string): void {
@@ -77,10 +120,31 @@ function sellRoomById(ctx: HandlerContext, roomId: string): void {
   ctx.recordBuildStep();
   game.tower = removeRoom(game.tower, room.id);
   pruneHousingState(game, roomId);
-  addMessage(game, `Removed ${blueprint?.name ?? 'room'}.`, 'info');
+  addMessage(game, `Removed ${blueprint?.name ?? 'room'} (framing remains).`, 'info');
 
   if (view.modal?.kind === 'room' && view.modal.roomId === roomId) {
     view.modal = null;
+  }
+}
+
+function sellStructureById(ctx: HandlerContext, structureId: string): void {
+  const { game, view } = ctx;
+  if (game.phase !== 'build' || !game.buildBaseline) return;
+  const structure = (game.tower.structures ?? []).find((s) => s.id === structureId);
+  if (!structure) return;
+
+  const blueprint = getBlueprint(structure.blueprintId);
+  ctx.recordBuildStep();
+  game.tower = removeStructure(game.tower, structure.id);
+  addMessage(game, `Removed ${blueprint?.name ?? 'structure'}.`, 'info');
+
+  if (view.modal?.kind === 'structure' && view.modal.structureId === structureId) {
+    view.modal = null;
+  }
+  if (view.modal?.kind === 'room') {
+    const roomId = view.modal.roomId;
+    const stillThere = game.tower.rooms.some((r) => r.id === roomId);
+    if (!stillThere) view.modal = null;
   }
 }
 

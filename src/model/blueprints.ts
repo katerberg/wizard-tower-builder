@@ -1,6 +1,7 @@
 import type { Blueprint } from './types';
 
-export const BLUEPRINTS: Blueprint[] = [
+/** Load-bearing framing blueprints (spires / buttresses). */
+export const STRUCTURE_BLUEPRINTS: Blueprint[] = [
   {
     id: 'stem',
     name: 'Spire Block',
@@ -9,7 +10,9 @@ export const BLUEPRINTS: Blueprint[] = [
     size: { w: 1, h: 1 },
     cost: 3,
     baseHp: 20,
-    description: 'A 1×1 core block. Stack upward to reach the wizard perch. Must sit on ground or a room directly below — no overhang.',
+    category: 'structure',
+    description:
+      'A 1×1 framing block. Stack upward to reach the wizard perch. Must sit on ground or framing directly below — no overhang.',
   },
   {
     id: 'buttress2',
@@ -19,7 +22,8 @@ export const BLUEPRINTS: Blueprint[] = [
     size: { w: 2, h: 1 },
     cost: 6,
     baseHp: 35,
-    description: 'A wide 2×1 platform. Can cantilever one step beyond support for flexible tower shapes.',
+    category: 'structure',
+    description: 'A wide 2×1 framing platform. Can cantilever one step beyond support for flexible tower shapes.',
   },
   {
     id: 'buttress3',
@@ -29,8 +33,13 @@ export const BLUEPRINTS: Blueprint[] = [
     size: { w: 3, h: 1 },
     cost: 8,
     baseHp: 45,
-    description: 'A wide 3×1 platform. Same cantilever rules as the smaller buttress, with more HP.',
+    category: 'structure',
+    description: 'A wide 3×1 framing platform. Same cantilever rules as the smaller buttress, with more HP.',
   },
+];
+
+/** Functional rooms that overlay structure. */
+export const ROOM_BLUEPRINTS: Blueprint[] = [
   {
     id: 'turretRoom',
     name: 'Turret Room',
@@ -39,6 +48,7 @@ export const BLUEPRINTS: Blueprint[] = [
     size: { w: 1, h: 1 },
     cost: 10,
     baseHp: 18,
+    category: 'room',
     description: 'Auto-fires at nearby climbers during attack. Costs 1 mana per shot.',
   },
   {
@@ -49,6 +59,7 @@ export const BLUEPRINTS: Blueprint[] = [
     size: { w: 1, h: 1 },
     cost: 8,
     baseHp: 15,
+    category: 'room',
     description: 'Passive income when you survive a wave.',
   },
   {
@@ -59,7 +70,7 @@ export const BLUEPRINTS: Blueprint[] = [
     size: { w: 1, h: 1 },
     cost: 9,
     baseHp: 20,
-    category: 'structure',
+    category: 'room',
     passable: true,
     housing: 'guardroom',
     description: 'Recruit soldiers during build. They deploy through stairs to slots when the wave starts.',
@@ -72,7 +83,7 @@ export const BLUEPRINTS: Blueprint[] = [
     size: { w: 1, h: 1 },
     cost: 12,
     baseHp: 18,
-    category: 'structure',
+    category: 'room',
     passable: true,
     housing: 'chamber',
     description: 'House magi. They staff mana springs during attack when stairs connect them.',
@@ -85,10 +96,10 @@ export const BLUEPRINTS: Blueprint[] = [
     size: { w: 1, h: 1 },
     cost: 8,
     baseHp: 22,
-    category: 'structure',
+    category: 'room',
     passable: true,
     housing: 'quarters',
-    description: 'House laborers. They path to damaged rooms during attack and repair HP.',
+    description: 'House laborers. They path to damaged rooms and framing during attack and repair HP.',
   },
   {
     id: 'slotRoom',
@@ -98,7 +109,7 @@ export const BLUEPRINTS: Blueprint[] = [
     size: { w: 1, h: 1 },
     cost: 11,
     baseHp: 18,
-    category: 'structure',
+    category: 'room',
     passable: true,
     description: 'Station soldiers here during attack. Allocate headcount from guardrooms in build phase.',
   },
@@ -110,7 +121,7 @@ export const BLUEPRINTS: Blueprint[] = [
     size: { w: 1, h: 2 },
     cost: 16,
     baseHp: 22,
-    category: 'structure',
+    category: 'room',
     passable: false,
     description:
       '1×2 steam plant. Needs a ground-water pipe in and a steam pipe out. Drains mana while producing steam.',
@@ -123,7 +134,7 @@ export const BLUEPRINTS: Blueprint[] = [
     size: { w: 1, h: 1 },
     cost: 14,
     baseHp: 20,
-    category: 'structure',
+    category: 'room',
     passable: false,
     description:
       'Charges from boiler steam, then dumps a wide exterior blast. Needs an adjacent steam pipe.',
@@ -136,12 +147,14 @@ export const BLUEPRINTS: Blueprint[] = [
     size: { w: 2, h: 2 },
     cost: 28,
     baseHp: 30,
-    category: 'structure',
+    category: 'room',
     passable: true,
     description:
       '2×2 spring. Needs ground-water pipe access and stationed magi. Regenerates mana during attack.',
   },
 ];
+
+export const BLUEPRINTS: Blueprint[] = [...STRUCTURE_BLUEPRINTS, ...ROOM_BLUEPRINTS];
 
 export const STARTING_BLUEPRINT_IDS = BLUEPRINTS.map((b) => b.id);
 
@@ -149,6 +162,14 @@ export function getBlueprint(id: string): Blueprint | undefined {
   return BLUEPRINTS.find((b) => b.id === id);
 }
 
+export function isStructureBlueprint(blueprint: Blueprint): boolean {
+  return blueprint.category === 'structure';
+}
+
+export function isRoomBlueprint(blueprint: Blueprint): boolean {
+  return blueprint.category === 'room' || (!blueprint.category && !blueprint.infraKind);
+}
+
 export function isButtressBlueprint(blueprint: Blueprint): boolean {
-  return blueprint.size.w >= 2;
+  return isStructureBlueprint(blueprint) && blueprint.size.w >= 2;
 }

@@ -1,5 +1,5 @@
 import { isSlotRoom } from '@/model/staff/capacity';
-import { roomAt } from '@/model/tower';
+import { roomAt, structureAt } from '@/model/tower';
 import type { HandlerContext } from '../context';
 import type { Intent } from '../intents';
 
@@ -23,6 +23,13 @@ export function handleInspectIntent(ctx: HandlerContext, intent: Intent): void {
         ctx.view.selectedBlueprintId = null;
         ctx.view.modal = { kind: 'room', roomId: room.id };
         ctx.view.connectivityFocusSlotId = isSlotRoom(room) ? room.id : null;
+        break;
+      }
+      const structure = structureAt(ctx.game.tower, intent.cell.col, intent.cell.row);
+      if (structure) {
+        ctx.view.selectedBlueprintId = null;
+        ctx.view.modal = { kind: 'structure', structureId: structure.id };
+        ctx.view.connectivityFocusSlotId = null;
       }
       break;
     }

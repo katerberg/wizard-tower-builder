@@ -6,18 +6,27 @@ import {
   SUB_CELLS_PER_MACRO,
 } from '@/config/constants';
 import { macroCol, macroRow } from './subGrid';
-import { towerExtents } from '../model/tower';
-import { cellKey } from './grid';
+import { hasRoomAt, hasStructure, towerExtents } from '../model/tower';
 import type { ExteriorFace, ExteriorNode, MovementProfile, Tower } from '../model/types';
 
-function isRoom(tower: Tower, col: number, row: number): boolean {
-  return Object.prototype.hasOwnProperty.call(tower.occupancy, cellKey(col, row));
+/** Crawler solid: framing (rooms always sit on structure). */
+function isCrawlerSolid(tower: Tower, col: number, row: number): boolean {
+  return hasStructure(tower, col, row);
 }
 
-/** Room occupancy at sub-cell resolution (each macro room tile fills its 3×3 sub-cells). */
-function isRoomSub(tower: Tower, subCol: number, subRow: number): boolean {
+/** Flier solid: functional rooms only — bare framing is open air. */
+function isFlierSolid(tower: Tower, col: number, row: number): boolean {
+  return hasRoomAt(tower, col, row);
+}
+
+function isCrawlerSolidSub(tower: Tower, subCol: number, subRow: number): boolean {
   if (subCol < 0 || subRow < 0) return false;
-  return isRoom(tower, macroCol(subCol), macroRow(subRow));
+  return isCrawlerSolid(tower, macroCol(subCol), macroRow(subRow));
+}
+
+function isFlierSolidSub(tower: Tower, subCol: number, subRow: number): boolean {
+  if (subCol < 0 || subRow < 0) return false;
+  return isFlierSolid(tower, macroCol(subCol), macroRow(subRow));
 }
 
 /** Macro-cell air bounds for spell placement (Kindling, etc.). */
@@ -41,31 +50,54 @@ export type SurfaceContact =
   | 'underCeiling'
   | 'onTop';
 
-/** Surface contacts at macro resolution (spell placement). */
-export function surfaceContactsMacro(tower: Tower, col: number, row: number): Set<SurfaceContact> {
+function surfaceContactsAgainst(
+  solid: (tower: Tower, col: number, row: number) => boolean,
+  tower: Tower,
+  col: number,
+  row: number,
+): Set<SurfaceContact> {
   const contacts = new Set<SurfaceContact>();
   if (row === 0) contacts.add('ground');
-  if (isRoom(tower, col - 1, row)) contacts.add('leftWall');
-  if (isRoom(tower, col + 1, row)) contacts.add('rightWall');
-  if (isRoom(tower, col, row + 1)) contacts.add('underCeiling');
-  if (isRoom(tower, col, row - 1)) contacts.add('onTop');
+  if (solid(tower, col - 1, row)) contacts.add('leftWall');
+  if (solid(tower, col + 1, row)) contacts.add('rightWall');
+  if (solid(tower, col, row + 1)) contacts.add('underCeiling');
+  if (solid(tower, col, row - 1)) contacts.add('onTop');
   return contacts;
 }
 
-/** Surface contacts from immediate sub-cell neighbors (first-class fine grid). */
-export function surfaceContacts(tower: Tower, subCol: number, subRow: number): Set<SurfaceContact> {
+function surfaceContactsSubAgainst(
+  solidSub: (tower: Tower, subCol: number, subRow: number) => boolean,
+  tower: Tower,
+  subCol: number,
+  subRow: number,
+): Set<SurfaceContact> {
   const contacts = new Set<SurfaceContact>();
   if (subRow === 0) contacts.add('ground');
-  if (isRoomSub(tower, subCol - 1, subRow)) contacts.add('leftWall');
-  if (isRoomSub(tower, subCol + 1, subRow)) contacts.add('rightWall');
-  if (isRoomSub(tower, subCol, subRow + 1)) contacts.add('underCeiling');
-  if (isRoomSub(tower, subCol, subRow - 1)) contacts.add('onTop');
+  if (solidSub(tower, subCol - 1, subRow)) contacts.add('leftWall');
+  if (solidSub(tower, subCol + 1, subRow)) contacts.add('rightWall');
+  if (solidSub(tower, subCol, subRow + 1)) contacts.add('underCeiling');
+  if (solidSub(tower, subCol, subRow - 1)) contacts.add('onTop');
   return contacts;
 }
 
-/** True when a sub-cell orthogonally touches any room face (not ground-only). */
+/** Surface contacts at macro resolution (spell placement) — crawler/framing mass. */
+export function surfaceContactsMacro(tower: Tower, col: number, row: number): Set<SurfaceContact> {
+  return surfaceContactsAgainst(isCrawlerSolid, tower, col, row);
+}
+
+/** Crawler surface contacts from framing mass. */
+export function surfaceContacts(tower: Tower, subCol: number, subRow: number): Set<SurfaceContact> {
+  return surfaceContactsSubAgainst(isCrawlerSolidSub, tower, subCol, subRow);
+}
+
+/** Flier surface contacts from rooms only. */
+function flierSurfaceContacts(tower: Tower, subCol: number, subRow: number): Set<SurfaceContact> {
+  return surfaceContactsSubAgainst(isFlierSolidSub, tower, subCol, subRow);
+}
+
+/** True when a sub-cell orthogonally touches any room face (not ground-only). Used by fliers. */
 export function touchesRoomWall(tower: Tower, subCol: number, subRow: number): boolean {
-  const contacts = surfaceContacts(tower, subCol, subRow);
+  const contacts = flierSurfaceContacts(tower, subCol, subRow);
   return (
     contacts.has('leftWall')
     || contacts.has('rightWall')
@@ -76,8 +108,8 @@ export function touchesRoomWall(tower: Tower, subCol: number, subRow: number): b
 
 function isFlyWalkable(tower: Tower, subCol: number, subRow: number): boolean {
   if (!inAirBounds(tower, subCol, subRow, true)) return false;
-  if (isRoomSub(tower, subCol, subRow)) return false;
-  // Never skim the shell — open air only (ground contact alone is fine).
+  if (isFlierSolidSub(tower, subCol, subRow)) return false;
+  // Never skim room shells — open air only (ground contact alone is fine). Bare framing is air.
   if (touchesRoomWall(tower, subCol, subRow)) return false;
   return true;
 }
@@ -88,7 +120,7 @@ export function isWalkable(tower: Tower, subCol: number, subRow: number, profile
   }
 
   if (!inAirBounds(tower, subCol, subRow, false)) return false;
-  if (isRoomSub(tower, subCol, subRow)) return false;
+  if (isCrawlerSolidSub(tower, subCol, subRow)) return false;
 
   const contacts = surfaceContacts(tower, subCol, subRow);
   if (contacts.size === 0) return false;
@@ -121,9 +153,9 @@ const DIAGONAL = [
 ];
 
 function isCornerWrap(tower: Tower, subCol: number, subRow: number, dc: number, dr: number): boolean {
-  const sideRoom = isRoomSub(tower, subCol + dc, subRow);
-  const aboveBelowRoom = isRoomSub(tower, subCol, subRow + dr);
-  return sideRoom !== aboveBelowRoom;
+  const sideSolid = isCrawlerSolidSub(tower, subCol + dc, subRow);
+  const aboveBelowSolid = isCrawlerSolidSub(tower, subCol, subRow + dr);
+  return sideSolid !== aboveBelowSolid;
 }
 
 export function neighbors(tower: Tower, subCol: number, subRow: number, profile: MovementProfile): ExteriorNode[] {
@@ -132,7 +164,7 @@ export function neighbors(tower: Tower, subCol: number, subRow: number, profile:
     const nc = subCol + dc;
     const nr = subRow + dr;
     if (!isWalkable(tower, nc, nr, profile)) continue;
-    result.push({ col: nc, row: nr, face: faceOf(tower, nc, nr) });
+    result.push({ col: nc, row: nr, face: faceOf(tower, nc, nr, profile) });
   }
   // Fliers use orthogonal air steps only — no shell corner-wrap diagonals.
   if (!profile.canFly) {
@@ -141,17 +173,29 @@ export function neighbors(tower: Tower, subCol: number, subRow: number, profile:
       const nr = subRow + dr;
       if (!isWalkable(tower, nc, nr, profile)) continue;
       if (!isCornerWrap(tower, subCol, subRow, dc, dr)) continue;
-      result.push({ col: nc, row: nr, face: faceOf(tower, nc, nr) });
+      result.push({ col: nc, row: nr, face: faceOf(tower, nc, nr, profile) });
     }
   }
   return result;
 }
 
-export function faceOf(tower: Tower, subCol: number, subRow: number): ExteriorFace {
-  if (isRoomSub(tower, subCol - 1, subRow)) return 'left';
-  if (isRoomSub(tower, subCol + 1, subRow)) return 'right';
-  if (touchesRoomWall(tower, subCol, subRow)) return 'top';
-  const contacts = surfaceContacts(tower, subCol, subRow);
+export function faceOf(
+  tower: Tower,
+  subCol: number,
+  subRow: number,
+  profile?: MovementProfile,
+): ExteriorFace {
+  const solidSub = profile?.canFly ? isFlierSolidSub : isCrawlerSolidSub;
+  const contactsFn = profile?.canFly ? flierSurfaceContacts : surfaceContacts;
+  if (solidSub(tower, subCol - 1, subRow)) return 'left';
+  if (solidSub(tower, subCol + 1, subRow)) return 'right';
+  if (profile?.canFly ? touchesRoomWall(tower, subCol, subRow) : (() => {
+    const c = surfaceContacts(tower, subCol, subRow);
+    return c.has('leftWall') || c.has('rightWall') || c.has('underCeiling') || c.has('onTop');
+  })()) {
+    return 'top';
+  }
+  const contacts = contactsFn(tower, subCol, subRow);
   if (contacts.size === 0 || (contacts.size === 1 && contacts.has('ground'))) {
     return 'air';
   }
@@ -164,7 +208,7 @@ export function spawnNode(tower: Tower, side: 'left' | 'right'): ExteriorNode {
   const start = side === 'left' ? 0 : SUB_GRID_COLS - 1;
   const step = side === 'left' ? 1 : -1;
   for (let subCol = start; subCol >= 0 && subCol < SUB_GRID_COLS; subCol += step) {
-    if (!isRoomSub(tower, subCol, 0)) {
+    if (!isCrawlerSolidSub(tower, subCol, 0)) {
       return { col: subCol, row: 0, face: faceOf(tower, subCol, 0) };
     }
   }
@@ -212,7 +256,7 @@ export function spawnAirNode(
       if (subRow < minSubRow || subRow > maxSubRow) continue;
       if (!isWalkable(tower, subCol, subRow, profile)) continue;
 
-      const node: ExteriorNode = { col: subCol, row: subRow, face: faceOf(tower, subCol, subRow) };
+      const node: ExteriorNode = { col: subCol, row: subRow, face: faceOf(tower, subCol, subRow, profile) };
       fallback ??= node;
 
       const standoff = standoffMacroFromTower(tower, subCol, subRow);
@@ -230,12 +274,17 @@ export function spawnAirNode(
   return { col: edgeCol, row: edgeRow, face: 'air' };
 }
 
-/** Approximate macro-cell gap from this sub-cell to the nearest room cell. */
+/** Approximate macro-cell gap from this sub-cell to the nearest tower mass cell. */
 export function standoffMacroFromTower(tower: Tower, subCol: number, subRow: number): number {
   const mc = macroCol(subCol);
   const mr = macroRow(subRow);
   let best = Infinity;
-  for (const key of Object.keys(tower.occupancy)) {
+  // Prefer rooms as flier obstacles; fall back to framing when the tower has no rooms yet.
+  const keys =
+    Object.keys(tower.occupancy).length > 0
+      ? Object.keys(tower.occupancy)
+      : Object.keys(tower.structureOccupancy ?? {});
+  for (const key of keys) {
     const [cs, rs] = key.split(',');
     const oc = Number(cs);
     const or = Number(rs);

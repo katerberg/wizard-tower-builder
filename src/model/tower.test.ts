@@ -5,13 +5,15 @@ import type { Cell, Tower } from './types';
 import {
   canPlace,
   createRoom,
+  createStructure,
   createTower,
-  getUnstableRoomIds,
+  getUnstableStructureIds,
   getWizardPosition,
   isTowerConnected,
   isTowerStable,
   placeRoom,
-  removeRoom,
+  placeStructure,
+  removeStructure,
   towerExtents,
   towersEqual,
 } from './tower';
@@ -25,7 +27,7 @@ function place(tower: Tower, blueprintId: string, origin: Cell): Tower {
   const blueprint = getBlueprint(blueprintId)!;
   const result = canPlace(tower, blueprint, origin);
   expect(result.ok, `expected placement ok at ${origin.col},${origin.row} but got ${result.reason}`).toBe(true);
-  return placeRoom(tower, createRoom(`r${roomCounter++}`, blueprint, origin));
+  return placeStructure(tower, createStructure(`r${roomCounter++}`, blueprint, origin));
 }
 
 describe('canPlace - basic support', () => {
@@ -130,7 +132,7 @@ describe('canPlace - stepped tower shapes', () => {
     tower = place(tower, 'stem', { col: 5, row: 0 });
     tower = place(tower, 'stem', { col: 5, row: 1 });
     tower = place(tower, 'stem', { col: 5, row: 2 });
-    expect(tower.rooms.length).toBe(3);
+    expect(tower.structures.length).toBe(3);
     expect(isTowerStable(tower)).toBe(true);
   });
 
@@ -139,7 +141,7 @@ describe('canPlace - stepped tower shapes', () => {
     tower = place(tower, 'stem', { col: 5, row: 0 });
     tower = place(tower, 'buttress2', { col: 5, row: 1 });
     tower = place(tower, 'stem', { col: 5, row: 2 });
-    expect(tower.rooms.length).toBe(3);
+    expect(tower.structures.length).toBe(3);
     expect(isTowerStable(tower)).toBe(true);
   });
 
@@ -149,7 +151,7 @@ describe('canPlace - stepped tower shapes', () => {
     tower = place(tower, 'buttress3', { col: 0, row: 1 });
     tower = place(tower, 'stem', { col: 0, row: 2 });
     tower = place(tower, 'stem', { col: 2, row: 2 });
-    expect(tower.rooms.length).toBe(4);
+    expect(tower.structures.length).toBe(4);
     expect(isTowerStable(tower)).toBe(true);
   });
   it('builds a connected pyramid (x / xx / xxx)', () => {
@@ -157,7 +159,7 @@ describe('canPlace - stepped tower shapes', () => {
     tower = place(tower, 'buttress3', { col: 0, row: 0 });
     tower = place(tower, 'buttress2', { col: 1, row: 1 });
     tower = place(tower, 'stem', { col: 2, row: 2 });
-    expect(tower.rooms.length).toBe(3);
+    expect(tower.structures.length).toBe(3);
     expect(isTowerConnected(tower)).toBe(true);
     expect(isTowerStable(tower)).toBe(true);
   });
@@ -184,8 +186,8 @@ describe('canPlace - connectivity', () => {
     tower = place(tower, 'stem', { col: 8, row: 1 });
     expect(isTowerConnected(tower)).toBe(true);
 
-    const leftGround = tower.rooms.find((r) => r.origin.col === 5 && r.origin.row === 0)!;
-    tower = removeRoom(tower, leftGround.id);
+    const leftGround = tower.structures.find((r) => r.origin.col === 5 && r.origin.row === 0)!;
+    tower = removeStructure(tower, leftGround.id);
     expect(isTowerConnected(tower)).toBe(false);
     expect(isTowerStable(tower)).toBe(false);
   });
@@ -195,9 +197,9 @@ describe('canPlace - connectivity', () => {
     let tower = createTower();
     tower = place(tower, 'stem', { col, row: 0 });
     tower = place(tower, 'stem', { col, row: 1 });
-    const top = tower.rooms.find((r) => r.origin.row === 1)!;
-    tower = removeRoom(tower, top.id);
-    tower = placeRoom(tower, createRoom('floating', stem, { col, row: 3 }));
+    const top = tower.structures.find((r) => r.origin.row === 1)!;
+    tower = removeStructure(tower, top.id);
+    tower = placeStructure(tower, createStructure('floating', stem, { col, row: 3 }));
     expect(isTowerStable(tower)).toBe(false);
 
     expect(canPlace(tower, stem, { col, row: 1 })).toEqual({ ok: true, reason: 'ok' });
@@ -244,14 +246,14 @@ describe('getWizardPosition', () => {
   });
 });
 
-describe('removeRoom', () => {
-  it('clears occupancy for the removed room', () => {
+describe('removeStructure', () => {
+  it('clears structure occupancy for the removed piece', () => {
     let tower = createTower();
     tower = place(tower, 'buttress3', { col: 4, row: 0 });
-    const id = tower.rooms[0].id;
-    tower = removeRoom(tower, id);
-    expect(tower.rooms.length).toBe(0);
-    expect(Object.keys(tower.occupancy).length).toBe(0);
+    const id = tower.structures[0].id;
+    tower = removeStructure(tower, id);
+    expect(tower.structures.length).toBe(0);
+    expect(Object.keys(tower.structureOccupancy).length).toBe(0);
   });
 });
 
@@ -262,7 +264,7 @@ describe('tower stability', () => {
     tower = place(tower, 'stem', { col: 5, row: 1 });
     tower = place(tower, 'stem', { col: 5, row: 2 });
     expect(isTowerStable(tower)).toBe(true);
-    expect(getUnstableRoomIds(tower).size).toBe(0);
+    expect(getUnstableStructureIds(tower).size).toBe(0);
   });
 
   it('treats a spire-buttress-spire stack as stable', () => {
@@ -271,7 +273,7 @@ describe('tower stability', () => {
     tower = place(tower, 'buttress2', { col: 5, row: 1 });
     tower = place(tower, 'stem', { col: 5, row: 2 });
     expect(isTowerStable(tower)).toBe(true);
-    expect(getUnstableRoomIds(tower).size).toBe(0);
+    expect(getUnstableStructureIds(tower).size).toBe(0);
   });
 
   it('treats an empty tower as stable', () => {
@@ -280,34 +282,34 @@ describe('tower stability', () => {
 
   it('flags spires left floating after a middle spire is removed', () => {
     let tower = createTower();
-    const bottom = createRoom('bottom', stem, { col: 5, row: 0 });
-    const middle = createRoom('middle', stem, { col: 5, row: 1 });
-    const top = createRoom('top', stem, { col: 5, row: 2 });
-    tower = placeRoom(tower, bottom);
-    tower = placeRoom(tower, middle);
-    tower = placeRoom(tower, top);
+    const bottom = createStructure('bottom', stem, { col: 5, row: 0 });
+    const middle = createStructure('middle', stem, { col: 5, row: 1 });
+    const top = createStructure('top', stem, { col: 5, row: 2 });
+    tower = placeStructure(tower, bottom);
+    tower = placeStructure(tower, middle);
+    tower = placeStructure(tower, top);
     expect(isTowerStable(tower)).toBe(true);
 
-    tower = removeRoom(tower, 'middle');
+    tower = removeStructure(tower, 'middle');
     expect(isTowerStable(tower)).toBe(false);
-    const unstable = getUnstableRoomIds(tower);
+    const unstable = getUnstableStructureIds(tower);
     expect(unstable.has('top')).toBe(true);
     expect(unstable.has('bottom')).toBe(false);
   });
 
   it('flags spires left floating after the buttress below is removed', () => {
     let tower = createTower();
-    const bottom = createRoom('bottom', stem, { col: 5, row: 0 });
-    const middle = createRoom('middle', b2, { col: 5, row: 1 });
-    const top = createRoom('top', stem, { col: 5, row: 2 });
-    tower = placeRoom(tower, bottom);
-    tower = placeRoom(tower, middle);
-    tower = placeRoom(tower, top);
+    const bottom = createStructure('bottom', stem, { col: 5, row: 0 });
+    const middle = createStructure('middle', b2, { col: 5, row: 1 });
+    const top = createStructure('top', stem, { col: 5, row: 2 });
+    tower = placeStructure(tower, bottom);
+    tower = placeStructure(tower, middle);
+    tower = placeStructure(tower, top);
     expect(isTowerStable(tower)).toBe(true);
 
-    tower = removeRoom(tower, 'middle');
+    tower = removeStructure(tower, 'middle');
     expect(isTowerStable(tower)).toBe(false);
-    const unstable = getUnstableRoomIds(tower);
+    const unstable = getUnstableStructureIds(tower);
     expect(unstable.has('top')).toBe(true);
     expect(unstable.has('bottom')).toBe(false);
   });
@@ -320,8 +322,8 @@ describe('tower stability', () => {
     tower = place(tower, 'buttress2', { col: 5, row: 3 });
     tower = place(tower, 'stem', { col: 5, row: 4 });
 
-    const lowerButtress = tower.rooms.find((r) => r.origin.row === 1)!;
-    tower = removeRoom(tower, lowerButtress.id);
+    const lowerButtress = tower.structures.find((r) => r.origin.row === 1)!;
+    tower = removeStructure(tower, lowerButtress.id);
     expect(isTowerStable(tower)).toBe(false);
   });
 });
@@ -334,20 +336,21 @@ describe('towersEqual', () => {
   it('detects identical layouts', () => {
     let a = createTower();
     let b = createTower();
-    a = placeRoom(a, createRoom('a', stem, { col: 4, row: 0 }));
-    b = placeRoom(b, createRoom('a', stem, { col: 4, row: 0 }));
+    a = placeStructure(a, createStructure('a', stem, { col: 4, row: 0 }));
+    b = placeStructure(b, createStructure('a', stem, { col: 4, row: 0 }));
     expect(towersEqual(a, b)).toBe(true);
   });
 
   it('detects moved rooms', () => {
-    const base = placeRoom(createTower(), createRoom('a', stem, { col: 4, row: 0 }));
-    const moved = placeRoom(createTower(), createRoom('b', stem, { col: 8, row: 0 }));
+    const base = placeStructure(createTower(), createStructure('a', stem, { col: 4, row: 0 }));
+    const moved = placeStructure(createTower(), createStructure('b', stem, { col: 8, row: 0 }));
     expect(towersEqual(base, moved)).toBe(false);
   });
 
   it('detects modification changes', () => {
-    const room = createRoom('a', stem, { col: 4, row: 0 });
-    const plain = placeRoom(createTower(), room);
+    const turret = getBlueprint('turretRoom')!;
+    let plain = placeStructure(createTower(), createStructure('s', stem, { col: 4, row: 0 }));
+    plain = placeRoom(plain, createRoom('a', turret, { col: 4, row: 0 }));
     const modded = structuredClone(plain);
     modded.rooms[0].modifications.push({ id: 'spikes', level: 1 });
     expect(towersEqual(plain, modded)).toBe(false);
@@ -361,7 +364,7 @@ describe('unbounded height', () => {
     for (let row = 1; row <= 15; row++) {
       tower = place(tower, 'stem', { col: 8, row });
     }
-    expect(tower.rooms).toHaveLength(16);
+    expect(tower.structures).toHaveLength(16);
     expect(getWizardPosition(tower).row).toBe(16 * SUB_CELLS_PER_MACRO);
   });
 
