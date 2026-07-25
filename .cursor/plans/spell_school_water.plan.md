@@ -176,8 +176,8 @@ Separate from pipe logistics `Fluid = 'water' | 'steam'` — this is **combat we
 | Rule | Detail |
 | ---- | ------ |
 | Job | Always-useful **Soak applicator** |
-| Target | TBD edge — lean `gridPoint` small splash or single `enemy` |
-| Effect | Apply / bump Soak (no damage, or trivial chip only if needed for juice) |
+| Target | `gridPoint` — **small AoE** around the click |
+| Effect | Apply / bump Soak to enemies in the splash (no damage, or trivial chip only if needed for juice) |
 | Identity | Top-up when Hydrant coverage isn’t enough; enable Deadweight / Geyser thresholds |
 
 ### 2. Waterfall
@@ -199,7 +199,8 @@ Separate from pipe logistics `Fluid = 'water' | 'steam'` — this is **combat we
 | ---- | ------ |
 | Job | Primary **scale-with** combat payoff |
 | Fantasy | Waterlogged — the wetter they are, the harder they hit the ground / the heavier the strike |
-| Effect | Damage scales with current Soak; **briefly worsens** their slow band (temporary amp — still no root, still no Soak spend) |
+| Damage | Scales with **real** current Soak |
+| Extra slow | For a few seconds, speed math treats them as having **+X Soak** (playtest X/duration). **Real Soak unchanged** — does not add stacks, does not spend stacks, does not affect Deadweight/Geyser damage gates |
 | Dry | Weak / poor value — kit wants wet targets |
 | Identity | The tooth; Splash + Hydrant exist so this hurts |
 
@@ -210,8 +211,8 @@ Separate from pipe logistics `Fluid = 'water' | 'steam'` — this is **combat we
 | Job | **Threshold / setup toy** — rewards puddles |
 | Cast rule | **Only from a puddle** cell (Hydrant basin or Waterfall residue) |
 | Shape | Blast **up 3 cells** in that column |
-| Damage | Damages **wet** units in the column (see open edge: wet = Soak &gt; 0 vs ≥ damp) |
-| Soak | **Increases Soak on all units hit** (including dry — dry get wet, not damaged) |
+| Damage | Only units that are **damp+** (Soak ≥ 10) |
+| Soak | **Increases Soak on all units hit** (including dry — dry get wetness, not damage) |
 | Identity | Pipe + Hydrant (or Waterfall puddle) as cast surface; vertical anti-climb punish |
 
 ---
@@ -247,15 +248,12 @@ Water: _wet → hold → deadweight / geyser from puddles; waterfall resets heig
 
 | ID | Question | Lean |
 | -- | -------- | ---- |
-| W1 | Splash targeting — single enemy vs small AoE gridPoint? | Small AoE splash reads better as “Splash” |
-| W2 | Geyser “wet” for damage — Soak &gt; 0 or Soak ≥ 10 (damp+)? | Soak &gt; 0 so any moisture takes damage; damp remains a *spell* threshold elsewhere if needed |
-| W3 | Deadweight “briefly worsens slow” — temp Soak amp vs separate slow multiplier? | Temp Soak amp (e.g. treat as +X Soak for Y seconds for *slow only*, or mirror stacks that decay fast) — must not become spend |
 | W4 | Does knock-off / fly clear Soak? | Clear on full detach (air synergy later); optional |
 | W5 | Hydrant footprint / which faces count as “sides”? | Ortho exterior faces of the room |
 | W6 | Waterfall targeting UX — click start cell on face, water runs down from there? | Yes |
 | W7 | Can Geyser hit the wizard (FF)? | Follow fire/air zone precedent — decide at lock; lean yes if wizard stands in column |
 
-Tuning (half-life T, soak/sec from puddles, damage formulas, Hydrant spray rate, puddle lifetime, Waterfall push step size) → **playtest**, not lock blockers once behavior is clear.
+Tuning (half-life T, soak/sec from puddles, damage formulas, Hydrant spray rate, puddle lifetime, Waterfall push step size, Deadweight +X/duration, Splash radius/soak amount) → **playtest**, not lock blockers once behavior is clear.
 
 ---
 
@@ -272,10 +270,10 @@ Tuning (half-life T, soak/sec from puddles, damage formulas, Hydrant spray rate,
 | Env water | Yes — flow down, fast wall dissipate, puddles on flats |
 | Temp water spell zones | **Cut** |
 | Hydrant | In plan; **piped water**, no steam/mana/staff |
-| Spell 1 | **Splash** |
+| Spell 1 | **Splash** — small **AoE** Soak apply |
 | Spell 2 | **Waterfall** (push down, ≤10, puddle, no knock-off) |
-| Spell 3 | **Deadweight** |
-| Spell 4 | **Geyser** (puddle-only, up 3, damage wet, soak all hit) |
+| Spell 3 | **Deadweight** — damage scales with real Soak; extra slow = **fake +Soak for speed only** |
+| Spell 4 | **Geyser** — puddle-only, up 3; damage **damp+ only**; soak all hit |
 | Plan split | **One plan** (systems + spells) |
 
 ---
