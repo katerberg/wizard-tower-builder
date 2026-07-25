@@ -23,6 +23,10 @@ export function isManaSpringRoom(room: { blueprintId: string }): boolean {
   return room.blueprintId === 'manaSpringRoom';
 }
 
+export function isHydrantRoom(room: { blueprintId: string }): boolean {
+  return room.blueprintId === 'hydrantRoom';
+}
+
 function pipeCells(tower: Tower): Cell[] {
   const cells: Cell[] = [];
   for (const [key, cell] of Object.entries(tower.infra ?? {})) {

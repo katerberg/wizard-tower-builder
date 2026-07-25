@@ -8,7 +8,8 @@ export type SpellTargeting =
   | 'airSegment'
   | 'trapAdjacent'
   | 'self'
-  | 'room';
+  | 'room'
+  | 'puddle';
 
 export type CastFailureReason =
   | 'wrong_phase'

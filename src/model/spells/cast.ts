@@ -12,20 +12,25 @@ import { isValidKindlingPlacement } from './fire/kindling';
 import { gridLine, validWallOfFlameSegment } from './fire/wall';
 import { blizzard } from './blizzard';
 import { boulder } from './boulder';
+import { deadweight } from './deadweight';
 import { earthquake, roomIdAtCell } from './earthquake';
 import { fault } from './fault';
 import { fireball } from './fireball';
 import { flight } from './flight';
 import { fortify } from './fortify';
+import { geyser } from './geyser';
 import { gust } from './gust';
 import { immolate } from './immolate';
 import { kindling } from './kindling';
+import { splash } from './splash';
 import { tornado } from './tornado';
 import { wandStrike } from './wandStrike';
 import { wallOfFlame } from './wallOfFlame';
+import { waterfall } from './waterfall';
 import { getCharge } from './earth/charge';
 import { clearFortify, isFortified, mitigateWizardDamage } from './earth/fortify';
 import { isValidFaultPlacement } from './earth/fault';
+import { isValidGeyserPlacement } from './water/geyser';
 import type { CastCheckResult, SpellCastContext, SpellDef, SpellTarget } from './types';
 import type { Cell, Enemy, GameState, SpellSchool } from '../types';
 
@@ -43,6 +48,10 @@ export { fault } from './fault';
 export { fortify } from './fortify';
 export { boulder } from './boulder';
 export { earthquake } from './earthquake';
+export { splash } from './splash';
+export { waterfall } from './waterfall';
+export { deadweight } from './deadweight';
+export { geyser } from './geyser';
 export { applyFireDamage } from './fire/fireDamage';
 export { isKindled, applyKindled, clearKindled } from './fire/kindled';
 export { isValidKindlingPlacement, addKindlingPatch, runKindlingPatchStepEffects } from './fire/kindling';
@@ -59,10 +68,21 @@ export { runFaultPatchStepEffects, isValidFaultPlacement } from './earth/fault';
 export { isFortified, clearFortify, mitigateWizardDamage } from './earth/fortify';
 export { getCharge, spendAllCharge, addCharge } from './earth/charge';
 export { supportSpineToGround, roomIdAtCell } from './earth/earthquake';
+export { resetWaterState, tickWaterEffects } from './water/tick';
+export { runWetCellStepEffects, isPuddleCell, waterfallPreviewCells, splashCells, geyserColumnCells } from './water/tick';
+export {
+  soakSlowMultiplier,
+  soakSpeedMultiplier,
+  getSoak,
+  addSoak,
+  addPuddle,
+} from './water/tick';
+export { isValidGeyserPlacement } from './water/geyser';
 
 export const FIRE_HOTBAR_SPELL_IDS = ['fireball', 'immolate', 'wallOfFlame', 'kindling'] as const;
 export const AIR_HOTBAR_SPELL_IDS = ['gust', 'tornado', 'flight', 'blizzard'] as const;
 export const EARTH_HOTBAR_SPELL_IDS = ['fault', 'fortify', 'boulder', 'earthquake'] as const;
+export const WATER_HOTBAR_SPELL_IDS = ['splash', 'waterfall', 'deadweight', 'geyser'] as const;
 export const HOTBAR_SLOT_COUNT = 6;
 
 const SPELLS: SpellDef[] = [
@@ -78,6 +98,10 @@ const SPELLS: SpellDef[] = [
   fortify,
   boulder,
   earthquake,
+  splash,
+  waterfall,
+  deadweight,
+  geyser,
   wandStrike,
 ];
 
@@ -90,6 +114,7 @@ export function getSpell(id: string): SpellDef | undefined {
 export function hotbarSpellIdsForSchool(school: SpellSchool): readonly string[] {
   if (school === 'air') return AIR_HOTBAR_SPELL_IDS;
   if (school === 'earth') return EARTH_HOTBAR_SPELL_IDS;
+  if (school === 'water') return WATER_HOTBAR_SPELL_IDS;
   return FIRE_HOTBAR_SPELL_IDS;
 }
 
@@ -201,6 +226,16 @@ export function canCastSpell(state: GameState, spellId: string, target?: SpellTa
     if (target?.kind !== 'cell') return { ok: false, reason: 'no_target' };
     if (gridDistance(state, getWizardPosition(state.tower), target.cell) > spell.range) {
       return { ok: false, reason: 'out_of_range' };
+    }
+  }
+
+  if (spell.targeting === 'puddle') {
+    if (target?.kind !== 'cell') return { ok: false, reason: 'no_target' };
+    if (gridDistance(state, getWizardPosition(state.tower), target.cell) > spell.range) {
+      return { ok: false, reason: 'out_of_range' };
+    }
+    if (!isValidGeyserPlacement(state, target.cell)) {
+      return { ok: false, reason: 'invalid_placement' };
     }
   }
 

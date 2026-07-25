@@ -113,7 +113,7 @@ Same process as fire: distinct mechanics per spell, no copying Kindled, lock beh
 | **Fire** | ✅ implemented | `spell_school_fire.plan.md` |
 | **Air** | ✅ implemented | `spell_school_air.plan.md` |
 | **Earth** | ✅ implemented | `spell_school_earth.plan.md` |
-| **Water** | 📝 DRAFT (plan chat) | `spell_school_water.plan.md` |
+| **Water** | ✅ implemented | `spell_school_water.plan.md` |
 
 ---
 

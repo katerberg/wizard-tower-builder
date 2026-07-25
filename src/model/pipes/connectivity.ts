@@ -4,6 +4,7 @@ import {
   boilerHasSteamPort,
   boilerHasWaterPort,
   isBoilerRoom,
+  isHydrantRoom,
   isManaSpringRoom,
   isSteamTurretRoom,
   steamComponentKeys,
@@ -41,6 +42,13 @@ export function selectPipeConnectivityReport(state: GameState): PipeConnectivity
     }
 
     if (isManaSpringRoom(room)) {
+      if (!boilerHasWaterPort(state.tower, room.origin, room.size)) {
+        push(room.id, 'Needs water from ground pipes');
+      }
+      continue;
+    }
+
+    if (isHydrantRoom(room)) {
       if (!boilerHasWaterPort(state.tower, room.origin, room.size)) {
         push(room.id, 'Needs water from ground pipes');
       }

@@ -7,7 +7,14 @@ import { resetSteamTurretRuntime } from './steamTurrets';
 import { clearStaffAfterWave, deployStaffForWave } from './staff';
 import { reward } from '../calculations/economy';
 import { runWaveClearedEffects } from './modifications/effects';
-import { refillMana, resetAirState, resetEarthState, resetFireState, resetSpellCooldowns } from './spells';
+import {
+  refillMana,
+  resetAirState,
+  resetEarthState,
+  resetFireState,
+  resetSpellCooldowns,
+  resetWaterState,
+} from './spells';
 import { linearProgression } from './waves';
 import { buildSpawnQueue } from './waves';
 import type { GameState } from './types';
@@ -49,6 +56,7 @@ export function beginWave(state: GameState): void {
   resetFireState(state);
   resetAirState(state);
   resetEarthState(state);
+  resetWaterState(state);
   addMessage(state, `Wave ${state.levelIndex + 1} incoming: ${state.spawnQueue.length} foes.`, 'combat');
 }
 

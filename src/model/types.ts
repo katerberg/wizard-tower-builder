@@ -236,6 +236,14 @@ export interface Enemy {
   carrierLaunchTimer?: number;
   /** Last wizard macro key used for flier repath (`col,row`). */
   pathGoalKey?: string;
+  /** Water school: Soak stacks (0–100). Slow only — no inherent damage. */
+  soak?: number;
+  /** Seconds until next Soak half-life tick. */
+  soakHalfLifeTimer?: number;
+  /** Deadweight: fake Soak for speed math only. */
+  deadweightSoakBonus?: number;
+  /** waveTimer when Deadweight fake Soak ends. */
+  deadweightUntil?: number;
 }
 
 export type GameMessageKind = 'info' | 'combat' | 'economy';
@@ -311,7 +319,16 @@ export interface PendingBoulder {
   nextFallAt?: number;
 }
 
-export type SpellSchool = 'fire' | 'air' | 'earth';
+/** Water school — exterior wetness (combat, not pipe fluid). */
+export interface WetCell {
+  col: number;
+  row: number;
+  kind: 'sheet' | 'puddle';
+  /** Seconds remaining before this wetness dissipates. */
+  lifetime: number;
+}
+
+export type SpellSchool = 'fire' | 'air' | 'earth' | 'water';
 
 export type SimSpeed = 1 | 2 | 4;
 
@@ -366,6 +383,10 @@ export interface GameState {
   fortifyChargeAccum: number;
   /** Earth school — in-flight boulders. */
   pendingBoulders: PendingBoulder[];
+  /** Water school — exterior sheets and puddles. */
+  wetCells: WetCell[];
+  /** Water school — Hydrant spray cooldown per room id. */
+  hydrantSprayTimers: Record<string, number>;
   /** Dev playtest: which spell kit is on the hotbar. */
   activeSpellSchool: SpellSchool;
   /** Attack-phase boiler production state. */

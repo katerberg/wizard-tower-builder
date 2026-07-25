@@ -40,6 +40,7 @@ export const BLUEPRINT_LIBRARY_SECTION: Record<string, LibrarySectionId> = {
   turretRoom: 'damagers',
   slotRoom: 'damagers',
   steamTurretRoom: 'damagers',
+  hydrantRoom: 'damagers',
 };
 
 export function librarySectionFor(blueprintId: string): LibrarySectionId | null {
