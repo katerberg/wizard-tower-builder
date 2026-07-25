@@ -68,8 +68,8 @@ Water is the **wetness school**: Soak meters enemies (slow only), Hydrants and W
 | **Hydrant** | New room blueprint; needs adjacent **piped ground-water**; no steam, mana, or staff; sprays **sides** → sheet → puddle on flats below; dry + build alert without water |
 | **Splash** | Spell — apply / bump Soak |
 | **Waterfall** | Spell — water runs down face ≤10 cells; push enemies **down while attached**; no knock-off; no fall damage; leaves dissipating puddle |
-| **Deadweight** | Spell — damage + brief slow worsen **scale with** current Soak (no spend) |
-| **Geyser** | Spell — cast **only from puddle**; blast **up 3 cells**; damage **wet** units; **increase Soak on all** units hit |
+| **Deadweight** | Spell — damage scales with real Soak; brief **fake +Soak for speed only** (no real stack change, no spend) |
+| **Geyser** | Spell — cast **only from puddle**; blast **up 3 cells**; damage **damp+** (Soak ≥ 10); **increase Soak on all** units hit |
 | **School picker** | Dev toggle fire \| air \| earth \| **water** |
 | **Hotbar** | 4 water spells when water selected |
 | **Tests** | Water-only colocated tests |
