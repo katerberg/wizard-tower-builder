@@ -50,7 +50,7 @@ Dev mode toggles are available via intents (`toggleDevMode`, `devAddCurrency`, `
 
 ### World danger
 
-As the tower grows taller, the world gets more dangerous. Later waves introduce harder angles of attack (for example higher air-spawn bands for fliers). Exact curves and extra systems are planned separately; see [`docs/FLYING.md`](docs/FLYING.md) for the flying-enemy slice.
+As the tower grows taller, the world gets more dangerous. Today, difficulty still ramps primarily by wave index (10-wave clear = win); flier spawn bands rise with the wave — see [`docs/FLYING.md`](docs/FLYING.md). The planned replacement is **height-based** progression and a height-100 win: [`docs/HEIGHT_PROGRESSION.md`](docs/HEIGHT_PROGRESSION.md).
 
 ### Enemy movement
 
