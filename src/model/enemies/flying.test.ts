@@ -8,7 +8,7 @@ import { castSpell } from '@/model/spells/cast';
 import { getBlueprint } from '@/model/blueprints';
 import { createRoom, placeRoom } from '@/model/tower';
 import { makeTestEnemy } from '@/test/subCells';
-import { linearProgression, buildSpawnQueue } from '@/model/waves';
+import { heightProgression, buildSpawnQueue, unlockEnemiesForHeight } from '@/model/waves';
 
 describe('flier templates', () => {
   it('marks strikers, kamikazes, and carriers as canFly', () => {
@@ -27,15 +27,27 @@ describe('flier templates', () => {
 
 describe('flier wave budget', () => {
   it('keeps crawler fodder while adding a separate flier tease', () => {
-    const wave1 = linearProgression.getWave(1);
-    const ids = buildSpawnQueue(wave1);
+    const unlocked = new Set(unlockEnemiesForHeight([], 15));
+    const ids = buildSpawnQueue(
+      heightProgression.getWave({ height: 15, unlockedEnemyIds: unlocked }),
+    );
     expect(ids.some((id) => id === 'striker')).toBe(true);
-    expect(ids.filter((id) => id === 'swarm').length).toBeGreaterThan(30);
+    expect(ids.filter((id) => id === 'swarm').length).toBeGreaterThan(20);
   });
 
-  it('introduces carriers only in late waves', () => {
-    expect(buildSpawnQueue(linearProgression.getWave(3)).includes('carrier')).toBe(false);
-    expect(buildSpawnQueue(linearProgression.getWave(6)).includes('carrier')).toBe(true);
+  it('introduces carriers only at carrier unlock height', () => {
+    const early = new Set(unlockEnemiesForHeight([], 40));
+    const late = new Set(unlockEnemiesForHeight([], 70));
+    expect(
+      buildSpawnQueue(heightProgression.getWave({ height: 40, unlockedEnemyIds: early })).includes(
+        'carrier',
+      ),
+    ).toBe(false);
+    expect(
+      buildSpawnQueue(heightProgression.getWave({ height: 70, unlockedEnemyIds: late })).includes(
+        'carrier',
+      ),
+    ).toBe(true);
   });
 });
 
@@ -99,6 +111,7 @@ describe('flier spawn in wave', () => {
       );
     }
     state.phase = 'attack';
+    state.waveStartHeight = 8;
     state.spawnQueue = ['striker'];
     state.spawnTimer = 0;
     prepareWaveNames(state);

@@ -7,70 +7,267 @@ import {
   SPAWN_INTERVAL_STRIKER,
   SPAWN_INTERVAL_SWARM,
 } from '@/config/constants';
-import type { ProgressionProvider, WaveDef } from './progression';
+import type { ProgressionProvider, WaveContext, WaveDef } from './progression';
 
-export const FINAL_LEVEL_INDEX = 9; // levels 0..9 => 10 levels
+/** Clear a wave while framing height is at least this to win. */
+export const WIN_HEIGHT = 100;
 
-function crawlerBudget(levelIndex: number): {
-  swarm: number;
-  skirmisher: number;
-  elite: number;
-  brute: number;
-} {
-  const total = 40 + levelIndex * 25;
-  const elite = Math.max(1, Math.floor(levelIndex / 2) + 1);
-  const brute = levelIndex >= 7 ? Math.floor((levelIndex - 6) / 2) : 0;
-  const skirmisher = levelIndex >= 4 ? 8 + levelIndex * 4 : 0;
-  const swarm = Math.max(0, total - elite - skirmisher - brute);
-  return { swarm, skirmisher, elite, brute };
+/** Chess-like point costs for budget fill. */
+export const ENEMY_POINT_COST: Record<string, number> = {
+  swarm: 1,
+  skirmisher: 2,
+  striker: 3,
+  kamikaze: 4,
+  elite: 8,
+  carrier: 15,
+  brute: 20,
+};
+
+/** Permanent unlock thresholds (height = max occupied framing row). */
+export const UNLOCK_THRESHOLDS: readonly { height: number; ids: readonly string[] }[] = [
+  { height: 0, ids: ['swarm', 'elite'] },
+  { height: 15, ids: ['striker'] },
+  { height: 30, ids: ['kamikaze'] },
+  { height: 40, ids: ['skirmisher'] },
+  { height: 70, ids: ['carrier'] },
+  { height: 85, ids: ['brute'] },
+];
+
+/** Home height for slot/target scaling (matches unlock ladder). */
+const HOME_HEIGHT: Record<string, number> = {
+  swarm: 0,
+  elite: 0,
+  striker: 15,
+  kamikaze: 30,
+  skirmisher: 40,
+  carrier: 70,
+  brute: 85,
+};
+
+/** When unlocked but below home height — “a few,” not a full home-band army. */
+const BELOW_HOME_MAX: Record<string, number> = {
+  swarm: Number.POSITIVE_INFINITY,
+  elite: 1,
+  brute: 1,
+  carrier: 1,
+  striker: 2,
+  kamikaze: 1,
+  skirmisher: 8,
+};
+
+interface Plateau {
+  minHeight: number;
+  budget: number;
+  eliteSlots: number;
+  bruteSlots: number;
+  carrierSlots: number;
+  strikerTarget: number;
+  kamikazeTarget: number;
+  /** Fraction of remaining fodder budget spent on skirmishers when unlocked at/above home. */
+  skirmisherShare: number;
 }
 
-/** Separate from crawler fodder so fliers do not starve the climb pressure. */
-function flierBudget(levelIndex: number): {
-  striker: number;
-  kamikaze: number;
-  carrier: number;
-} {
-  // Early tease, then ramp. Placeholders — tune in playtest.
-  if (levelIndex <= 0) return { striker: 0, kamikaze: 0, carrier: 0 };
-  if (levelIndex === 1) return { striker: 2, kamikaze: 0, carrier: 0 };
-  if (levelIndex === 2) return { striker: 3, kamikaze: 0, carrier: 0 };
-  if (levelIndex === 3) return { striker: 4, kamikaze: 1, carrier: 0 };
-  if (levelIndex === 4) return { striker: 5, kamikaze: 2, carrier: 0 };
-  if (levelIndex === 5) return { striker: 6, kamikaze: 3, carrier: 0 };
-  if (levelIndex === 6) return { striker: 7, kamikaze: 3, carrier: 1 };
-  if (levelIndex === 7) return { striker: 8, kamikaze: 4, carrier: 1 };
-  if (levelIndex === 8) return { striker: 10, kamikaze: 5, carrier: 2 };
-  return { striker: 12, kamikaze: 6, carrier: 2 };
+/** Flat plateaus — no per-row seal breaks (anti-grind). */
+const PLATEAUS: readonly Plateau[] = [
+  {
+    minHeight: 0,
+    budget: 48,
+    eliteSlots: 1,
+    bruteSlots: 0,
+    carrierSlots: 0,
+    strikerTarget: 0,
+    kamikazeTarget: 0,
+    skirmisherShare: 0,
+  },
+  {
+    minHeight: 15,
+    budget: 72,
+    eliteSlots: 1,
+    bruteSlots: 0,
+    carrierSlots: 0,
+    strikerTarget: 3,
+    kamikazeTarget: 0,
+    skirmisherShare: 0,
+  },
+  {
+    minHeight: 30,
+    budget: 100,
+    eliteSlots: 2,
+    bruteSlots: 0,
+    carrierSlots: 0,
+    strikerTarget: 5,
+    kamikazeTarget: 2,
+    skirmisherShare: 0,
+  },
+  {
+    minHeight: 40,
+    budget: 140,
+    eliteSlots: 2,
+    bruteSlots: 0,
+    carrierSlots: 0,
+    strikerTarget: 6,
+    kamikazeTarget: 3,
+    skirmisherShare: 0.28,
+  },
+  {
+    minHeight: 55,
+    budget: 185,
+    eliteSlots: 4,
+    bruteSlots: 0,
+    carrierSlots: 0,
+    strikerTarget: 8,
+    kamikazeTarget: 4,
+    skirmisherShare: 0.3,
+  },
+  {
+    minHeight: 70,
+    budget: 230,
+    eliteSlots: 5,
+    bruteSlots: 0,
+    carrierSlots: 1,
+    strikerTarget: 10,
+    kamikazeTarget: 5,
+    skirmisherShare: 0.3,
+  },
+  {
+    minHeight: 85,
+    budget: 275,
+    eliteSlots: 5,
+    bruteSlots: 1,
+    carrierSlots: 2,
+    strikerTarget: 12,
+    kamikazeTarget: 6,
+    skirmisherShare: 0.32,
+  },
+  {
+    minHeight: 100,
+    budget: 320,
+    eliteSlots: 6,
+    bruteSlots: 2,
+    carrierSlots: 2,
+    strikerTarget: 14,
+    kamikazeTarget: 7,
+    skirmisherShare: 0.32,
+  },
+];
+
+export function plateauForHeight(height: number): Plateau {
+  const h = Math.max(0, Math.floor(height));
+  let chosen = PLATEAUS[0];
+  for (const p of PLATEAUS) {
+    if (h >= p.minHeight) chosen = p;
+  }
+  return chosen;
 }
 
-// Swarm-heavy escalating waves with spaced elites, late brutes, and a flier lane.
-export const linearProgression: ProgressionProvider = {
-  mode: 'linear',
+/** Merge newly crossed unlock thresholds into the run’s permanent set. */
+export function unlockEnemiesForHeight(
+  unlocked: ReadonlySet<string> | readonly string[],
+  height: number,
+): string[] {
+  const next = new Set(unlocked);
+  const h = Math.max(0, Math.floor(height));
+  for (const tier of UNLOCK_THRESHOLDS) {
+    if (h >= tier.height) {
+      for (const id of tier.ids) next.add(id);
+    }
+  }
+  return [...next].sort();
+}
 
-  getWave(levelIndex: number): WaveDef {
-    const { swarm, skirmisher, elite, brute } = crawlerBudget(levelIndex);
-    const { striker, kamikaze, carrier } = flierBudget(levelIndex);
-    const entries = [
-      { templateId: 'swarm', count: swarm },
-      { templateId: 'skirmisher', count: skirmisher },
-      { templateId: 'elite', count: elite },
-      { templateId: 'brute', count: brute },
-      { templateId: 'striker', count: striker },
-      { templateId: 'kamikaze', count: kamikaze },
-      { templateId: 'carrier', count: carrier },
-    ].filter((e) => e.count > 0);
-    return { entries };
+function isUnlocked(unlocked: ReadonlySet<string>, id: string): boolean {
+  return unlocked.has(id);
+}
+
+function maxForType(templateId: string, height: number, atHomeCap: number): number {
+  const home = HOME_HEIGHT[templateId] ?? 0;
+  if (height >= home) return atHomeCap;
+  return BELOW_HOME_MAX[templateId] ?? 1;
+}
+
+function takeCount(
+  counts: Record<string, number>,
+  templateId: string,
+  want: number,
+  budget: { remaining: number },
+): void {
+  if (want <= 0) return;
+  const cost = ENEMY_POINT_COST[templateId] ?? 1;
+  const affordable = Math.floor(budget.remaining / cost);
+  const n = Math.min(want, affordable);
+  if (n <= 0) return;
+  counts[templateId] = (counts[templateId] ?? 0) + n;
+  budget.remaining -= n * cost;
+}
+
+function composeWave(ctx: WaveContext): WaveDef {
+  const height = Math.max(0, Math.floor(ctx.height));
+  const plateau = plateauForHeight(height);
+  const unlocked = ctx.unlockedEnemyIds;
+  const budget = { remaining: plateau.budget };
+  const counts: Record<string, number> = {};
+
+  // Heavies first (slots), then specialty fliers, then skirmisher share, then swarm.
+  if (isUnlocked(unlocked, 'brute')) {
+    takeCount(counts, 'brute', maxForType('brute', height, plateau.bruteSlots), budget);
+  }
+  if (isUnlocked(unlocked, 'carrier')) {
+    takeCount(counts, 'carrier', maxForType('carrier', height, plateau.carrierSlots), budget);
+  }
+  if (isUnlocked(unlocked, 'elite')) {
+    takeCount(counts, 'elite', maxForType('elite', height, plateau.eliteSlots), budget);
+  }
+  if (isUnlocked(unlocked, 'kamikaze')) {
+    takeCount(counts, 'kamikaze', maxForType('kamikaze', height, plateau.kamikazeTarget), budget);
+  }
+  if (isUnlocked(unlocked, 'striker')) {
+    takeCount(counts, 'striker', maxForType('striker', height, plateau.strikerTarget), budget);
+  }
+  if (isUnlocked(unlocked, 'skirmisher')) {
+    const skirmisherHome = HOME_HEIGHT.skirmisher ?? 40;
+    const shareCap =
+      height >= skirmisherHome
+        ? Math.floor((budget.remaining * plateau.skirmisherShare) / (ENEMY_POINT_COST.skirmisher ?? 2))
+        : (BELOW_HOME_MAX.skirmisher ?? 8);
+    takeCount(counts, 'skirmisher', shareCap, budget);
+  }
+  if (isUnlocked(unlocked, 'swarm')) {
+    takeCount(counts, 'swarm', Number.POSITIVE_INFINITY, budget);
+  }
+
+  const entries = [
+    { templateId: 'swarm', count: counts.swarm ?? 0 },
+    { templateId: 'skirmisher', count: counts.skirmisher ?? 0 },
+    { templateId: 'elite', count: counts.elite ?? 0 },
+    { templateId: 'brute', count: counts.brute ?? 0 },
+    { templateId: 'striker', count: counts.striker ?? 0 },
+    { templateId: 'kamikaze', count: counts.kamikaze ?? 0 },
+    { templateId: 'carrier', count: counts.carrier ?? 0 },
+  ].filter((e) => e.count > 0);
+
+  return { entries };
+}
+
+/** Height-based progression: budget/slots from current height; unlocks from run set. */
+export const heightProgression: ProgressionProvider = {
+  mode: 'height',
+
+  getWave(ctx: WaveContext): WaveDef {
+    return composeWave(ctx);
   },
 
-  rewardFor(levelIndex: number): number {
-    return 8 + levelIndex * 4;
+  rewardFor(height: number): number {
+    const plateau = plateauForHeight(height);
+    return 8 + Math.floor(plateau.budget / 12);
   },
 
-  isFinalLevel(levelIndex: number): boolean {
-    return levelIndex >= FINAL_LEVEL_INDEX;
+  isVictoryHeight(height: number): boolean {
+    return Math.floor(height) >= WIN_HEIGHT;
   },
 };
+
+/** @deprecated Use heightProgression — kept as alias for older imports during transition. */
+export const linearProgression = heightProgression;
 
 /** Per-type spawn interval (seconds between dequeue). */
 export function spawnIntervalFor(templateId: string): number {

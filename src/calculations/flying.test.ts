@@ -6,7 +6,7 @@ import { createRoom, createTower, getWizardPosition, placeRoom } from '@/model/t
 import type { MovementProfile, Tower } from '@/model/types';
 import {
   faceOf,
-  flySpawnBandForLevel,
+  flySpawnBandForCrown,
   isWalkable,
   spawnAirNode,
   touchesRoomWall,
@@ -61,9 +61,11 @@ describe('flying pathfinding', () => {
 });
 
 describe('fly spawn bands', () => {
-  it('raises absolute bands with level index', () => {
-    const early = flySpawnBandForLevel(1);
-    const late = flySpawnBandForLevel(9);
-    expect(late.minRow).toBeGreaterThan(early.minRow);
+  it('tracks the tower crown height', () => {
+    const short = flySpawnBandForCrown(5);
+    const tall = flySpawnBandForCrown(80);
+    expect(tall.minRow).toBeGreaterThan(short.minRow);
+    expect(tall.maxRow).toBeGreaterThanOrEqual(80);
+    expect(short.maxRow).toBeLessThanOrEqual(8);
   });
 });

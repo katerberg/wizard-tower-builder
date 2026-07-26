@@ -237,6 +237,6 @@ function helpBody(): string {
       <li>Crawlers climb the outside of framing and rooms; fliers pass through bare framing and only rooms block them.</li>
       <li>Workers need stairs to change floors even on empty framing.</li>
       <li>Right-click sells the room first (framing stays); click again to sell framing.</li>
-      <li>Clear all 10 waves before the wizard's HP runs out.</li>
+      <li>Climb your framing toward height 100. Clear a wave while still at 100+ to win — taller towers face harder pressure, but collapse eases the next fight. Climb when ready; don't grind for a seal.</li>
     </ul>`;
 }

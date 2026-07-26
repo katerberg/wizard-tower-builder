@@ -2,7 +2,7 @@
 
 Design notes for replacing wave-index campaign length with **tower height** as the primary progress / difficulty axis.
 
-**Status:** Design locked for v1 slice — **not yet implemented**. Enemy templates and exact unlock heights will change soon; treat tables below as placeholders.
+**Status:** v1 implemented (height budgets/slots, permanent unlocks, win at clear ≥ 100, crown-relative flier bands, HUD/help). Enemy templates and exact unlock heights remain placeholders for playtest.
 
 **Related:** today’s linear 10-wave loop lives in [`src/model/waves.ts`](../src/model/waves.ts); flier altitude bands in [`docs/FLYING.md`](FLYING.md) (will retarget to crown-relative height).
 
@@ -143,14 +143,14 @@ Update FLYING.md when implementing.
 
 Enough to playtest the fantasy:
 
-- [ ] Height snapshot at Start Wave drives wave composition (budget + slots + unlock checks).
-- [ ] Permanent per-run unlock set from thresholds crossed at wave start.
-- [ ] Win on wave clear iff height ≥ 100 (post-fight).
-- [ ] HUD / help / victory copy: height goal, not “10 waves.”
-- [ ] Flier bands follow crown height.
-- [ ] Clear rewards scale with difficulty/height.
-- [ ] Plateau-shaped curve; mid-height dwell; no grind-gate systems.
-- [ ] Tests for unlock permanence, budget vs height, win/no-win when height drops mid-wave below 100.
+- [x] Height snapshot at Start Wave drives wave composition (budget + slots + unlock checks).
+- [x] Permanent per-run unlock set from thresholds crossed at wave start.
+- [x] Win on wave clear iff height ≥ 100 (post-fight).
+- [x] HUD / help / victory copy: height goal, not “10 waves.”
+- [x] Flier bands follow crown height.
+- [x] Clear rewards scale with difficulty/height.
+- [x] Plateau-shaped curve; mid-height dwell; no grind-gate systems.
+- [x] Tests for unlock permanence, budget vs height, win/no-win when height drops mid-wave below 100.
 
 ### Out of scope (this plan)
 

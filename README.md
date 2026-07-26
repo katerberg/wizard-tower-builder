@@ -11,7 +11,7 @@ The run alternates between two phases:
 1. **Build** — Spend gold to place **framing** (spires / buttresses), **rooms**, and **infra**. Framing holds the tower up; rooms and infra sit on it (and auto-add Spire Blocks when needed). Paint **stairs** and **pipes**; recruit staff into housing; allocate slot/spring headcounts. Use the **Select** tool to inspect rooms (and bare framing). Right-click sells the room first (framing stays); click again to sell framing. When the tower is stable, start the wave.
 2. **Attack** — Enemies spawn at the base and pathfind toward the wizard. Staff path on the **interior** (horizontal through framing / passable rooms; **stairs/elevators** to change floors) to slots, mana springs, and repair jobs. Defenses: wizard **Wand Strike** (auto) plus a four-spell hotbar; **Turret** / **Steam Turret** rooms; soldier **Slots**; **spikes** (modification). **Gold Mines** pay out when a wave clears; mana regenerates from staffed springs. Survive the wave to earn gold and return to build. Lose if the wizard’s HP reaches zero.
 
-Progression is linear and escalating for now (designed so branching roguelike paths can be added later).
+**Win** by clearing a wave while framing height is still **≥ 100**. Difficulty scales with tower height at Start Wave (plateaus + permanent enemy unlocks); see [`docs/HEIGHT_PROGRESSION.md`](docs/HEIGHT_PROGRESSION.md).
 
 ### Spells
 
@@ -50,13 +50,13 @@ Dev mode toggles are available via intents (`toggleDevMode`, `devAddCurrency`, `
 
 ### World danger
 
-As the tower grows taller, the world gets more dangerous. Today, difficulty still ramps primarily by wave index (10-wave clear = win); flier spawn bands rise with the wave — see [`docs/FLYING.md`](docs/FLYING.md). The planned replacement is **height-based** progression and a height-100 win: [`docs/HEIGHT_PROGRESSION.md`](docs/HEIGHT_PROGRESSION.md).
+As the tower grows taller, the world gets more dangerous. Wave composition and clear rewards scale from framing height at Start Wave; enemy types unlock permanently when you first start a wave at their threshold. Fliers spawn near the current crown — see [`docs/HEIGHT_PROGRESSION.md`](docs/HEIGHT_PROGRESSION.md) and [`docs/FLYING.md`](docs/FLYING.md).
 
 ### Enemy movement
 
 **Crawlers** path on a one-cell-thick exterior "shell" that hugs **framing and rooms**: the ground (row 0), left/right walls, ledges, and pockets beneath overhangs. Open air is never walkable for them. Most steps are orthogonal; a constrained **corner-wrap** diagonal wraps convex shell corners. The live crawler profile is `under_overhang`.
 
-**Fliers** (`docs/FLYING.md`) treat **bare framing as open air** — only **rooms** are solid. They spawn from the sides at fixed height bands (rising with wave index), A\* through air around rooms, and repath when the wizard moves. Size tiers are `small` / `medium` / `large` (larger = slower). Templates: Striker (melee), Kamikaze, Carrier (launches short-lived drones). Wall of Flame can be placed in open air to cut lanes; spikes miss fliers. Fliers never damage framing.
+**Fliers** (`docs/FLYING.md`) treat **bare framing as open air** — only **rooms** are solid. They spawn from the sides near the tower crown (height at Start Wave), A\* through air around rooms, and repath when the wizard moves. Size tiers are `small` / `medium` / `large` (larger = slower). Templates: Striker (melee), Kamikaze, Carrier (launches short-lived drones). Wall of Flame can be placed in open air to cut lanes; spikes miss fliers. Fliers never damage framing.
 
 ## Getting started
 

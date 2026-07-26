@@ -15,9 +15,9 @@ Fliers should simultaneously:
 1. **Bypass** shell defenses (spikes; wall-hugging fire unless the lane is flamed).
 2. Stay **defeatable** by existing ranged tools (turrets, slots, wand) if the tower is wide enough that air lanes pass through range.
 3. Fly **a few macro cells off** the tower so they read as air threats, not “crawlers one cell out.”
-4. Escalate with the run via **higher spawn bands** in later waves (tease early, punish late).
+4. Escalate with the run via **crown-relative spawn bands** as the tower grows (see [`HEIGHT_PROGRESSION.md`](HEIGHT_PROGRESSION.md)).
 
-**Success (v1 family):** players feel air pressure from the sides, learn to cover altitude with turrets/slots/spells, and late waves introduce carrier → kamikaze micro-management.
+**Success (v1 family):** players feel air pressure from the sides, learn to cover altitude with turrets/slots/spells, and late heights introduce carrier → kamikaze micro-management.
 
 ---
 
@@ -25,7 +25,7 @@ Fliers should simultaneously:
 
 > As the tower grows taller, the world gets more dangerous.
 
-Higher waves use higher absolute spawn bands for fliers. Exact height-danger curves (more templates, weather, etc.) are a **separate plan**; this doc only requires escalating flier spawn altitudes and a short README note.
+Flier spawn altitude tracks the **tower crown** (framing height snapshotted at Start Wave), not wave index. Composition unlocks and budgets live in [`HEIGHT_PROGRESSION.md`](HEIGHT_PROGRESSION.md).
 
 ---
 
@@ -73,18 +73,7 @@ Apply everywhere (templates, renderer radii, tests).
 
 - From **open air at the sides of the screen** (left/right alternate, same as ground spawns).
 - Aim for a spawn that supports a **direct angled line** toward the wizard; if needed, clamp to **1–3 macro cells** off the tower at the band height.
-- **Fixed absolute macro-row bands** per wave (not % of tower height). Bands rise as waves progress.
-
-Example placeholders (tune later):
-
-| Wave (0-based) | Spawn row band (macro) |
-|----------------|------------------------|
-| Early tease | e.g. 8–15 |
-| Mid | e.g. 15–30 |
-| Late | e.g. 80–90 |
-
-- If the tower/wizard is **below** the band (short tower), **still spawn in the high band** and fly down — do not clamp to wizard height.
-- Prefer not diving from above the screen unless the tower is exceptionally short; side entry at band height is the default.
+- **Crown-relative macro-row band** from Start Wave framing height (`flySpawnBandForCrown`): roughly crown−6 … crown+1 so air threats arrive near the wizard perch on tall towers and stay modest on short ones.
 
 ### Combat (melee fliers)
 
@@ -255,8 +244,8 @@ Today WoF requires same exterior **face** endpoints (`sameFaceEndpoints` in cast
 
 ## Open tuning knobs
 
-1. Exact spawn band table per `levelIndex`
-2. Tease wave index and counts
+1. Crown-relative band window width (`flySpawnBandForCrown`)
+2. Height unlock thresholds / flier counts (see HEIGHT_PROGRESSION.md)
 3. Melee flier HP / gold / strength
 4. Carrier size tier, HP, launch interval, launches-in-flight cap
 5. Carrier-kamikaze damage vs 3-cell leash feel

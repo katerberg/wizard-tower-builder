@@ -1,4 +1,5 @@
-import { FINAL_LEVEL_INDEX } from '@/model/waves';
+import { WIN_HEIGHT } from '@/model/waves';
+import { towerExtents } from '@/model/tower';
 import {
   selectBuildEconomy,
   selectBuildUndoState,
@@ -48,7 +49,7 @@ export function createHud(root: HTMLElement, store: Store): () => void {
     const snapshot = store.getSnapshot();
     const { game } = snapshot;
     const { player } = game;
-    const level = `${game.levelIndex + 1} / ${FINAL_LEVEL_INDEX + 1}`;
+    const height = towerExtents(game.tower).maxOccupiedRow;
     const enemiesLeft = game.enemies.length + game.spawnQueue.length;
 
     const inBuild = game.scene === 'run' && game.phase === 'build';
@@ -80,7 +81,7 @@ export function createHud(root: HTMLElement, store: Store): () => void {
            <button data-action="revertBuild" ${undoState.canRevert ? '' : 'disabled'}>Revert all</button>
          </div>
          ${logisticsHtml}
-         <button class="primary" data-action="startWave" ${stability.stable ? '' : 'disabled'}>Start Wave ${game.levelIndex + 1}</button>`
+         <button class="primary" data-action="startWave" ${stability.stable ? '' : 'disabled'}>Start Wave</button>`
       : '';
 
     const attackInfo =
@@ -104,7 +105,7 @@ export function createHud(root: HTMLElement, store: Store): () => void {
     root.innerHTML = `
       <h1>Wizard Tower</h1>
       <div class="stat"><span>Phase</span><strong>${labelPhase(game.scene, game.phase)}</strong></div>
-      <div class="stat"><span>Level</span><strong>${level}</strong></div>
+      <div class="stat"><span>Height</span><strong>${height} / ${WIN_HEIGHT}</strong></div>
       <div class="stat"><span>Gold</span><strong>${goldLabel}</strong></div>
       <div class="stat"><span>Wizard HP</span><strong>${player.wizard.hp} / ${player.wizard.maxHp}</strong></div>
       ${attackInfo}

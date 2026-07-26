@@ -16,7 +16,7 @@ import { tickSteamTurrets } from './steamTurrets';
 import { STARTING_BLUEPRINT_IDS } from './blueprints';
 import {
   faceOf,
-  flySpawnBandForLevel,
+  flySpawnBandForCrown,
   isWalkable,
   spawnAirNode,
   spawnNode,
@@ -66,12 +66,14 @@ export function createInitialState(seed: string | number = 'wizard'): GameState 
   const state: GameState = {
     scene: 'run',
     phase: 'build',
-    progressionMode: 'linear',
+    progressionMode: 'height',
     levelIndex: 0,
     waveIndex: 0,
     waveTimer: 0,
     spawnTimer: 0,
     spawnQueue: [],
+    waveStartHeight: 0,
+    unlockedEnemyIds: [],
     simSpeed: loadSimSpeed(),
     player: {
       currency: STARTING_CURRENCY,
@@ -189,7 +191,7 @@ export function takeEnemyName(templateId: string): string {
 function spawnEnemy(state: GameState, template: EnemyTemplate, side: 'left' | 'right'): void {
   const wizardPos = getEffectiveWizardPosition(state);
   const pos = template.movement.canFly
-    ? spawnAirNode(state.tower, side, flySpawnBandForLevel(state.levelIndex), wizardPos)
+    ? spawnAirNode(state.tower, side, flySpawnBandForCrown(state.waveStartHeight), wizardPos)
     : spawnNode(state.tower, side);
   const enemy: Enemy = {
     id: `enemy-${enemyCounter++}`,

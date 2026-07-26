@@ -4,12 +4,15 @@ import { beginRun, createInitialState, prepareWaveNames, step, takeEnemyName } f
 import { beginWave } from './phases';
 import { getBlueprint } from './blueprints';
 import { createStructure, placeStructure } from './tower';
-import { buildSpawnQueue, linearProgression } from './waves';
+import { buildSpawnQueue, heightProgression, unlockEnemiesForHeight } from './waves';
 
 describe('enemy naming', () => {
   it('draws unique names within a wave and fresh names on the next wave', () => {
     const state = createInitialState('goblin-names');
-    const wave = buildSpawnQueue(linearProgression.getWave(0));
+    const unlocked = new Set(unlockEnemiesForHeight([], 5));
+    const wave = buildSpawnQueue(
+      heightProgression.getWave({ height: 5, unlockedEnemyIds: unlocked }),
+    );
 
     state.spawnQueue = [...wave];
     prepareWaveNames(state);
