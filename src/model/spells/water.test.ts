@@ -15,12 +15,31 @@ import {
   soakSlowMultiplier,
   tickWaterEffects,
 } from '@/model/spells';
+import {
+  SHEET_FLOW_INTERVAL,
+  WATERFALL_PUDDLE_LIFETIME,
+} from '@/model/spells/water/constants';
 import { addSheet, tickWetCells, waterfallPath } from '@/model/spells/water/wetCells';
+import { tickActiveWaterfalls } from '@/model/spells/water/waterfall';
 import { hydrantSprayCells, tickHydrants } from '@/model/spells/water/hydrant';
 import { deadweightDamage } from '@/model/spells/water/deadweight';
 import { createRoom, createStructure, createTower, placeRoom, placeStructure } from '@/model/tower';
 import type { GameState } from '@/model/types';
 import { makeTestEnemy } from '@/test/subCells';
+
+/** Advance wet-cell sim by `steps` sheet-flow intervals. */
+function dripTicks(state: GameState, steps: number): void {
+  for (let i = 0; i < steps; i++) {
+    tickWetCells(state, SHEET_FLOW_INTERVAL);
+  }
+}
+
+/** Advance waterfall stream by `steps` flow intervals. */
+function waterfallTicks(state: GameState, steps: number): void {
+  for (let i = 0; i < steps; i++) {
+    tickActiveWaterfalls(state, SHEET_FLOW_INTERVAL);
+  }
+}
 
 function towerWithStem(state: GameState, height = 1): GameState {
   const stem = getBlueprint('stem')!;
@@ -68,15 +87,20 @@ describe('Soak', () => {
 });
 
 describe('Wet cells', () => {
-  it('sheets flow down and puddle on solid stop', () => {
+  it('sheets drip down over time and puddle on solid stop', () => {
     const state = towerWithStem(createInitialState('w0'), 3);
     beginWave(state);
     addSheet(state, 7, 2, 5);
-    tickWetCells(state, 0.01);
+    // Too little time — sheet stays put.
+    tickWetCells(state, SHEET_FLOW_INTERVAL * 0.25);
+    expect(state.wetCells.some((c) => c.col === 7 && c.row === 2 && c.kind === 'sheet')).toBe(true);
+
+    dripTicks(state, 1);
     expect(state.wetCells.some((c) => c.col === 7 && c.row === 1 && c.kind === 'sheet')).toBe(true);
+
     // Flow onto ground stop beside stem base → puddle
-    state.wetCells = [{ col: 7, row: 0, kind: 'sheet', lifetime: 5 }];
-    tickWetCells(state, 0.01);
+    state.wetCells = [{ col: 7, row: 0, kind: 'sheet', lifetime: 5, flowAcc: 0 }];
+    dripTicks(state, 1);
     const puddle = state.wetCells.find((c) => c.col === 7 && c.row === 0);
     expect(puddle?.kind).toBe('puddle');
   });
@@ -143,7 +167,7 @@ describe('Water spells', () => {
     expect(getSoak(a)).toBeGreaterThan(0);
   });
 
-  it('Waterfall slides enemy down and leaves puddle', () => {
+  it('Waterfall grows a continuous stream, washes enemy, pools, then fades from top', () => {
     const state = towerWithStem(createInitialState('wf0'), 5);
     beginWave(state);
     setActiveSpellSchool(state, 'water');
@@ -152,26 +176,59 @@ describe('Water spells', () => {
     state.enemies.push(enemy);
     const result = castSpell(state, 'waterfall', { kind: 'cell', cell: { col: 7, row: 3 } });
     expect(result.ok).toBe(true);
+    expect(enemy.pos.row).toBe(startRow);
+    expect(state.activeWaterfalls).toHaveLength(1);
+    // Cast paints only the top cell of the stream.
+    expect(state.wetCells.filter((c) => c.stream).map((c) => c.row)).toEqual([3]);
+
+    waterfallTicks(state, 1);
     expect(enemy.pos.row).toBeLessThan(startRow);
+    // Stream has grown downward — multiple cells wet at once.
+    const streamRows = state.wetCells.filter((c) => c.stream).map((c) => c.row);
+    expect(streamRows.length).toBeGreaterThan(1);
+    expect(Math.max(...streamRows)).toBe(3);
+
+    // Grow to bottom + one step to pool and begin fade.
+    for (let i = 0; i < 20 && state.activeWaterfalls[0]?.phase === 'growing'; i++) {
+      tickActiveWaterfalls(state, SHEET_FLOW_INTERVAL);
+    }
     expect(state.wetCells.some((c) => c.kind === 'puddle')).toBe(true);
+    const puddle = state.wetCells.find((c) => c.kind === 'puddle')!;
+    expect(puddle.lifetime).toBeGreaterThan(WATERFALL_PUDDLE_LIFETIME - SHEET_FLOW_INTERVAL);
+
+    // Fade from the top: highest stream row should drop over time.
+    tickActiveWaterfalls(state, SHEET_FLOW_INTERVAL);
+    if (state.activeWaterfalls.length > 0) {
+      const afterFade = state.wetCells.filter((c) => c.stream).map((c) => c.row);
+      if (afterFade.length > 0) {
+        expect(Math.max(...afterFade)).toBeLessThan(3);
+      }
+    }
   });
 
-  it('Deadweight scales damage and applies fake soak slow', () => {
-    const state = towerWithStem(createInitialState('dw0'));
+  it('Deadweight hits a 3×3 and scales damage with soak', () => {
+    const state = towerWithStem(createInitialState('dw0'), 2);
     beginWave(state);
     setActiveSpellSchool(state, 'water');
-    const enemy = enemyAt(0, 50);
-    addSoak(enemy, 50);
-    state.enemies.push(enemy);
-    const hpBefore = enemy.currentHp;
+    const center = enemyAt(0, 50);
+    const adjacent = enemyAt(1, 50);
+    addSoak(center, 50);
+    addSoak(adjacent, 20);
+    state.enemies.push(center, adjacent);
+    const centerHp = center.currentHp;
+    const adjHp = adjacent.currentHp;
     const result = castSpell(state, 'deadweight', { kind: 'cell', cell: { col: 7, row: 0 } });
     expect(result.ok).toBe(true);
     expect(deadweightDamage(50)).toBeGreaterThan(deadweightDamage(0));
-    expect(enemy.deadweightSoakBonus).toBeGreaterThan(0);
-    expect(getSoak(enemy)).toBe(50);
-    // Damage can dodge; when it lands, HP drops.
-    if (enemy.currentHp < hpBefore) {
-      expect(hpBefore - enemy.currentHp).toBeGreaterThan(0);
+    expect(center.deadweightSoakBonus).toBeGreaterThan(0);
+    expect(adjacent.deadweightSoakBonus).toBeGreaterThan(0);
+    expect(getSoak(center)).toBe(50);
+    // Damage can dodge; when it lands, HP drops for both in the 3×3.
+    if (center.currentHp < centerHp) {
+      expect(centerHp - center.currentHp).toBeGreaterThan(0);
+    }
+    if (adjacent.currentHp < adjHp) {
+      expect(adjHp - adjacent.currentHp).toBeGreaterThan(0);
     }
   });
 
@@ -198,13 +255,14 @@ describe('Water spells', () => {
 });
 
 describe('Waterfall slide stays attached', () => {
-  it('does not set airborne', () => {
+  it('does not set airborne while washing down', () => {
     const state = towerWithStem(createInitialState('att0'), 4);
     beginWave(state);
     setActiveSpellSchool(state, 'water');
     const enemy = enemyAt(2);
     state.enemies.push(enemy);
     castSpell(state, 'waterfall', { kind: 'cell', cell: { col: 7, row: 2 } });
+    waterfallTicks(state, 4);
     expect(enemy.airborne).toBeFalsy();
   });
 });

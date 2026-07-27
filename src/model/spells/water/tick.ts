@@ -2,8 +2,10 @@ import type { GameState } from '@/model/types';
 import { clearSoak, tickSoakDecay } from './soak';
 import { resetHydrantTimers, tickHydrants } from './hydrant';
 import { resetWetCells, tickWetCells } from './wetCells';
+import { resetActiveWaterfalls, tickActiveWaterfalls } from './waterfall';
 
 export function resetWaterState(state: GameState): void {
+  resetActiveWaterfalls(state);
   resetWetCells(state);
   resetHydrantTimers(state);
   for (const enemy of state.enemies) {
@@ -18,6 +20,7 @@ export function tickWaterEffects(state: GameState, dt: number): void {
   }
   tickHydrants(state, dt);
   tickWetCells(state, dt);
+  tickActiveWaterfalls(state, dt);
   tickSoakDecay(state, dt);
 }
 

@@ -6,7 +6,7 @@ export const waterfall: SpellDef = {
   name: 'Waterfall',
   glyph: 'W',
   description:
-    'Water runs down the face (up to 10 cells), washes climbers down while they hang on, and leaves a puddle.',
+    'Continuous stream down the face (up to 10 cells). Washes climbers down, pools at the bottom, then fades from the top.',
   manaCost: 4,
   cooldown: 4,
   targeting: 'gridPoint',

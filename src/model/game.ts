@@ -114,6 +114,7 @@ export function createInitialState(seed: string | number = 'wizard'): GameState 
     fortifyChargeAccum: 0,
     pendingBoulders: [],
     wetCells: [],
+    activeWaterfalls: [],
     hydrantSprayTimers: {},
     activeSpellSchool: 'fire',
     boilerRuntime: {},

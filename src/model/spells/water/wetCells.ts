@@ -5,6 +5,7 @@ import type { Cell, Enemy, GameState, WetCell } from '@/model/types';
 import {
   PUDDLE_LIFETIME,
   PUDDLE_SOAK_PER_SEC,
+  SHEET_FLOW_INTERVAL,
   SHEET_LIFETIME,
   SHEET_SOAK_PER_SEC,
   WET_STEP_SOAK,
@@ -49,10 +50,12 @@ export function addSheet(state: GameState, col: number, row: number, lifetime = 
       existing.lifetime = Math.max(existing.lifetime, PUDDLE_LIFETIME);
       return;
     }
+    // Don't overwrite a pinned waterfall stream with a hydrant sheet.
+    if (existing.stream) return;
     existing.lifetime = Math.max(existing.lifetime, lifetime);
     return;
   }
-  cells.push({ col, row, kind: 'sheet', lifetime });
+  cells.push({ col, row, kind: 'sheet', lifetime, flowAcc: 0 });
 }
 
 export function addPuddle(state: GameState, col: number, row: number, lifetime = PUDDLE_LIFETIME): void {
@@ -63,6 +66,8 @@ export function addPuddle(state: GameState, col: number, row: number, lifetime =
   if (existing) {
     existing.kind = 'puddle';
     existing.lifetime = Math.max(existing.lifetime, lifetime);
+    existing.flowAcc = undefined;
+    existing.stream = undefined;
     return;
   }
   cells.push({ col, row, kind: 'puddle', lifetime });
@@ -83,7 +88,6 @@ export function runWetCellStepEffects(state: GameState, enemy: Enemy): void {
 function flowSheetDown(state: GameState, sheet: WetCell): WetCell | null {
   const belowRow = sheet.row - 1;
   if (belowRow < 0 || hasStructure(state.tower, sheet.col, belowRow)) {
-    // Pool on this cell (roof / ground stop).
     return {
       col: sheet.col,
       row: sheet.row,
@@ -96,21 +100,30 @@ function flowSheetDown(state: GameState, sheet: WetCell): WetCell | null {
     row: belowRow,
     kind: 'sheet',
     lifetime: sheet.lifetime,
+    flowAcc: sheet.flowAcc,
   };
 }
 
 /**
- * Flow sheets down, dissipate lifetimes, apply standing Soak from wet cells.
- * Call once per attack tick.
+ * Flow hydrant sheets down, dissipate lifetimes, apply standing Soak.
+ * Waterfall stream cells are owned by `tickActiveWaterfalls` and passed through.
  */
 export function tickWetCells(state: GameState, dt: number): void {
   const prev = ensureWetCells(state);
+  const streams = prev.filter((c) => c.stream);
   const nextByKey = new Map<string, WetCell>();
 
   for (const cell of prev) {
+    if (cell.stream) continue;
+
     let next: WetCell | null = cell;
     if (cell.kind === 'sheet') {
-      next = flowSheetDown(state, cell);
+      let acc = (cell.flowAcc ?? 0) + dt;
+      next = { ...cell, flowAcc: acc };
+      while (next?.kind === 'sheet' && acc >= SHEET_FLOW_INTERVAL) {
+        acc -= SHEET_FLOW_INTERVAL;
+        next = flowSheetDown(state, { ...next, flowAcc: acc });
+      }
     }
     if (!next) continue;
     next = { ...next, lifetime: next.lifetime - dt };
@@ -122,17 +135,29 @@ export function tickWetCells(state: GameState, dt: number): void {
       nextByKey.set(key, next);
       continue;
     }
-    // Prefer puddle; keep longer lifetime.
     const kind = existing.kind === 'puddle' || next.kind === 'puddle' ? 'puddle' : 'sheet';
     nextByKey.set(key, {
       col: next.col,
       row: next.row,
       kind,
       lifetime: Math.max(existing.lifetime, next.lifetime),
+      flowAcc: kind === 'sheet' ? Math.max(existing.flowAcc ?? 0, next.flowAcc ?? 0) : undefined,
     });
   }
 
-  state.wetCells = [...nextByKey.values()];
+  // Prefer puddles over stream paint if both claim a cell.
+  const merged = [...nextByKey.values()];
+  for (const stream of streams) {
+    const key = wetKey(stream.col, stream.row);
+    const existing = nextByKey.get(key);
+    if (existing?.kind === 'puddle') continue;
+    if (!existing) {
+      merged.push(stream);
+      nextByKey.set(key, stream);
+    }
+  }
+
+  state.wetCells = merged;
 
   for (const enemy of state.enemies) {
     if (enemy.currentHp <= 0) continue;

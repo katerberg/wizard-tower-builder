@@ -326,6 +326,26 @@ export interface WetCell {
   kind: 'sheet' | 'puddle';
   /** Seconds remaining before this wetness dissipates. */
   lifetime: number;
+  /** Accumulator toward the next sheet flow step (sheets only). */
+  flowAcc?: number;
+  /**
+   * Pinned waterfall stream cell — owned by `ActiveWaterfall`, not hydrant flow.
+   * Skipped by wet-cell drip / evaporation.
+   */
+  stream?: boolean;
+}
+
+/** Water school — cascading waterfall column (grows down, then fades from top). */
+export interface ActiveWaterfall {
+  col: number;
+  /** Macro rows from cast start down to stop (high → low). */
+  rows: number[];
+  /** Inclusive index of the lowest wet cell. */
+  front: number;
+  /** Inclusive index of the highest still-wet cell (rises while fading). */
+  top: number;
+  phase: 'growing' | 'fading';
+  flowAcc: number;
 }
 
 export type SpellSchool = 'fire' | 'air' | 'earth' | 'water';
@@ -398,6 +418,8 @@ export interface GameState {
   pendingBoulders: PendingBoulder[];
   /** Water school — exterior sheets and puddles. */
   wetCells: WetCell[];
+  /** Water school — active cascading waterfall streams. */
+  activeWaterfalls: ActiveWaterfall[];
   /** Water school — Hydrant spray cooldown per room id. */
   hydrantSprayTimers: Record<string, number>;
   /** Dev playtest: which spell kit is on the hotbar. */
