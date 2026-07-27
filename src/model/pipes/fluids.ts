@@ -254,12 +254,17 @@ export function adjacentSteamPipeKeys(
 }
 
 function isFluidPortRoom(room: { blueprintId: string }): boolean {
-  return isBoilerRoom(room) || isManaSpringRoom(room) || isSteamTurretRoom(room);
+  return (
+    isBoilerRoom(room) ||
+    isManaSpringRoom(room) ||
+    isSteamTurretRoom(room) ||
+    isHydrantRoom(room)
+  );
 }
 
 /**
  * Orthogonal joints for pipe drawing: other pipes, fluid-port rooms
- * (boiler / mana spring / steam turret), and ground under row-0 pipes.
+ * (boiler / mana spring / steam turret / hydrant), and ground under row-0 pipes.
  */
 export function pipeVisualLinks(
   tower: Tower,

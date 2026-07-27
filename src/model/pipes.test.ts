@@ -119,6 +119,16 @@ describe('pipeVisualLinks', () => {
     expect(ground.north).toBe(true);
     expect(pipeVisualLinks(tower, 4, 1).east).toBe(true);
   });
+
+  it('links toward an adjacent hydrant', () => {
+    let tower = createTower();
+    tower = placeRoom(tower, createRoom('g5', getBlueprint('stem')!, { col: 5, row: 0 }));
+    tower = placeRoom(tower, createRoom('w5', getBlueprint('stem')!, { col: 5, row: 1 }));
+    tower = placeRoom(tower, createRoom('hy', getBlueprint('hydrantRoom')!, { col: 4, row: 1 }));
+    tower = placeInfra(tower, { col: 5, row: 0 }, 'pipe');
+    tower = placeInfra(tower, { col: 5, row: 1 }, 'pipe');
+    expect(pipeVisualLinks(tower, 5, 1).west).toBe(true);
+  });
 });
 
 describe('previewPipeFluidAt', () => {

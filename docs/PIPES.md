@@ -103,7 +103,7 @@ If placing a pipe would **4-connect** water and steam neighborhoods:
 Pipes draw through the **cell center** to **edge midpoints** toward each orthogonal joint:
 
 - Neighbor **pipe** cells
-- Adjacent **fluid-port rooms** (boiler, mana spring, steam turret)
+- Adjacent **fluid-port rooms** (boiler, mana spring, steam turret, hydrant)
 - **Ground** stub on row-0 pipes (south into the ground line)
 
 That yields continuous L / T / + shapes instead of a side riser.
