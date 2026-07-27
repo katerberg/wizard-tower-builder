@@ -27,8 +27,17 @@ const pointer: PointerTracker = { x: 0, y: 0 };
 const renderer = new Renderer(canvas);
 attachInput(canvas, stage, store, pointer);
 
+function stageContentHeight(): number {
+  const style = getComputedStyle(stage);
+  const paddingY = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
+  return Math.max(0, stage.clientHeight - paddingY);
+}
+
 function syncViewportHeight(): void {
-  store.dispatch({ type: 'setViewportHeight', height: snapViewportHeight(stage.clientHeight) });
+  store.dispatch({
+    type: 'setViewportHeight',
+    height: snapViewportHeight(stageContentHeight()),
+  });
 }
 
 syncViewportHeight();

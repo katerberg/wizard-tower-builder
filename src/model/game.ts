@@ -16,7 +16,7 @@ import { tickSteamTurrets } from './steamTurrets';
 import { STARTING_BLUEPRINT_IDS } from './blueprints';
 import {
   faceOf,
-  flySpawnBandForLevel,
+  flySpawnBandForCrown,
   isWalkable,
   spawnAirNode,
   spawnNode,
@@ -73,12 +73,14 @@ export function createInitialState(seed: string | number = 'wizard'): GameState 
   const state: GameState = {
     scene: 'run',
     phase: 'build',
-    progressionMode: 'linear',
+    progressionMode: 'height',
     levelIndex: 0,
     waveIndex: 0,
     waveTimer: 0,
     spawnTimer: 0,
     spawnQueue: [],
+    waveStartHeight: 0,
+    unlockedEnemyIds: [],
     simSpeed: loadSimSpeed(),
     player: {
       currency: STARTING_CURRENCY,
@@ -127,9 +129,11 @@ export function createInitialState(seed: string | number = 'wizard'): GameState 
 function loadSimSpeed(): SimSpeed {
   if (typeof localStorage === 'undefined') return DEFAULT_SIM_SPEED;
   const raw = localStorage.getItem('wizard-tower-sim-speed');
-  if (raw === '2') return 2;
-  if (raw === '4') return 4;
-  return 1;
+  const parsed = Number(raw);
+  if (parsed === 2 || parsed === 5 || parsed === 10) return parsed;
+  // Migrate legacy 4× preference to the nearest current rung.
+  if (parsed === 4) return 5;
+  return DEFAULT_SIM_SPEED;
 }
 
 export function persistSimSpeed(speed: SimSpeed): void {
@@ -198,7 +202,7 @@ export function takeEnemyName(templateId: string): string {
 function spawnEnemy(state: GameState, template: EnemyTemplate, side: 'left' | 'right'): void {
   const wizardPos = getEffectiveWizardPosition(state);
   const pos = template.movement.canFly
-    ? spawnAirNode(state.tower, side, flySpawnBandForLevel(state.levelIndex), wizardPos)
+    ? spawnAirNode(state.tower, side, flySpawnBandForCrown(state.waveStartHeight), wizardPos)
     : spawnNode(state.tower, side);
   const enemy: Enemy = {
     id: `enemy-${enemyCounter++}`,

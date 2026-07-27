@@ -294,11 +294,26 @@ export function standoffMacroFromTower(tower: Tower, subCol: number, subRow: num
   return best === Infinity ? FLY_STANDOFF_MAX : best;
 }
 
-/** Placeholder wave → absolute macro-row spawn band (rises with level). */
+/**
+ * Flier spawn band relative to the tower crown (framing `maxOccupiedRow` at Start Wave).
+ * Short towers spawn air threats nearby; tall towers draw them near the wizard perch.
+ */
+export function flySpawnBandForCrown(crownRow: number): FlySpawnBand {
+  const crown = Math.max(0, Math.floor(crownRow));
+  const maxRow = crown + 1;
+  const minRow = Math.max(0, crown - 6);
+  if (maxRow <= minRow) {
+    return { minRow: crown, maxRow: crown + 2 };
+  }
+  return { minRow, maxRow };
+}
+
+/** @deprecated Use flySpawnBandForCrown — wave-index bands replaced by height progression. */
 export function flySpawnBandForLevel(levelIndex: number): FlySpawnBand {
-  if (levelIndex <= 1) return { minRow: 6, maxRow: 12 };
-  if (levelIndex <= 3) return { minRow: 10, maxRow: 18 };
-  if (levelIndex <= 5) return { minRow: 18, maxRow: 30 };
-  if (levelIndex <= 7) return { minRow: 40, maxRow: 55 };
-  return { minRow: 70, maxRow: 90 };
+  // Legacy mapping kept for any stray callers/tests; prefer crown-relative bands.
+  if (levelIndex <= 1) return flySpawnBandForCrown(10);
+  if (levelIndex <= 3) return flySpawnBandForCrown(16);
+  if (levelIndex <= 5) return flySpawnBandForCrown(26);
+  if (levelIndex <= 7) return flySpawnBandForCrown(50);
+  return flySpawnBandForCrown(85);
 }

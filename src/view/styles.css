@@ -47,38 +47,26 @@ body {
   min-height: 0;
 }
 
-#stage-stack {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  max-height: 100%;
-}
-
 #board {
   background: var(--bg);
   border: 1px solid var(--panel-2);
   flex-shrink: 0;
+  display: block;
 }
 
 #speed-bar {
-  width: 100%;
-  max-width: 768px;
+  margin-top: auto;
+  flex-shrink: 0;
 }
 
 .speed-bar-inner {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 8px 12px;
-  background: var(--panel);
-  border: 1px solid var(--panel-2);
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--panel-2);
+  border: 1px solid #2d3748;
   border-radius: 6px;
-}
-
-.speed-bar-inner.dimmed {
-  opacity: 0.45;
 }
 
 .speed-label {
@@ -88,17 +76,25 @@ body {
   color: var(--muted);
 }
 
+.speed-hint {
+  margin: 0;
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
 .speed-buttons {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 4px;
 }
 
 .speed-btn {
-  padding: 6px 14px;
+  padding: 6px 8px;
   font-size: 13px;
-  border: 1px solid var(--panel-2);
+  border: 1px solid #2d3748;
   border-radius: 4px;
-  background: var(--panel-2);
+  background: var(--panel);
   color: var(--text);
   cursor: pointer;
 }
@@ -107,10 +103,6 @@ body {
   background: var(--accent);
   border-color: var(--accent-bright);
   color: #fff;
-}
-
-.speed-btn:disabled {
-  cursor: default;
 }
 
 h1 {

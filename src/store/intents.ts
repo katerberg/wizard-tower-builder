@@ -1,4 +1,4 @@
-import type { Cell } from '@/model/types';
+import type { Cell, SimSpeed } from '@/model/types';
 
 export type TowerLayer = 'rooms' | 'infra' | 'workers';
 
@@ -33,7 +33,7 @@ export type Intent =
   | { type: 'selectSpell'; spellId: string | null }
   | { type: 'castSpellAt'; spellId: string; cell: Cell }
   | { type: 'cancelCast' }
-  | { type: 'setSimSpeed'; speed: 1 | 2 | 4 };
+  | { type: 'setSimSpeed'; speed: SimSpeed };
 
 export type ModalData =
   | { kind: 'room'; roomId: string }

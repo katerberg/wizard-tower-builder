@@ -6,8 +6,8 @@ export const SUB_GRID_COLS = 16 * SUB_CELLS_PER_MACRO;
 
 export const FIXED_DT = 1 / 60;
 export const MAX_FRAME_TIME = 0.25;
-/** Attack-phase sim steps per frame (supports sim speed up to 4×). */
-export const MAX_STEPS_PER_FRAME = 4;
+/** Attack-phase sim steps per frame (supports sim speed up to 10× at 60fps). */
+export const MAX_STEPS_PER_FRAME = 10;
 
 export const GRID_COLS = 16;
 /** Minimum visible rows when the stage is very short (does not cap tower height). */

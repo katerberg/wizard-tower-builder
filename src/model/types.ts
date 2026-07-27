@@ -259,7 +259,7 @@ export interface Player {
   maxMana: number;
 }
 
-export type ProgressionMode = 'linear' | 'branching';
+export type ProgressionMode = 'height' | 'branching';
 
 export type Phase = 'build' | 'attack';
 
@@ -330,17 +330,30 @@ export interface WetCell {
 
 export type SpellSchool = 'fire' | 'air' | 'earth' | 'water';
 
-export type SimSpeed = 1 | 2 | 4;
+export const SIM_SPEEDS = [1, 2, 5, 10] as const;
+export type SimSpeed = (typeof SIM_SPEEDS)[number];
+
+export function isSimSpeed(value: number): value is SimSpeed {
+  return (SIM_SPEEDS as readonly number[]).includes(value);
+}
 
 export interface GameState {
   scene: Scene;
   phase: Phase;
   progressionMode: ProgressionMode;
+  /** Wave counter within the run (not the win condition). */
   levelIndex: number;
   waveIndex: number;
   waveTimer: number;
   spawnTimer: number;
   spawnQueue: string[];
+  /**
+   * Framing height (`maxOccupiedRow`) snapshotted at Start Wave.
+   * Locks difficulty / flier bands for the attack; win checks live height at clear.
+   */
+  waveStartHeight: number;
+  /** Enemy template ids permanently unlocked this run (thresholds crossed at wave start). */
+  unlockedEnemyIds: string[];
   /** Simulation speed multiplier during attack (1 = normal). */
   simSpeed: SimSpeed;
   player: Player;

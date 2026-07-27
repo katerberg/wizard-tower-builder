@@ -15,8 +15,9 @@ import {
   resetSpellCooldowns,
   resetWaterState,
 } from './spells';
-import { linearProgression } from './waves';
+import { heightProgression, unlockEnemiesForHeight, WIN_HEIGHT } from './waves';
 import { buildSpawnQueue } from './waves';
+import { towerExtents } from './tower';
 import type { GameState } from './types';
 
 export function captureBuildBaseline(state: GameState): void {
@@ -34,11 +35,26 @@ export function startRun(state: GameState): void {
   state.scene = 'run';
   state.phase = 'build';
   captureBuildBaseline(state);
-  addMessage(state, 'A starter tower frame is in place — reinforce it before wave 1.', 'info');
+  addMessage(
+    state,
+    `A starter tower frame is in place — climb toward height ${WIN_HEIGHT}.`,
+    'info',
+  );
+}
+
+export function framingHeight(state: GameState): number {
+  return towerExtents(state.tower).maxOccupiedRow;
 }
 
 export function beginWave(state: GameState): void {
-  const wave = linearProgression.getWave(state.levelIndex);
+  const height = framingHeight(state);
+  state.waveStartHeight = height;
+  state.unlockedEnemyIds = unlockEnemiesForHeight(state.unlockedEnemyIds, height);
+
+  const wave = heightProgression.getWave({
+    height,
+    unlockedEnemyIds: new Set(state.unlockedEnemyIds),
+  });
   state.phase = 'attack';
   state.enemies = [];
   state.spawnQueue = buildSpawnQueue(wave);
@@ -57,17 +73,23 @@ export function beginWave(state: GameState): void {
   resetAirState(state);
   resetEarthState(state);
   resetWaterState(state);
-  addMessage(state, `Wave ${state.levelIndex + 1} incoming: ${state.spawnQueue.length} foes.`, 'combat');
+  addMessage(
+    state,
+    `Wave ${state.levelIndex + 1} at height ${height}: ${state.spawnQueue.length} foes.`,
+    'combat',
+  );
 }
 
 export function endWave(state: GameState): void {
-  const amount = linearProgression.rewardFor(state.levelIndex);
+  const rewardHeight = state.waveStartHeight;
+  const amount = heightProgression.rewardFor(rewardHeight);
   reward(state, amount);
   addMessage(state, `Wave ${state.levelIndex + 1} cleared! +${amount} gold.`, 'economy');
   runWaveClearedEffects(state);
   resetEarthState(state);
 
-  if (linearProgression.isFinalLevel(state.levelIndex)) {
+  const endHeight = framingHeight(state);
+  if (heightProgression.isVictoryHeight(endHeight)) {
     winGame(state);
     return;
   }
@@ -80,7 +102,7 @@ export function endWave(state: GameState): void {
   state.boilerRuntime = {};
   state.steamTurretRuntime = {};
   captureBuildBaseline(state);
-  addMessage(state, `Reinforce the tower for wave ${state.levelIndex + 1}.`, 'info');
+  addMessage(state, `Height ${endHeight} / ${WIN_HEIGHT} — climb when ready.`, 'info');
 }
 
 export function loseGame(state: GameState): void {
@@ -90,5 +112,9 @@ export function loseGame(state: GameState): void {
 
 export function winGame(state: GameState): void {
   state.scene = 'victory';
-  addMessage(state, 'All waves repelled. The tower stands triumphant!', 'info');
+  addMessage(
+    state,
+    `The spire holds at height ${framingHeight(state)}! The tower stands triumphant!`,
+    'info',
+  );
 }
