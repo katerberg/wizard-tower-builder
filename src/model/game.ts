@@ -42,11 +42,14 @@ import {
   runAutoSpells,
   runFaultPatchStepEffects,
   runKindlingPatchStepEffects,
+  runWetCellStepEffects,
   shouldStubDiscombobulatedStep,
+  soakSlowMultiplier,
   tickAirEffects,
   tickEarthEffects,
   tickFireEffects,
   tickSpellCooldowns,
+  tickWaterEffects,
 } from './spells';
 import { endWave, loseGame, startRun, captureBuildBaseline } from './phases';
 import { seedFrom, shuffle } from '../calculations/rng';
@@ -59,6 +62,10 @@ let enemyCounter = 0;
 let waveNamePools: Record<string, string[]> = {};
 
 const DEFAULT_SIM_SPEED: SimSpeed = 1;
+
+function moveSlowMultiplier(state: GameState, enemy: Enemy): number {
+  return blizzardSlowMultiplier(state, enemy) * soakSlowMultiplier(state, enemy);
+}
 
 export function createInitialState(seed: string | number = 'wizard'): GameState {
   enemyCounter = 0;
@@ -106,6 +113,9 @@ export function createInitialState(seed: string | number = 'wizard'): GameState 
     fortified: false,
     fortifyChargeAccum: 0,
     pendingBoulders: [],
+    wetCells: [],
+    activeWaterfalls: [],
+    hydrantSprayTimers: {},
     activeSpellSchool: 'fire',
     boilerRuntime: {},
     steamTurretRuntime: {},
@@ -346,7 +356,7 @@ export function step(state: GameState, dt: number): void {
           enemy.pos = stepTo;
           trackMacroMovement(enemy);
         }
-        enemy.moveCooldown = (1 / template.speed) * blizzardSlowMultiplier(state, enemy);
+        enemy.moveCooldown = (1 / template.speed) * moveSlowMultiplier(state, enemy);
       }
       continue;
     }
@@ -360,19 +370,20 @@ export function step(state: GameState, dt: number): void {
         continue;
       }
       if (shouldStubDiscombobulatedStep(state.tower, enemy, nextPos)) {
-        enemy.moveCooldown = (1 / template.speed) * blizzardSlowMultiplier(state, enemy);
+        enemy.moveCooldown = (1 / template.speed) * moveSlowMultiplier(state, enemy);
         continue;
       }
       enemy.pathIndex += 1;
       enemy.pos = nextPos;
       trackMacroMovement(enemy);
-      enemy.moveCooldown = (1 / template.speed) * blizzardSlowMultiplier(state, enemy);
+      enemy.moveCooldown = (1 / template.speed) * moveSlowMultiplier(state, enemy);
       if (!template.movement.canFly) {
         runEnemyStepEffects(state, enemy);
         onEnemyWallStep(state, enemy);
       }
       runKindlingPatchStepEffects(state, enemy);
       runFaultPatchStepEffects(state, enemy);
+      runWetCellStepEffects(state, enemy);
     }
   }
 
@@ -387,6 +398,7 @@ export function step(state: GameState, dt: number): void {
   tickFireEffects(state, dt, (spellName) => buildSpellContext(state, spellName));
   tickAirEffects(state, dt, (spellName) => buildSpellContext(state, spellName));
   tickEarthEffects(state, dt, (spellName) => buildSpellContext(state, spellName));
+  tickWaterEffects(state, dt);
 
   // Elevator cars, then staff movement and laborer repairs during attack.
   stepElevators(state, dt);

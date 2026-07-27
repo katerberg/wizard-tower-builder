@@ -73,6 +73,7 @@ export class Renderer {
     this.drawFireEffects(snapshot, scrollY, viewportHeight);
     this.drawAirEffects(snapshot, scrollY, viewportHeight);
     this.drawEarthEffects(snapshot, scrollY, viewportHeight);
+    this.drawWaterEffects(snapshot, scrollY, viewportHeight);
     if (snapshot.game.devMode) this.drawPaths(snapshot, scrollY, viewportHeight);
     const wizardPos = selectWizardPosition(snapshot);
     this.drawEnemies(snapshot, wizardPos, scrollY, viewportHeight, 'climbers');
@@ -681,6 +682,33 @@ export class Renderer {
           const { x, y } = cellTopLeft(cell.col, row, scrollY, viewportHeight);
           ctx.fillRect(x + 2, y + 2, CELL_SIZE - 4, CELL_SIZE - 4);
         }
+      }
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  private drawWaterEffects(snapshot: Snapshot, scrollY: number, viewportHeight: number): void {
+    const { game } = snapshot;
+    const { ctx } = this;
+
+    for (const wet of game.wetCells ?? []) {
+      const { x, y } = cellTopLeft(wet.col, wet.row, scrollY, viewportHeight);
+      ctx.globalAlpha = wet.kind === 'puddle' ? 0.7 : 0.45;
+      ctx.fillStyle = wet.kind === 'puddle' ? colors.wetPuddle : colors.wetSheet;
+      if (wet.kind === 'puddle') {
+        ctx.beginPath();
+        ctx.ellipse(
+          x + CELL_SIZE / 2,
+          y + CELL_SIZE * 0.7,
+          CELL_SIZE * 0.4,
+          CELL_SIZE * 0.18,
+          0,
+          0,
+          Math.PI * 2,
+        );
+        ctx.fill();
+      } else {
+        ctx.fillRect(x + CELL_SIZE * 0.35, y, CELL_SIZE * 0.3, CELL_SIZE);
       }
       ctx.globalAlpha = 1;
     }

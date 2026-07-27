@@ -15,7 +15,7 @@ The run alternates between two phases:
 
 ### Spells
 
-Mana powers the wizard’s hotbar (keys **1–4** to select, click to aim/cast during attack). Three elemental schools ship today — **fire**, **air**, and **earth** — swapped via the HUD school picker in **dev mode**. Wand Strike is always on and not part of any school kit. Water school, spell shop / grimoire unlocks, and Mana Well rooms remain deferred. School design notes live under `.cursor/plans/spell_school_*.plan.md`.
+Mana powers the wizard’s hotbar (keys **1–4** to select, click to aim/cast during attack). Four elemental schools ship today — **fire**, **air**, **earth**, and **water** — swapped via the HUD school picker in **dev mode**. Wand Strike is always on and not part of any school kit. Spell shop / grimoire unlocks and Mana Well rooms remain deferred. School design notes live under `.cursor/plans/spell_school_*.plan.md`.
 
 ### Tower placement rules
 
@@ -182,7 +182,7 @@ Mount points: `#board`, `#stage`, `#hud`, `#library`, `#message-log`, `#modal-ro
 | **Modification** | Leveled add-on on a room (spikes, housing/slot/boiler expansions, …) |
 | **Infra layer** | Per-cell overlay (`stair`, `pipe`, or `elevator`) on the same grid as rooms; one kind per cell |
 | **Staff** | Mobile units (soldier / mage / laborer) recruited into housing; route to workplaces during attack |
-| **Spell / school** | Hotbar ability spending mana; fire · air · earth kits today (water deferred) |
+| **Spell / school** | Hotbar ability spending mana; fire · air · earth · water kits |
 | **Layer** | Visibility/edit plane: `rooms`, `infra`, or `workers` (Maps-style toggles) |
 | **Phase** | `build` or `attack` within a run |
 | **Scene** | `menu`, `run`, `gameOver`, `victory` |
@@ -260,7 +260,7 @@ flowchart TB
 | **Pathfinding** | Interior/infra graph for staff; exterior graph for enemies (unchanged) |
 | **Logistics** | Warn-only before wave; hover/click shows broken routes |
 
-**Implementation status:** Housing + staff workplaces shipped (see [`docs/HOUSING.md`](docs/HOUSING.md)). Pipes/boilers/springs shipped ([`docs/PIPES.md`](docs/PIPES.md)). Fire · air · earth spell schools shipped. Elevators shipped. Mid-wave pipe breaks remain deferred.
+**Implementation status:** Housing + staff workplaces shipped (see [`docs/HOUSING.md`](docs/HOUSING.md)). Pipes/boilers/springs shipped ([`docs/PIPES.md`](docs/PIPES.md)). Fire · air · earth · water spell schools shipped. Elevators shipped. Mid-wave pipe breaks remain deferred.
 
 ## Deferred / not in v1
 
@@ -276,7 +276,7 @@ Still not done:
 - Research rooms; Mana Well / spell shop / grimoire unlocks
 - Movement-controlling structures (e.g. moats, parapets, cornices)
 - Structures such as crenels / murderholes beyond existing turrets
-- Water school and further spell kits
+- Further non-elemental spell kits / spell shop
 - Additional turret / economy room types beyond Gold Mine, Boiler, Mana Spring, Turret, and Steam Turret
 - Infra/mod repair and mid-wave building (laborers repair room HP only today)
 

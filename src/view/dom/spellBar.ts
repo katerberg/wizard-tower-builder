@@ -71,10 +71,13 @@ export function createSpellBar(root: HTMLElement, store: Store): () => void {
     const { current, max, label } = selectMana(snapshot);
     const slots = selectSpellBar(snapshot);
     const earth = game.activeSpellSchool === 'earth' ? selectEarthCharge(snapshot) : null;
+    const water = game.activeSpellSchool === 'water';
     const hint = inAttack
       ? earth
         ? 'Earth: Fault feeds Charge · Fortify to concentrate · Esc cancels Fortify'
-        : 'Press 1–6 or click a slot · click grid to cast · Esc cancels · Wand Strike auto-fires'
+        : water
+          ? 'Water: Hydrant/Splash soak · Waterfall slides down · Deadweight & Geyser from puddles'
+          : 'Press 1–6 or click a slot · click grid to cast · Esc cancels · Wand Strike auto-fires'
       : 'Mana refills each wave · spells activate during attack';
 
     const chargeBar = earth

@@ -236,6 +236,14 @@ export interface Enemy {
   carrierLaunchTimer?: number;
   /** Last wizard macro key used for flier repath (`col,row`). */
   pathGoalKey?: string;
+  /** Water school: Soak stacks (0–100). Slow only — no inherent damage. */
+  soak?: number;
+  /** Seconds until next Soak half-life tick. */
+  soakHalfLifeTimer?: number;
+  /** Deadweight: fake Soak for speed math only. */
+  deadweightSoakBonus?: number;
+  /** waveTimer when Deadweight fake Soak ends. */
+  deadweightUntil?: number;
 }
 
 export type GameMessageKind = 'info' | 'combat' | 'economy';
@@ -311,7 +319,36 @@ export interface PendingBoulder {
   nextFallAt?: number;
 }
 
-export type SpellSchool = 'fire' | 'air' | 'earth';
+/** Water school — exterior wetness (combat, not pipe fluid). */
+export interface WetCell {
+  col: number;
+  row: number;
+  kind: 'sheet' | 'puddle';
+  /** Seconds remaining before this wetness dissipates. */
+  lifetime: number;
+  /** Accumulator toward the next sheet flow step (sheets only). */
+  flowAcc?: number;
+  /**
+   * Pinned waterfall stream cell — owned by `ActiveWaterfall`, not hydrant flow.
+   * Skipped by wet-cell drip / evaporation.
+   */
+  stream?: boolean;
+}
+
+/** Water school — cascading waterfall column (grows down, then fades from top). */
+export interface ActiveWaterfall {
+  col: number;
+  /** Macro rows from cast start down to stop (high → low). */
+  rows: number[];
+  /** Inclusive index of the lowest wet cell. */
+  front: number;
+  /** Inclusive index of the highest still-wet cell (rises while fading). */
+  top: number;
+  phase: 'growing' | 'fading';
+  flowAcc: number;
+}
+
+export type SpellSchool = 'fire' | 'air' | 'earth' | 'water';
 
 export const SIM_SPEEDS = [1, 2, 5, 10] as const;
 export type SimSpeed = (typeof SIM_SPEEDS)[number];
@@ -379,6 +416,12 @@ export interface GameState {
   fortifyChargeAccum: number;
   /** Earth school — in-flight boulders. */
   pendingBoulders: PendingBoulder[];
+  /** Water school — exterior sheets and puddles. */
+  wetCells: WetCell[];
+  /** Water school — active cascading waterfall streams. */
+  activeWaterfalls: ActiveWaterfall[];
+  /** Water school — Hydrant spray cooldown per room id. */
+  hydrantSprayTimers: Record<string, number>;
   /** Dev playtest: which spell kit is on the hotbar. */
   activeSpellSchool: SpellSchool;
   /** Attack-phase boiler production state. */

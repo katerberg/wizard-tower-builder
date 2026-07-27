@@ -152,6 +152,19 @@ export const ROOM_BLUEPRINTS: Blueprint[] = [
     description:
       '2×2 spring. Needs ground-water pipe access and stationed magi. Regenerates mana during attack.',
   },
+  {
+    id: 'hydrantRoom',
+    name: 'Hydrant',
+    glyph: 'Y',
+    color: '#2b6cb0',
+    size: { w: 1, h: 1 },
+    cost: 12,
+    baseHp: 18,
+    category: 'room',
+    passable: false,
+    description:
+      'Sprays water on its sides during attack. Needs a ground-water pipe. Sheets flow down and puddle on flats — soaks climbers.',
+  },
 ];
 
 export const BLUEPRINTS: Blueprint[] = [...STRUCTURE_BLUEPRINTS, ...ROOM_BLUEPRINTS];

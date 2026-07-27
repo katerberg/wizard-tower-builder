@@ -3,6 +3,7 @@ export {
   isBoilerRoom,
   isSteamTurretRoom,
   isManaSpringRoom,
+  isHydrantRoom,
   isBoilerFootprintCell,
   selectPipeFluids,
   resolvePipeFluids,

@@ -1,10 +1,10 @@
 ---
-name: Water School — Soak, Hydrant, Four Spells (DRAFT)
-overview: DRAFT water school — Soak (stacked slow, no inherent damage), Hydrant room (piped water), Splash / Waterfall / Deadweight / Geyser. Distinct from fire combo, air displacement, earth Charge. Not ready to implement until Status is LOCKED.
+name: Water School — Soak, Hydrant, Four Spells (LOCKED)
+overview: LOCKED water school — Soak (stacked slow, no inherent damage), Hydrant room (piped water), Splash / Waterfall / Deadweight / Geyser. Distinct from fire combo, air displacement, earth Charge. Ready to implement.
 todos:
   - id: soak-system
     content: Soak 0–100 on enemy; half-life decay; speed curve with floor (no hard root)
-    status: pending
+    status: in_progress
   - id: wet-cells
     content: Exterior wet cells — flow down walls, short wall life, puddles on flats
     status: pending
@@ -21,7 +21,7 @@ todos:
     content: Deadweight — scale-with Soak damage + brief slow worsen
     status: pending
   - id: geyser
-    content: Geyser — cast from puddle; blast up 3; damage wet; soak all hit
+    content: Geyser — cast from puddle; blast up 3; damage damp+; soak all hit
     status: pending
   - id: school-picker
     content: Extend SpellSchool + hotbar + dev picker fire | air | earth | water
@@ -35,9 +35,9 @@ todos:
 isProject: false
 ---
 
-# Water School — Soak, Hydrant, Four Spells (DRAFT)
+# Water School — Soak, Hydrant, Four Spells (LOCKED)
 
-**Status:** Behavior **mostly settled** from planning chat. A few edges below still open — **do not implement** until this file says **LOCKED**.
+**Status:** Behavior **LOCKED** from planning chat. Mana, CD, soak rates, damage formulas → **playtest tuning**.
 
 **Prerequisite:** Fire, air, and earth on `main`.
 
@@ -244,16 +244,16 @@ Water: _wet → hold → deadweight / geyser from puddles; waterfall resets heig
 
 ---
 
-## Open edges (resolve before LOCKED)
+## Locked edges (W4–W7)
 
-| ID | Question | Lean |
-| -- | -------- | ---- |
-| W4 | Does knock-off / fly clear Soak? | Clear on full detach (air synergy later); optional |
-| W5 | Hydrant footprint / which faces count as “sides”? | Ortho exterior faces of the room |
-| W6 | Waterfall targeting UX — click start cell on face, water runs down from there? | Yes |
-| W7 | Can Geyser hit the wizard (FF)? | Follow fire/air zone precedent — decide at lock; lean yes if wizard stands in column |
+| ID | Decision |
+| -- | -------- |
+| W4 | **Clear Soak on full detach** (air knock-off / fly-off) |
+| W5 | Hydrant sprays **ortho left/right** exterior cells of the room footprint |
+| W6 | Waterfall: click start cell; water runs **down** that column |
+| W7 | Geyser **can** friendly-fire the wizard if in the column |
 
-Tuning (half-life T, soak/sec from puddles, damage formulas, Hydrant spray rate, puddle lifetime, Waterfall push step size, Deadweight +X/duration, Splash radius/soak amount) → **playtest**, not lock blockers once behavior is clear.
+Tuning (half-life T, soak rates, damage formulas, spray rate, lifetimes, push step, Deadweight +X/duration, Splash amount) → **playtest**.
 
 ---
 

@@ -49,6 +49,7 @@ describe('selectLibraryBlueprints', () => {
     expect(items.find((b) => b.id === 'staircase')?.section).toBe('infrastructure');
     expect(items.find((b) => b.id === 'elevator')?.section).toBe('infrastructure');
     expect(items.find((b) => b.id === 'turretRoom')?.section).toBe('damagers');
+    expect(items.find((b) => b.id === 'hydrantRoom')?.section).toBe('damagers');
   });
 });
 

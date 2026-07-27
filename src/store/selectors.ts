@@ -51,6 +51,8 @@ import {
   gustAffectedCells,
   getEffectiveWizardPosition,
   blizzardZoneCells,
+  waterfallPreviewCells,
+  geyserColumnCells,
 } from '@/model/spells';
 import { MAX_CHARGE } from '@/model/spells/earth/constants';
 import { aoeCells } from '@/model/spells/fireball';
@@ -678,9 +680,20 @@ export function selectCastPreview(snapshot: Snapshot): CastPreview | null {
         ? gustAffectedCells(view.hoveredCell)
         : spell.id === 'blizzard'
           ? blizzardZoneCells(view.hoveredCell)
-          : aoeCells(view.hoveredCell, spell.aoeRadius ?? 0);
+          : spell.id === 'waterfall'
+            ? waterfallPreviewCells(game.tower, view.hoveredCell)
+            : aoeCells(view.hoveredCell, spell.aoeRadius ?? 0);
     return {
       cells,
+      valid: result.ok,
+      reason: result.ok ? 'ok' : result.reason,
+    };
+  }
+
+  if (spell.targeting === 'puddle') {
+    const result = canCastSpell(game, spellId, { kind: 'cell', cell: view.hoveredCell });
+    return {
+      cells: result.ok ? geyserColumnCells(view.hoveredCell) : [view.hoveredCell],
       valid: result.ok,
       reason: result.ok ? 'ok' : result.reason,
     };
