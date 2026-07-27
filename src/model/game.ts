@@ -120,9 +120,11 @@ export function createInitialState(seed: string | number = 'wizard'): GameState 
 function loadSimSpeed(): SimSpeed {
   if (typeof localStorage === 'undefined') return DEFAULT_SIM_SPEED;
   const raw = localStorage.getItem('wizard-tower-sim-speed');
-  if (raw === '2') return 2;
-  if (raw === '4') return 4;
-  return 1;
+  const parsed = Number(raw);
+  if (parsed === 2 || parsed === 5 || parsed === 10) return parsed;
+  // Migrate legacy 4× preference to the nearest current rung.
+  if (parsed === 4) return 5;
+  return DEFAULT_SIM_SPEED;
 }
 
 export function persistSimSpeed(speed: SimSpeed): void {

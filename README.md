@@ -44,6 +44,7 @@ Damage: enemy / flier hits damage **rooms** only. **Earthquake** damages **struc
 | Undo / revert layout | HUD buttons (build phase)                           |
 | Start wave           | HUD button (when tower is stable)                   |
 | Cast spell           | Hotkeys **1–4**, then click (attack phase)          |
+| Sim speed            | Sidebar **1× / 2× / 5× / 10×** (attack phase)       |
 | Scroll tower         | Mouse wheel on board                                |
 
 Dev mode toggles are available via intents (`toggleDevMode`, `devAddCurrency`, `devSkipWave`, `devSetSpellSchool`) for local testing.

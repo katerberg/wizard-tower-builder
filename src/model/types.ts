@@ -313,7 +313,12 @@ export interface PendingBoulder {
 
 export type SpellSchool = 'fire' | 'air' | 'earth';
 
-export type SimSpeed = 1 | 2 | 4;
+export const SIM_SPEEDS = [1, 2, 5, 10] as const;
+export type SimSpeed = (typeof SIM_SPEEDS)[number];
+
+export function isSimSpeed(value: number): value is SimSpeed {
+  return (SIM_SPEEDS as readonly number[]).includes(value);
+}
 
 export interface GameState {
   scene: Scene;
