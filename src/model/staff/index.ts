@@ -25,6 +25,7 @@ import {
   slotCapacity,
   staffKindForHousing,
 } from './capacity';
+import { assignSurplusLaborers } from './harvest';
 import { roomAt } from '@/model/tower';
 import type { Cell, GameState, Room, StaffKind, StaffUnit, Structure } from '@/model/types';
 
@@ -151,7 +152,7 @@ interface HousingPool {
 
 /** Charge upkeep for every rostered occupant; unpaid staff desert. */
 function chargeHousingUpkeep(state: GameState): void {
-  let gold = state.player.currency;
+  let gold = state.player.resources.gold;
   for (const room of state.tower.rooms) {
     const housing = housingKindOf(room);
     if (!housing) continue;
@@ -175,7 +176,7 @@ function chargeHousingUpkeep(state: GameState): void {
       state.housingRecruited[room.id] = paid;
     }
   }
-  state.player.currency = gold;
+  state.player.resources.gold = gold;
 }
 
 function buildPools(state: GameState, kind: StaffKind): HousingPool[] {
@@ -636,7 +637,10 @@ function repathIdleLaborers(state: GameState): void {
     });
   }
 
-  if (jobs.length === 0) return;
+  if (jobs.length === 0) {
+    assignSurplusLaborers(state);
+    return;
+  }
 
   for (const unit of idle) {
     const unstaffed = jobs.filter((d) => d.assigned === 0);

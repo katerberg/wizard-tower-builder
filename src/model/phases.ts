@@ -5,7 +5,9 @@ import { resetBoilerRuntime } from './boilers';
 import { lockPipeFluids } from './pipes';
 import { resetSteamTurretRuntime } from './steamTurrets';
 import { clearStaffAfterWave, deployStaffForWave } from './staff';
-import { reward } from '../calculations/economy';
+import { assignSurplusLaborers, maxWaterReachRow } from './staff/harvest';
+import { rewardGold } from '../calculations/economy';
+import { cloneResources } from '../calculations/resources';
 import { runWaveClearedEffects } from './modifications/effects';
 import {
   refillMana,
@@ -23,7 +25,7 @@ import type { GameState } from './types';
 export function captureBuildBaseline(state: GameState): void {
   state.buildBaseline = {
     tower: structuredClone(state.tower),
-    currency: state.player.currency,
+    resources: cloneResources(state.player.resources),
     housingRecruited: structuredClone(state.housingRecruited),
     slotAllocations: structuredClone(state.slotAllocations),
     manaSpringAllocations: structuredClone(state.manaSpringAllocations),
@@ -62,10 +64,11 @@ export function beginWave(state: GameState): void {
   state.spawnTimer = 0;
   state.waveTimer = 0;
   state.roomEffectTimers = {};
-  state.tower = lockPipeFluids(state.tower);
   resetBoilerRuntime(state);
   resetSteamTurretRuntime(state);
   deployStaffForWave(state);
+  assignSurplusLaborers(state);
+  state.tower = lockPipeFluids(state.tower, maxWaterReachRow(state));
   initElevators(state);
   refillMana(state);
   resetSpellCooldowns(state);
@@ -83,7 +86,7 @@ export function beginWave(state: GameState): void {
 export function endWave(state: GameState): void {
   const rewardHeight = state.waveStartHeight;
   const amount = heightProgression.rewardFor(rewardHeight);
-  reward(state, amount);
+  rewardGold(state, amount);
   addMessage(state, `Wave ${state.levelIndex + 1} cleared! +${amount} gold.`, 'economy');
   runWaveClearedEffects(state);
   resetEarthState(state);

@@ -9,6 +9,6 @@ export const guardroomExpansion: ModificationDef = {
   description: 'Increases capacity from 3 to 6 soldiers.',
   mechanicsAtLevel: () => 'Capacity 6 soldiers',
   maxLevel: 1,
-  cost: (level) => (level === 1 ? 12 : 0),
+  cost: (level) => (level === 1 ? { stone: 12 } : {}),
   canApply: (room) => isGuardroom(room),
 };

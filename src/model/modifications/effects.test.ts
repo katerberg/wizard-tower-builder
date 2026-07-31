@@ -105,22 +105,13 @@ describe('spikes effect', () => {
   });
 });
 
-describe('gold mine room effect', () => {
-  it('grants income when a wave is cleared', () => {
-    const state = stateWithRoom('gold', 'goldMineRoom');
-    const before = state.player.currency;
-
-    runWaveClearedEffects(state);
-
-    expect(state.player.currency).toBe(before + 4);
-  });
-
+describe('wave-clear room effects', () => {
   it('does nothing for rooms without a wave-clear hook', () => {
-    const state = stateWithRoom('gold-none', 'stem', { id: 'spikes', level: 1 });
-    const before = state.player.currency;
+    const state = stateWithRoom('none', 'stem', { id: 'spikes', level: 1 });
+    const before = { ...state.player.resources };
 
     runWaveClearedEffects(state);
 
-    expect(state.player.currency).toBe(before);
+    expect(state.player.resources).toEqual(before);
   });
 });

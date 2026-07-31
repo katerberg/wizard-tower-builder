@@ -1,3 +1,4 @@
+import { formatResourceCost } from '@/calculations/resources';
 import { getBlueprint } from '@/model/blueprints';
 import { roomAt } from '@/model/tower';
 import { selectGhostPlacement, selectUiTooltip, type UiTooltipTarget } from '@/store/selectors';
@@ -144,7 +145,7 @@ export function createTooltip(
       if (ghost && blueprint) {
         const action = room ? 'Replace with' : 'Place';
         text = ghost.valid
-          ? `${action} ${blueprint.name} · ${blueprint.cost} gold`
+          ? `${action} ${blueprint.name} · ${formatResourceCost(blueprint.cost)}`
           : `Cannot build: ${ghost.reason.replace(/_/g, ' ')}`;
       }
     } else if (game.phase === 'build' && room) {

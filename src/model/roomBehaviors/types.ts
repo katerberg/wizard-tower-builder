@@ -1,6 +1,6 @@
-import type { Cell, Enemy, GameMessageKind, GameState, Room } from '../types';
+import type { Cell, Enemy, GameMessageKind, GameState, ResourceCost, Room } from '../types';
 
-/** Context for blueprint-native room behavior (turret room, gold mine room, etc.). */
+/** Context for blueprint-native room behavior (turret room, slot room, etc.). */
 export interface RoomEffectContext {
   state: GameState;
   room: Room;
@@ -9,7 +9,7 @@ export interface RoomEffectContext {
   enemiesNear: (range: number) => Enemy[];
   enemiesTouching: () => Enemy[];
   attackEnemy: (enemy: Enemy, attack: number, dexterity?: number, label?: string) => void;
-  reward: (amount: number) => void;
+  reward: (amount: ResourceCost) => void;
   log: (text: string, kind?: GameMessageKind) => void;
 }
 

@@ -9,6 +9,6 @@ export const quartersExpansion: ModificationDef = {
   description: 'Increases capacity from 6 to 12 laborers.',
   mechanicsAtLevel: () => 'Capacity 12 laborers',
   maxLevel: 1,
-  cost: (level) => (level === 1 ? 14 : 0),
+  cost: (level) => (level === 1 ? { stone: 14 } : {}),
   canApply: (room) => isQuarters(room),
 };

@@ -62,7 +62,7 @@ describe('attack-phase simulation', () => {
     for (let row = 0; row < 6; row++) {
       state.tower = placeStructure(state.tower, createStructure(`r${row}`, stem, { col: 8, row }));
     }
-    const startCurrency = state.player.currency;
+    const startCurrency = state.player.resources.gold;
     beginWave(state);
 
     let steps = 0;
@@ -73,7 +73,7 @@ describe('attack-phase simulation', () => {
 
     if (state.scene === 'run' && state.phase === 'build') {
       expect(state.levelIndex).toBe(1);
-      expect(state.player.currency).toBeGreaterThan(startCurrency);
+      expect(state.player.resources.gold).toBeGreaterThan(startCurrency);
     }
   });
 });

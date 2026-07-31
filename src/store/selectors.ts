@@ -28,7 +28,13 @@ function recruitCostFor(kind: StaffKind): number {
       return LABORER_RECRUIT_COST;
   }
 }
-import { netBuildCost, remainingBuildGold } from '@/calculations/buildCost';
+import { netBuildCost, remainingBuildResources } from '@/calculations/buildCost';
+import {
+  addResources,
+  asResources,
+  canAffordResources,
+  formatResourceCost,
+} from '@/calculations/resources';
 import { computeRoomStats, computeStructureStats } from '@/calculations/combat';
 import { roomCells } from '@/calculations/grid';
 import {
@@ -69,6 +75,7 @@ import type {
   ExteriorNode,
   InfraKind,
   PlacementReason,
+  Resources,
   Room,
   RoomStats,
   StaffKind,
@@ -78,28 +85,43 @@ import type { Snapshot } from './store';
 
 export interface BuildEconomy {
   isPlanning: boolean;
+  remaining: Resources;
+  committed: Resources;
+  budget: Resources;
+  /** @deprecated Prefer remaining.gold */
   remainingGold: number;
+  /** @deprecated Prefer committed.gold */
   committedGold: number;
-  budget: number;
+  /** @deprecated Prefer budget.gold */
+  budgetGold: number;
 }
 
 export function selectBuildEconomy(snapshot: Snapshot): BuildEconomy {
   const { game } = snapshot;
   const baseline = game.buildBaseline;
   if (game.scene !== 'run' || game.phase !== 'build' || !baseline) {
+    const r = game.player.resources;
     return {
       isPlanning: false,
-      remainingGold: game.player.currency,
+      remaining: r,
+      committed: asResources({}),
+      budget: r,
+      remainingGold: r.gold,
       committedGold: 0,
-      budget: game.player.currency,
+      budgetGold: r.gold,
     };
   }
-  const committedGold = netBuildCost(baseline, game.tower) + game.buildRecruitSpend;
+  const net = netBuildCost(baseline, game.tower);
+  const committed = addResources(net, { gold: game.buildRecruitSpend });
+  const remaining = remainingBuildResources(baseline, game.tower, game.buildRecruitSpend);
   return {
     isPlanning: true,
-    remainingGold: remainingBuildGold(baseline, game.tower, game.buildRecruitSpend),
-    committedGold,
-    budget: baseline.currency,
+    remaining,
+    committed,
+    budget: baseline.resources,
+    remainingGold: remaining.gold,
+    committedGold: committed.gold,
+    budgetGold: baseline.resources.gold,
   };
 }
 
@@ -211,7 +233,8 @@ export interface LibraryBlueprintItem {
   glyph: string;
   sizeW: number;
   sizeH: number;
-  cost: number;
+  cost: Blueprint['cost'];
+  costLabel: string;
   baseHp: number;
   affordable: boolean;
   selected: boolean;
@@ -227,7 +250,7 @@ export interface LibrarySection {
 
 function toLibraryItem(
   b: Blueprint,
-  remainingGold: number,
+  remaining: Resources,
   selectedBlueprintId: string | null,
   category: 'structure' | 'room' | 'infra',
 ): LibraryBlueprintItem | null {
@@ -240,8 +263,9 @@ function toLibraryItem(
     sizeW: b.size.w,
     sizeH: b.size.h,
     cost: b.cost,
+    costLabel: formatResourceCost(b.cost),
     baseHp: b.baseHp,
-    affordable: remainingGold >= b.cost,
+    affordable: canAffordResources(remaining, b.cost),
     selected: selectedBlueprintId === b.id,
     category,
     section,
@@ -250,19 +274,19 @@ function toLibraryItem(
 
 export function selectLibraryBlueprints(snapshot: Snapshot): LibraryBlueprintItem[] {
   const { game, view } = snapshot;
-  const { remainingGold } = selectBuildEconomy(snapshot);
+  const { remaining } = selectBuildEconomy(snapshot);
   const unlocked = new Set(game.player.unlockedBlueprints);
 
   const framing = BLUEPRINTS.filter((b) => unlocked.has(b.id) && isStructureBlueprint(b))
-    .map((b) => toLibraryItem(b, remainingGold, view.selectedBlueprintId, 'structure'))
+    .map((b) => toLibraryItem(b, remaining, view.selectedBlueprintId, 'structure'))
     .filter((b): b is LibraryBlueprintItem => b !== null);
 
   const rooms = BLUEPRINTS.filter((b) => unlocked.has(b.id) && !isStructureBlueprint(b))
-    .map((b) => toLibraryItem(b, remainingGold, view.selectedBlueprintId, 'room'))
+    .map((b) => toLibraryItem(b, remaining, view.selectedBlueprintId, 'room'))
     .filter((b): b is LibraryBlueprintItem => b !== null);
 
   const infra = INFRA_BLUEPRINTS.map((b) =>
-    toLibraryItem(b, remainingGold, view.selectedBlueprintId, 'infra'),
+    toLibraryItem(b, remaining, view.selectedBlueprintId, 'infra'),
   ).filter((b): b is LibraryBlueprintItem => b !== null);
 
   return [...framing, ...rooms, ...infra];
@@ -289,7 +313,8 @@ export interface RoomModificationOption {
   maxLevel: number;
   levelText: string;
   action: 'none' | 'add' | 'upgrade' | 'max';
-  cost: number;
+  cost: import('@/model/types').ResourceCost;
+  costLabel: string;
   enabled: boolean;
 }
 
@@ -404,7 +429,7 @@ export function selectRoomInspector(snapshot: Snapshot, roomId: string): RoomIns
 
   const { game } = snapshot;
   const isBuildPhase = game.scene === 'run' && game.phase === 'build';
-  const { remainingGold } = selectBuildEconomy(snapshot);
+  const { remaining } = selectBuildEconomy(snapshot);
   const stats = computeRoomStats(room, blueprint);
 
   const modifications = listModifications().map((def) => {
@@ -423,14 +448,16 @@ export function selectRoomInspector(snapshot: Snapshot, roomId: string): RoomIns
         maxLevel: def.maxLevel,
         levelText,
         action: 'none' as const,
-        cost: 0,
+        cost: {},
+        costLabel: '—',
         enabled: false,
       };
     }
 
     if (level === 0) {
       const cost = modificationCost(def, 1);
-      const enabled = canApplyModification(room, game.tower, def.id) && remainingGold >= cost;
+      const enabled =
+        canApplyModification(room, game.tower, def.id) && canAffordResources(remaining, cost);
       return {
         id: def.id,
         name: def.name,
@@ -442,13 +469,14 @@ export function selectRoomInspector(snapshot: Snapshot, roomId: string): RoomIns
         levelText,
         action: 'add' as const,
         cost,
+        costLabel: formatResourceCost(cost),
         enabled,
       };
     }
 
     if (canUpgradeModification(room, def.id)) {
       const cost = modificationCost(def, level + 1);
-      const enabled = remainingGold >= cost;
+      const enabled = canAffordResources(remaining, cost);
       return {
         id: def.id,
         name: def.name,
@@ -460,6 +488,7 @@ export function selectRoomInspector(snapshot: Snapshot, roomId: string): RoomIns
         levelText,
         action: 'upgrade' as const,
         cost,
+        costLabel: formatResourceCost(cost),
         enabled,
       };
     }
@@ -474,7 +503,8 @@ export function selectRoomInspector(snapshot: Snapshot, roomId: string): RoomIns
       maxLevel: def.maxLevel,
       levelText,
       action: 'max' as const,
-      cost: 0,
+      cost: {},
+      costLabel: '—',
       enabled: false,
     };
   });
@@ -862,14 +892,14 @@ function selectSpellTooltip(snapshot: Snapshot, spellId: string): UiTooltipConte
 }
 
 function selectBlueprintTooltip(snapshot: Snapshot, blueprintId: string): UiTooltipContent | null {
-  const blueprint = getBlueprint(blueprintId);
+  const blueprint = getBlueprint(blueprintId) ?? getInfraBlueprint(blueprintId);
   if (!blueprint) return null;
 
-  const { remainingGold } = selectBuildEconomy(snapshot);
-  const affordable = remainingGold >= blueprint.cost;
+  const { remaining } = selectBuildEconomy(snapshot);
+  const affordable = canAffordResources(remaining, blueprint.cost);
   const behavior = getRoomBehavior(blueprintId);
   const stats: UiTooltipStat[] = [
-    { label: 'Cost', value: `${blueprint.cost} gold`, accent: true },
+    { label: 'Cost', value: formatResourceCost(blueprint.cost), accent: true },
     { label: 'HP', value: String(blueprint.baseHp) },
     { label: 'Size', value: `${blueprint.size.w}×${blueprint.size.h}` },
     { label: 'Affordable', value: affordable ? 'Yes' : 'No' },
@@ -884,7 +914,7 @@ function selectBlueprintTooltip(snapshot: Snapshot, blueprintId: string): UiTool
     glyphColor: blueprint.color,
     description: blueprint.description,
     stats,
-    footer: affordable ? 'Click to select · drag to place' : 'Not enough gold remaining',
+    footer: affordable ? 'Click to select · drag to place' : 'Not enough resources remaining',
   };
 }
 

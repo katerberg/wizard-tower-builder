@@ -24,7 +24,7 @@ function placeTurretOnStem(store: Store, cell: { col: number; row: number }): st
 }
 
 describe('selectLibraryBlueprints', () => {
-  it('marks affordable blueprints based on remaining gold', () => {
+  it('marks affordable blueprints based on remaining resources', () => {
     const store = new Store('lib');
     const items = selectLibraryBlueprints(store.getSnapshot());
     expect(items.length).toBeGreaterThan(0);

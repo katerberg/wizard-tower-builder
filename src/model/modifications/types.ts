@@ -22,8 +22,8 @@ export interface ModEffectContext {
   enemyTouchesFootprint?: boolean;
   /** Roll an attack against an enemy and apply damage (handles RNG + log). */
   attackEnemy: (enemy: Enemy, attack: number, dexterity?: number) => void;
-  /** Grant currency to the player. */
-  reward: (amount: number) => void;
+  /** Grant resources to the player. */
+  reward: (amount: import('../types').ResourceCost) => void;
   /** Append a message to the game log. */
   log: (text: string, kind?: GameMessageKind) => void;
 }
@@ -42,9 +42,9 @@ export interface ModificationDef {
   mechanicsAtLevel: (level: number) => string;
   /** Highest level this modification can reach. */
   maxLevel: number;
-  /** Gold cost to bring the modification to `level` (cost(1) adds it). */
-  cost: (level: number) => number;
-  /** Fraction of gold spent refunded when the room is sold (default 0.5). */
+  /** Resource cost to bring the modification to `level` (cost(1) adds it). */
+  cost: (level: number) => import('../types').ResourceCost;
+  /** Fraction of resources spent refunded when the room is sold (default 0.5). */
   sellRefundRate?: number;
   /** Whether this modification may be added to the given room. Defaults to true. */
   canApply?: (room: Room, tower: Tower) => boolean;

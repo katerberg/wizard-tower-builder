@@ -20,15 +20,15 @@ function makeRoom(): Room {
 describe('modification economy', () => {
   it('reports the cost to reach each level', () => {
     const spikes = getModification('spikes')!;
-    expect(modificationCost(spikes, 1)).toBe(5);
-    expect(modificationCost(spikes, 2)).toBe(8);
-    expect(modificationCost(spikes, 3)).toBe(12);
+    expect(modificationCost(spikes, 1)).toEqual({ stone: 5 });
+    expect(modificationCost(spikes, 2)).toEqual({ stone: 8 });
+    expect(modificationCost(spikes, 3)).toEqual({ stone: 12 });
   });
 
   it('refunds half of everything spent on a modification', () => {
     const room = makeRoom();
     room.modifications.push({ id: 'spikes', level: 2 }); // spent 5 + 8 = 13
-    expect(modificationRefund(room)).toBe(6); // floor(13 * 0.5)
+    expect(modificationRefund(room)).toEqual({ gold: 0, metal: 0, stone: 6, souls: 0 });
   });
 });
 

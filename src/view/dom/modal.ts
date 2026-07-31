@@ -130,9 +130,9 @@ function roomBody(inspector: RoomInspector): string {
     .map((mod) => {
       let control = '';
       if (mod.action === 'add') {
-        control = `<button class="mod-btn ${mod.enabled ? '' : 'disabled'}" data-action="addModification" data-room="${room.id}" data-mod="${mod.id}">Add · ${mod.cost}g</button>`;
+        control = `<button class="mod-btn ${mod.enabled ? '' : 'disabled'}" data-action="addModification" data-room="${room.id}" data-mod="${mod.id}">Add · ${mod.costLabel}</button>`;
       } else if (mod.action === 'upgrade') {
-        control = `<button class="mod-btn ${mod.enabled ? '' : 'disabled'}" data-action="upgradeModification" data-room="${room.id}" data-mod="${mod.id}">Upgrade · ${mod.cost}g</button>`;
+        control = `<button class="mod-btn ${mod.enabled ? '' : 'disabled'}" data-action="upgradeModification" data-room="${room.id}" data-mod="${mod.id}">Upgrade · ${mod.costLabel}</button>`;
       } else if (mod.action === 'max') {
         control = '<span class="mod-max">Max</span>';
       }

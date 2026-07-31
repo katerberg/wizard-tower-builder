@@ -29,9 +29,9 @@ export const BLUEPRINT_LIBRARY_SECTION: Record<string, LibrarySectionId> = {
   chamberRoom: 'housing',
   quartersRoom: 'housing',
 
-  goldMineRoom: 'generators',
   manaSpringRoom: 'generators',
   boilerRoom: 'generators',
+  pumpRoom: 'generators',
 
   staircase: 'infrastructure',
   pipe: 'infrastructure',

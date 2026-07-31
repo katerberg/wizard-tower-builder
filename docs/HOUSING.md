@@ -4,7 +4,7 @@
 
 Three housing room types, each tied to a distinct staff role. The economy reshapes the tower — especially forcing **mana springs** to be sited where **chambers** can staff them.
 
-Numbers below match `src/config/constants.ts`. Treat gold amounts as flexible until playtested.
+Numbers below match `src/config/constants.ts`. Treat gold/stone/metal/souls amounts as flexible until playtested.
 
 ---
 
@@ -14,7 +14,7 @@ Numbers below match `src/config/constants.ts`. Treat gold amounts as flexible un
 |---------|-----------|-------|-----------------|-----------|
 | **Guardroom** | `guardroomRoom` | Soldiers | **3 → 6** (`guardroomExpansion`) | Slots |
 | **Chamber** | `chamberRoom` | Magi | **1 → 2** (`chamberExpansion`) | Mana springs |
-| **Quarters** | `quartersRoom` | Laborers | **6 → 12** (`quartersExpansion`) | Damaged rooms (repair HP) |
+| **Quarters** | `quartersRoom` | Laborers | **6 → 12** (`quartersExpansion`) | Damaged rooms (repair HP); surplus harvest / hand-pump |
 
 Shared rules:
 

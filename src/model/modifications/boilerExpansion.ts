@@ -10,6 +10,6 @@ export const boilerExpansion: ModificationDef = {
   description: 'Increases steam throughput for connected turrets.',
   mechanicsAtLevel: (level) => `Throughput ${BOILER_THROUGHPUT[level] ?? BOILER_THROUGHPUT[0]} units`,
   maxLevel: 2,
-  cost: (level) => (level === 1 ? 14 : level === 2 ? 18 : 0),
+  cost: (level) => (level === 1 ? { metal: 14 } : level === 2 ? { metal: 18 } : {}),
   canApply: (room) => isBoilerRoom(room),
 };

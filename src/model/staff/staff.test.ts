@@ -60,12 +60,12 @@ describe('soldier deployment', () => {
     state.housingRecruited.b1 = 2;
     state.slotAllocations.s1 = 1;
     state.buildRecruitSpend = SOLDIER_RECRUIT_COST * 2;
-    const before = state.player.currency;
+    const before = state.player.resources.gold;
 
     deployStaffForWave(state);
 
     expect(state.staff.filter((s) => s.kind === 'soldier')).toHaveLength(1);
-    expect(state.player.currency).toBe(before - SOLDIER_UPKEEP_COST * 2);
+    expect(state.player.resources.gold).toBe(before - SOLDIER_UPKEEP_COST * 2);
     expect(state.staff[0].path.length).toBeGreaterThan(0);
   });
 
@@ -133,7 +133,7 @@ describe('staff stair queuing', () => {
     const state = towerWithStairShaft();
     state.housingRecruited.b1 = 1;
     state.slotAllocations.s1 = 1;
-    state.player.currency = 0;
+    state.player.resources.gold = 0;
 
     deployStaffForWave(state);
 
@@ -177,7 +177,7 @@ describe('magi + mana springs', () => {
     state.tower = placeInfra(state.tower, { col: 4, row: 2 }, 'stair');
     state.housingRecruited.ch = 2;
     state.manaSpringAllocations.spring = 2;
-    state.player.currency = 100;
+    state.player.resources.gold = 100;
     return state;
   }
 
@@ -223,7 +223,7 @@ describe('laborer repairs', () => {
       createRoom('q1', getBlueprint('quartersRoom')!, { col: 3, row: 0 }),
     );
     state.housingRecruited.q1 = 3;
-    state.player.currency = 100;
+    state.player.resources.gold = 100;
 
     const r1 = state.tower.structures.find((r) => r.id === 'r1')!;
     const r2 = state.tower.structures.find((r) => r.id === 'r2')!;

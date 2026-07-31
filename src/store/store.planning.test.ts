@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { netBuildCost } from '@/calculations/buildCost';
-import { STARTING_CURRENCY, FIXED_DT } from '@/config/constants';
+import { subResources } from '@/calculations/resources';
+import { STARTING_CURRENCY, STARTING_RESOURCES, FIXED_DT } from '@/config/constants';
 import { getBlueprint } from '@/model/blueprints';
 import { createInitialState } from '@/model/game';
 import { beginWave, captureBuildBaseline } from '@/model/phases';
@@ -18,13 +19,13 @@ function placeStem(store: Store, cell: Cell): void {
 const EXT_COL = 9;
 
 describe('build-phase planning commit', () => {
-  it('does not change currency until the wave starts', () => {
+  it('does not change resources until the wave starts', () => {
     const store = new Store('plan');
     placeStem(store, { col: EXT_COL, row: 0 });
-    expect(store.getSnapshot().game.player.currency).toBe(STARTING_CURRENCY);
+    expect(store.getSnapshot().game.player.resources.stone).toBe(STARTING_RESOURCES.stone);
 
     store.dispatch({ type: 'removeRoomAt', cell: { col: EXT_COL, row: 0 } });
-    expect(store.getSnapshot().game.player.currency).toBe(STARTING_CURRENCY);
+    expect(store.getSnapshot().game.player.resources.stone).toBe(STARTING_RESOURCES.stone);
   });
 
   it('commits net build cost when starting the wave', () => {
@@ -35,30 +36,31 @@ describe('build-phase planning commit', () => {
 
     const { game } = store.getSnapshot();
     const net = netBuildCost(game.buildBaseline!, game.tower);
-    expect(net).toBe(6);
+    expect(net.stone).toBe(6);
 
     store.dispatch({ type: 'startWave' });
-    expect(store.getSnapshot().game.player.currency).toBe(STARTING_CURRENCY - net);
+    expect(store.getSnapshot().game.player.resources.stone).toBe(STARTING_RESOURCES.stone - 6);
+    expect(store.getSnapshot().game.player.resources.gold).toBe(STARTING_CURRENCY);
     expect(store.getSnapshot().game.phase).toBe('attack');
   });
 
-  it('returns gold on commit when rooms are removed during planning', () => {
+  it('returns stone on commit when structures are removed during planning', () => {
     const state = createInitialState('interwave');
     const stem = getBlueprint('stem')!;
     state.tower = placeStructure(state.tower, createStructure('extra', stem, { col: EXT_COL, row: 0 }));
     beginWave(state);
 
     state.phase = 'build';
-    state.player.currency = 30;
+    state.player.resources = { ...state.player.resources, stone: 30 };
     captureBuildBaseline(state);
 
     const added = state.tower.structures.find((r) => r.id === 'extra')!;
     state.tower = removeStructure(state.tower, added.id);
 
     const net = netBuildCost(state.buildBaseline!, state.tower);
-    expect(net).toBe(-3);
-    state.player.currency = state.buildBaseline!.currency - net;
-    expect(state.player.currency).toBe(33);
+    expect(net.stone).toBe(-3);
+    state.player.resources = subResources(state.buildBaseline!.resources, net);
+    expect(state.player.resources.stone).toBe(33);
   });
 });
 
@@ -80,7 +82,10 @@ describe('build-phase undo and revert', () => {
 
     store.dispatch({ type: 'undoBuild' });
     expect(store.getSnapshot().game.tower.structures).toHaveLength(baselineStructures + 1);
-    expect(store.getSnapshot().game.tower.structures[baselineStructures].origin).toEqual({ col: EXT_COL, row: 0 });
+    expect(store.getSnapshot().game.tower.structures[baselineStructures].origin).toEqual({
+      col: EXT_COL,
+      row: 0,
+    });
     expect(selectBuildUndoState(store.getSnapshot()).canUndo).toBe(true);
   });
 
@@ -98,15 +103,15 @@ describe('build-phase undo and revert', () => {
     expect(selectBuildUndoState(store.getSnapshot()).canUndo).toBe(false);
   });
 
-  it('does not change currency on undo or revert', () => {
+  it('does not change resources on undo or revert', () => {
     const store = new Store('undo-gold');
     placeStem(store, { col: EXT_COL, row: 0 });
     store.dispatch({ type: 'undoBuild' });
-    expect(store.getSnapshot().game.player.currency).toBe(STARTING_CURRENCY);
+    expect(store.getSnapshot().game.player.resources.stone).toBe(STARTING_RESOURCES.stone);
 
     placeStem(store, { col: EXT_COL, row: 0 });
     store.dispatch({ type: 'revertBuild' });
-    expect(store.getSnapshot().game.player.currency).toBe(STARTING_CURRENCY);
+    expect(store.getSnapshot().game.player.resources.stone).toBe(STARTING_RESOURCES.stone);
   });
 
   it('replaces a spire with a buttress in one step and undoes atomically', () => {
@@ -121,14 +126,30 @@ describe('build-phase undo and revert', () => {
 
     const afterReplace = store.getSnapshot().game.tower;
     expect(afterReplace.structures).toHaveLength(baselineStructures + 2);
-    expect(afterReplace.structures.some((r) => r.blueprintId === 'buttress2' && r.origin.col === EXT_COL && r.origin.row === 1)).toBe(true);
-    expect(afterReplace.structures.some((r) => r.origin.row === 1 && r.origin.col === EXT_COL && r.blueprintId === 'stem')).toBe(false);
+    expect(
+      afterReplace.structures.some(
+        (r) => r.blueprintId === 'buttress2' && r.origin.col === EXT_COL && r.origin.row === 1,
+      ),
+    ).toBe(true);
+    expect(
+      afterReplace.structures.some(
+        (r) => r.origin.row === 1 && r.origin.col === EXT_COL && r.blueprintId === 'stem',
+      ),
+    ).toBe(false);
 
     store.dispatch({ type: 'undoBuild' });
     const undone = store.getSnapshot().game.tower;
     expect(undone.structures).toHaveLength(baselineStructures + 2);
-    expect(undone.structures.some((r) => r.origin.row === 1 && r.origin.col === EXT_COL && r.blueprintId === 'stem')).toBe(true);
-    expect(undone.structures.some((r) => r.origin.col === EXT_COL && r.origin.row === 1 && r.blueprintId === 'buttress2')).toBe(false);
+    expect(
+      undone.structures.some(
+        (r) => r.origin.row === 1 && r.origin.col === EXT_COL && r.blueprintId === 'stem',
+      ),
+    ).toBe(true);
+    expect(
+      undone.structures.some(
+        (r) => r.origin.col === EXT_COL && r.origin.row === 1 && r.blueprintId === 'buttress2',
+      ),
+    ).toBe(false);
   });
 });
 
@@ -150,7 +171,9 @@ describe('build mode vs select mode', () => {
     store.dispatch({ type: 'selectBlueprint', blueprintId: 'stem' });
     store.dispatch({ type: 'inspectRoomAt', cell: { col: 6, row: 1 } });
 
-    const structureId = store.getSnapshot().game.tower.structures.find((r) => r.origin.col === 6 && r.origin.row === 1)!.id;
+    const structureId = store.getSnapshot().game.tower.structures.find(
+      (r) => r.origin.col === 6 && r.origin.row === 1,
+    )!.id;
     const { view } = store.getSnapshot();
     expect(view.modal).toEqual({ kind: 'structure', structureId });
     expect(view.selectedBlueprintId).toBeNull();
@@ -159,7 +182,9 @@ describe('build mode vs select mode', () => {
   it('closes the room modal after a successful placement', () => {
     const store = new Store('select3');
     store.dispatch({ type: 'inspectRoomAt', cell: { col: 6, row: 1 } });
-    const roomId = store.getSnapshot().game.tower.structures.find((r) => r.origin.col === 6 && r.origin.row === 1)!.id;
+    const roomId = store.getSnapshot().game.tower.structures.find(
+      (r) => r.origin.col === 6 && r.origin.row === 1,
+    )!.id;
     expect(store.getSnapshot().view.modal).toEqual({ kind: 'structure', structureId: roomId });
 
     store.dispatch({ type: 'selectBlueprint', blueprintId: 'stem' });

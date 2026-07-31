@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import { netBuildCost } from '@/calculations/buildCost';
-import { STARTING_CURRENCY } from '@/config/constants';
 import { STARTER_TOWER_PLACEMENTS } from '@/model/starterTower';
 import { PlayabilityDriver, type BlueprintPlacement } from '@/test/playability';
 
@@ -9,8 +8,8 @@ const FIRST_WAVE_SEEDS = ['first-wave-b', 'first-wave-c'] as const;
 
 /**
  * A small beginner layout: two soldiers stationed in a ground-level slot plus
- * two Turret Rooms on the existing tower frame. This consumes all 48 starting
- * gold and requires no infrastructure, spells, developer actions, or direct
+ * two Turret Rooms on the existing tower frame. Uses starting stone/souls/gold
+ * and requires no infrastructure, spells, developer actions, or direct
  * game-state changes.
  */
 const STARTER_DEFENSE: readonly BlueprintPlacement[] = [
@@ -50,8 +49,9 @@ describe('first-wave playability', () => {
 
       const beforeStart = driver.store.getSnapshot().game;
       const cost = netBuildCost(baseline, beforeStart.tower);
-      expect(cost).toBe(40);
-      expect(cost + beforeStart.buildRecruitSpend).toBe(STARTING_CURRENCY);
+      expect(cost.stone).toBe(9 + 11); // guardroom + slot
+      expect(cost.souls).toBe(20); // two turrets
+      expect(beforeStart.buildRecruitSpend).toBe(8); // two soldiers
 
       driver.startWave();
       const result = driver.runUntilTerminal(FIRST_WAVE_MAX_STEPS);
