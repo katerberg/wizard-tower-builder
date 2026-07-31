@@ -106,6 +106,15 @@ Read [`docs/PIPES.md`](../docs/PIPES.md) first. Key rules:
 - [`src/calculations/pathfinding.ts`](../src/calculations/pathfinding.ts)
 - [`src/model/enemies.ts`](../src/model/enemies.ts)
 
+### Add or change balance scenarios
+
+Playability scenarios live in [`src/store/playability.test.ts`](../src/store/playability.test.ts) and use the test driver in [`src/test/playability.ts`](../src/test/playability.ts).
+
+- Use `new Store(seed)`, intents, and fixed-timestep advancement through `PlayabilityDriver`; do not mutate `GameState` or inject enemies directly.
+- Give every scenario a fixed seed and a bounded step count. Terminal diagnostics must identify the seed, phase, scene, wizard HP, and remaining enemies/queue.
+- Add an item to a scenario only when it is part of a supported strategy. Test its intended measurable effect in its own focused model/store test as well.
+- Run `npm run test:playability` for the focused balance gate. Pull requests run it as the dedicated `playability` GitHub Actions job; `npm test` remains the complete regression suite.
+
 ## Conventions
 
 - Colocate tests as `*.test.ts` next to source.
