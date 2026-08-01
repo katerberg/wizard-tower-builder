@@ -164,7 +164,7 @@ export interface Wizard {
   hp: number;
   maxHp: number;
   glyph: string;
-  // v1 defense: wizard auto-attacks; dedicated turret rooms also fire via roomBehaviors.
+  // v1 defense: wizard auto-attacks; dedicated turret rooms also fire via rooms.
   attack: number;
   defense: number;
   dexterity: number;

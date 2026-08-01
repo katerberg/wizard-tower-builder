@@ -1,7 +1,7 @@
 import { macroCellOfNode } from '@/calculations/subGrid';
 import { getWizardPosition } from '@/model/tower';
 import type { Cell, GameState } from '@/model/types';
-import type { SpellCastContext } from '../types';
+import type { SpellCastContext, SpellDef } from '../types';
 import { GEYSER_DAMAGE, GEYSER_SOAK, GEYSER_UP_CELLS, GEYSER_WIZARD_DAMAGE } from './constants';
 import { addSoak, isDampOrWetter } from './soak';
 import { isPuddleCell } from './wetCells';
@@ -57,3 +57,22 @@ export function castGeyser(ctx: SpellCastContext, puddle: Cell): void {
     ctx.log('Geyser blasts upward — empty air.', 'combat');
   }
 }
+
+export const geyser: SpellDef = {
+  id: 'geyser',
+  name: 'Geyser',
+  glyph: '^',
+  description:
+    'Erupt from a puddle: blast up 3 cells. Damages damp+ foes; soaks everyone hit. Needs a puddle.',
+  manaCost: 4,
+  cooldown: 5,
+  targeting: 'puddle',
+  range: 10,
+  damage: 12,
+  validatePlacement: (state, cell) => isValidGeyserPlacement(state, cell),
+  previewCells: (_state, cell) => geyserColumnCells(cell),
+  cast(ctx, target) {
+    if (target.kind !== 'cell') return;
+    castGeyser(ctx, target.cell);
+  },
+};

@@ -14,6 +14,7 @@ Standard commands are documented in `README.md` (Getting started) and `package.j
 Non-obvious notes for running/testing:
 
 - Per `.cursor/rules/verify-before-done.mdc`, no code change is complete until `npm run lint && npm test` both exit 0 (this mirrors CI in `.github/workflows/ci.yml`).
+- Task entry points: README **“Where do I…?”** table and short READMEs under `src/model/spells/`, `src/model/rooms/`, `src/config/`, `src/store/`, `src/view/`.
 - The app boots **directly into a run's build phase** with a pre-seeded tower — there is no main menu / "New game" screen to click through.
 - Core-loop smoke test: pick a blueprint (e.g. `Spire Block`) from the BUILD library, place it on a cell resting on the existing structure (gold decreases), then click `Start Wave` to enter the attack phase where enemies climb and the wizard fires. Win by clearing a wave while framing height is still ≥ 100 (`docs/HEIGHT_PROGRESSION.md`).
 - Placement onto empty/disconnected cells is rejected ("Cannot build: disconnected"); **framing** must obey gravity and connect to the single tower mass. Rooms and infra auto-add Spire Blocks when placed on empty legal cells.

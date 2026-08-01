@@ -114,7 +114,7 @@ flowchart LR
 | `Store`        | `dispatch`, `getSnapshot`, `subscribe`, `advance`, `flush` |
 | `Intent`       | Typed user/system actions                                  |
 | `Snapshot`     | `game` + `view` + render interpolation                     |
-| `selectors.ts` | Affordances and derived display state                      |
+| `store/selectors/` | Affordances and derived display state                   |
 
 ### Data flow
 
@@ -127,7 +127,7 @@ flowchart TB
   subgraph storeLayer [Store]
     Dispatch[dispatch]
     Handlers[handlers/*]
-    Selectors[selectors.ts]
+    Selectors[selectors/]
   end
   subgraph domain [Domain]
     Model[model/*]
@@ -190,33 +190,44 @@ Mount points: `#board`, `#stage`, `#hud`, `#library`, `#message-log`, `#modal-ro
 | **buildBaseline** | Tower + resources snapshot at phase start; planning edits diff against this |
 | **Selectors** | Pure functions deriving UI affordances from `Snapshot` |
 
+### Where do I…?
+
+| Task | Start here |
+|------|------------|
+| Add a spell | [`src/model/spells/README.md`](src/model/spells/README.md) |
+| Add a room (passive or behavioral) | [`src/model/rooms/README.md`](src/model/rooms/README.md) + `blueprints.ts` |
+| Add a modification | `src/model/modifications/` (one file + registry line) |
+| Tweak balance numbers | [`src/config/README.md`](src/config/README.md) |
+| Change the attack tick order | [`src/model/tick.ts`](src/model/tick.ts) |
+| Change build/attack phases | [`src/model/phases.ts`](src/model/phases.ts) |
+| Change placement / stability | [`src/model/tower/`](src/model/tower/) |
+| Add an intent / UI control | [`src/store/README.md`](src/store/README.md) |
+| Change canvas drawing | [`src/view/README.md`](src/view/README.md) → `canvas/layers/` |
+| Full task recipes | [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md) |
+
 ### Project layout
 
 ```
 src/
-  main.ts                 # Shell bootstrap
-  config/constants.ts     # Grid size, tuning, colors
-  model/                  # Game entities, phases, tower, waves, mods, pipes, staff, spells
-  calculations/           # Grid, pathfinding, combat, economy, camera math
+  main.ts              # Shell bootstrap
+  config/              # Balance knobs by domain (+ README index)
+  model/
+    tick.ts            # Ordered attack-phase step list
+    tower/             # Placement, stability, sell, query
+    rooms/             # Behavioral room registry
+    spells/            # Schools + registry (see spells/README)
+    staff/             # Deploy, assign, combat, harvest
+    pipes/ modifications/ …
+  calculations/        # Pure helpers (grid, pathfinding, combat, …)
   store/
-    store.ts              # Store class
-    intents.ts            # Intent + ViewState types
-    selectors.ts          # UI affordances (single read authority)
-    handlers/             # Intent handlers (only writers of game state)
+    handlers/          # Only writers of game state
+    selectors/         # UI affordances by domain
   view/
-    canvas/               # Board renderer + pixel camera
-    dom/                  # HUD, library, modal, tooltip, overlay
-    input.ts              # Pointer → intents
-    loop.ts               # Fixed-timestep game loop
+    canvas/layers/     # Board paint pipeline
+    dom/ theme.ts …
 docs/
-  CONTRIBUTING.md         # Task recipes for contributors and agents
+  CONTRIBUTING.md      # Task recipes
 ```
-
-Key model entry points:
-
-- `tower.ts` — `canPlace()`, `placeRoomReplacing()`, `validateTower()`, `isTowerStable()`
-- `game.ts` — `GameState`, `step(dt)` during attack
-- `phases.ts` — build/attack lifecycle, `buildBaseline`
 
 ### Infrastructure & logistics (core loop)
 

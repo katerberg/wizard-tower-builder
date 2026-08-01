@@ -2,7 +2,7 @@ import { cellKey } from '@/calculations/grid';
 import { macroCellOfNode } from '@/calculations/subGrid';
 import { addMessage } from '@/model/messages';
 import type { Cell, Enemy, GameState, PendingBoulder } from '@/model/types';
-import type { SpellCastContext } from '../types';
+import type { SpellCastContext, SpellDef } from '../types';
 import {
   BOULDER_CRASH_DAMAGE_PER_CHARGE,
   BOULDER_DAMAGE_PER_CHARGE,
@@ -132,3 +132,24 @@ export function tickBoulders(state: GameState, _dt: number, ctx: SpellCastContex
 export function previewBoulderLanding(aim: Cell): Cell {
   return aim;
 }
+
+export const boulder: SpellDef = {
+  id: 'boulder',
+  name: 'Boulder',
+  glyph: 'B',
+  description: 'Lob a delayed smash. Spends all Charge. Misses tumble until they crash.',
+  manaCost: 3,
+  cooldown: 3,
+  targeting: 'gridPoint',
+  range: 10,
+  damage: 0,
+  aoeRadius: 0,
+  requiresCharge: true,
+  allowedWhileConcentrating: true,
+  breaksConcentration: true,
+  cast(ctx, target) {
+    if (target.kind !== 'cell') return;
+    const spent = queueBoulder(ctx.state, target.cell);
+    ctx.log(`Boulder aloft (${spent} Charge)!`, 'combat');
+  },
+};

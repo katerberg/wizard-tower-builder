@@ -367,7 +367,7 @@ interface GameState {
 
 ## Open tuning (constants only)
 
-Combat, capacity, recruit/upkeep, and speed numbers live in `src/config/constants.ts` or behavior defs — tweak without schema changes.
+Combat, capacity, recruit/upkeep, and speed numbers live under `src/config/` (see `src/config/README.md`) or behavior defs — tweak without schema changes.
 
 ---
 

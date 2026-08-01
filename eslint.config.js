@@ -63,8 +63,34 @@ export default tseslint.config(
         {
           patterns: [
             {
-              group: ['@/store', '@/store/*', '@/view', '@/view/*'],
+              group: ['@/store', '@/store/*', '@/view', '@/view/*', '**/store/*', '**/view/*'],
               message: 'calculations/ must not import store/ or view/',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['src/config/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: [
+                '@/store',
+                '@/store/*',
+                '@/view',
+                '@/view/*',
+                '@/model',
+                '@/model/*',
+                '**/store/*',
+                '**/view/*',
+                '**/model/*',
+              ],
+              message: 'config/ is leaf data — must not import model/, store/, or view/',
             },
           ],
         },

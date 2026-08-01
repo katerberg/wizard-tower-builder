@@ -1,6 +1,8 @@
 import { isWalkable } from '../../../calculations/exteriorGraph';
 import { getWizardPosition } from '../../tower';
 import type { ExteriorNode, GameState } from '../../types';
+import type { SpellDef } from '../types';
+import { FLIGHT_ASCENT_SUB_ROWS, FLIGHT_DURATION } from './constants';
 
 export function getEffectiveWizardPosition(state: GameState): ExteriorNode {
   if (state.wizardFlight) {
@@ -60,3 +62,24 @@ export function tickWizardFlight(state: GameState, dt: number, duration: number)
 export function clearWizardFlight(state: GameState): void {
   delete state.wizardFlight;
 }
+
+export const flight: SpellDef = {
+  id: 'flight',
+  name: 'Flight',
+  glyph: 'F',
+  description: 'Levitate off the perch. Cast other spells while airborne; drift down to a standable cell when it ends.',
+  manaCost: 3,
+  cooldown: 5,
+  targeting: 'self',
+  range: 0,
+  damage: 0,
+  cast(ctx) {
+    const perch = getWizardPosition(ctx.state.tower);
+    ctx.state.wizardFlight = {
+      pos: { ...perch, row: perch.row + FLIGHT_ASCENT_SUB_ROWS },
+      until: ctx.state.waveTimer + FLIGHT_DURATION,
+      descending: false,
+    };
+    ctx.log('The wizard takes flight.', 'combat');
+  },
+};

@@ -2,10 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { BOILER_MANA_PER_SEC, BOILER_THROUGHPUT, STEAM_TURRET_CHARGE_SEC } from '@/config/constants';
 import { getBlueprint } from './blueprints';
 import { placeInfra } from './infra';
-import { resetBoilerRuntime, tickBoilers } from './boilers';
+import { resetBoilerRuntime, tickBoilers } from './rooms/boiler';
 import { selectPipeConnectivityReport } from './pipes';
 import { createInitialState } from './game';
-import { resetSteamTurretRuntime, steamTurretBlastCells, tickSteamTurrets } from './steamTurrets';
+import { resetSteamTurretRuntime, steamTurretBlastCells, tickSteamTurrets } from './rooms/steamTurret';
 import { createRoom, createTower, placeRoom } from './tower';
 import { makeTestEnemy } from '@/test/subCells';
 

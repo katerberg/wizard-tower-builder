@@ -286,9 +286,19 @@ steamTurretRuntime: Record<roomId, { charge: number; chargeRate: number }>;
 
 ---
 
-## Balance defaults (constants + blueprints)
+## Code map
+
+| Area | Location |
+|------|----------|
+| Pipe graph / fluids | `src/model/pipes/` |
+| Boiler / spring / steam turret / hydrant behavior | `src/model/rooms/` |
+| Attack tick order | `src/model/tick.ts` |
+| Knobs | `src/config/infra.ts`, `src/config/combat.ts` |
+
+## Balance defaults (config + blueprints)
 
 ```ts
+// src/config/infra.ts + combat.ts
 BOILER_MANA_PER_SEC = 0.25;
 MANA_SPRING_PER_SEC = 0.5;
 MAX_MANA = 20;

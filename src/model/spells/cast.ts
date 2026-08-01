@@ -8,125 +8,26 @@ import { getEffectiveWizardPosition } from './air/flight';
 import { applyWindDamage } from './air/windDamage';
 import { tornadoGridLine } from './air/tornado';
 import { applyFireDamage } from './fire/fireDamage';
-import { isValidKindlingPlacement } from './fire/kindling';
 import { gridLine, validWallOfFlameSegment } from './fire/wall';
-import { blizzard } from './blizzard';
-import { boulder } from './boulder';
-import { deadweight } from './deadweight';
-import { earthquake, roomIdAtCell } from './earthquake';
-import { fault } from './fault';
-import { fireball } from './fireball';
-import { flight } from './flight';
-import { fortify } from './fortify';
-import { geyser } from './geyser';
-import { gust } from './gust';
-import { immolate } from './immolate';
-import { kindling } from './kindling';
-import { splash } from './splash';
-import { tornado } from './tornado';
-import { wandStrike } from './wandStrike';
-import { wallOfFlame } from './wallOfFlame';
-import { waterfall } from './waterfall';
 import { getCharge } from './earth/charge';
 import { clearFortify, isFortified, mitigateWizardDamage } from './earth/fortify';
-import { isValidFaultPlacement } from './earth/fault';
-import { isValidGeyserPlacement } from './water/geyser';
+import { roomIdAtCell } from './earth/earthquake';
+import { getSpell, listAutoSpells } from './registry';
 import type { CastCheckResult, SpellCastContext, SpellDef, SpellTarget } from './types';
 import type { Cell, Enemy, GameState, SpellSchool } from '../types';
 
 export type { CastCheckResult, SpellCastContext, SpellDef, SpellTarget } from './types';
-export { fireball, aoeCells, enemiesInFireballBlast } from './fireball';
-export { wandStrike } from './wandStrike';
-export { immolate } from './immolate';
-export { kindling } from './kindling';
-export { wallOfFlame, gridLine, sameFaceEndpoints } from './wallOfFlame';
-export { gust } from './gust';
-export { tornado, tornadoGridLine } from './tornado';
-export { flight } from './flight';
-export { blizzard } from './blizzard';
-export { fault } from './fault';
-export { fortify } from './fortify';
-export { boulder } from './boulder';
-export { earthquake } from './earthquake';
-export { splash } from './splash';
-export { waterfall } from './waterfall';
-export { deadweight } from './deadweight';
-export { geyser } from './geyser';
-export { applyFireDamage } from './fire/fireDamage';
-export { isKindled, applyKindled, clearKindled } from './fire/kindled';
-export { isValidKindlingPlacement, addKindlingPatch, runKindlingPatchStepEffects } from './fire/kindling';
-export { isOnWall, startImmolate, clearImmolate, isImmolating, onEnemyWallStep } from './fire/immolate';
-export { resetFireState, tickFireEffects } from './fire/tick';
-export { applyDiscombobulated, isDiscombobulated, shouldStubDiscombobulatedStep } from './air/discombobulated';
-export { applyWindDamage } from './air/windDamage';
-export { resetAirState, tickAirEffects, blizzardSlowMultiplier, isMacroCellBlockedByTornado, addTornadoSegment } from './air/tick';
-export { getEffectiveWizardPosition } from './air/flight';
-export { blizzardZoneCells, isInBlizzardZone } from './air/blizzard';
-export { gustAffectedCells } from './air/push';
-export { resetEarthState, tickEarthEffects } from './earth/tick';
-export { runFaultPatchStepEffects, isValidFaultPlacement } from './earth/fault';
-export { isFortified, clearFortify, mitigateWizardDamage } from './earth/fortify';
-export { getCharge, spendAllCharge, addCharge } from './earth/charge';
-export { supportSpineToGround, roomIdAtCell } from './earth/earthquake';
-export { resetWaterState, tickWaterEffects } from './water/tick';
-export { runWetCellStepEffects, isPuddleCell, waterfallPreviewCells, splashCells, geyserColumnCells } from './water/tick';
 export {
-  soakSlowMultiplier,
-  soakSpeedMultiplier,
-  getSoak,
-  addSoak,
-  addPuddle,
-} from './water/tick';
-export { isValidGeyserPlacement } from './water/geyser';
-
-export const FIRE_HOTBAR_SPELL_IDS = ['fireball', 'immolate', 'wallOfFlame', 'kindling'] as const;
-export const AIR_HOTBAR_SPELL_IDS = ['gust', 'tornado', 'flight', 'blizzard'] as const;
-export const EARTH_HOTBAR_SPELL_IDS = ['fault', 'fortify', 'boulder', 'earthquake'] as const;
-export const WATER_HOTBAR_SPELL_IDS = ['splash', 'waterfall', 'deadweight', 'geyser'] as const;
-export const HOTBAR_SLOT_COUNT = 6;
-
-const SPELLS: SpellDef[] = [
-  fireball,
-  immolate,
-  wallOfFlame,
-  kindling,
-  gust,
-  tornado,
-  flight,
-  blizzard,
-  fault,
-  fortify,
-  boulder,
-  earthquake,
-  splash,
-  waterfall,
-  deadweight,
-  geyser,
-  wandStrike,
-];
-
-const SPEND_SPELL_IDS = new Set(['boulder', 'earthquake']);
-
-export function getSpell(id: string): SpellDef | undefined {
-  return SPELLS.find((s) => s.id === id);
-}
-
-export function hotbarSpellIdsForSchool(school: SpellSchool): readonly string[] {
-  if (school === 'air') return AIR_HOTBAR_SPELL_IDS;
-  if (school === 'earth') return EARTH_HOTBAR_SPELL_IDS;
-  if (school === 'water') return WATER_HOTBAR_SPELL_IDS;
-  return FIRE_HOTBAR_SPELL_IDS;
-}
-
-export function listHotbarSpells(state: GameState): SpellDef[] {
-  return hotbarSpellIdsForSchool(state.activeSpellSchool)
-    .map((id) => getSpell(id))
-    .filter((s): s is SpellDef => !!s);
-}
-
-export function listAutoSpells(): SpellDef[] {
-  return SPELLS.filter((s) => s.autoCast);
-}
+  getSpell,
+  listHotbarSpells,
+  listAutoSpells,
+  hotbarSpellIdsForSchool,
+  FIRE_HOTBAR_SPELL_IDS,
+  AIR_HOTBAR_SPELL_IDS,
+  EARTH_HOTBAR_SPELL_IDS,
+  WATER_HOTBAR_SPELL_IDS,
+  HOTBAR_SLOT_COUNT,
+} from './registry';
 
 function gridDistance(state: GameState, _from: { col: number; row: number }, cell: Cell): number {
   const wizardPos = getEffectiveWizardPosition(state);
@@ -203,18 +104,14 @@ export function canCastSpell(state: GameState, spellId: string, target?: SpellTa
   if (!spell) return { ok: false, reason: 'unknown_spell' };
   if (spell.autoCast) return { ok: false, reason: 'manual_only' };
 
-  if (isFortified(state) && !SPEND_SPELL_IDS.has(spellId) && spellId !== 'fortify') {
-    // Fortify re-cast ignored; generators blocked while concentrating
-    return { ok: false, reason: 'concentrating' };
-  }
-  if (isFortified(state) && spellId === 'fortify') {
+  if (isFortified(state) && !spell.allowedWhileConcentrating) {
     return { ok: false, reason: 'concentrating' };
   }
 
   if (state.player.mana < spell.manaCost) return { ok: false, reason: 'no_mana' };
   if (spellCooldownRemaining(state, spellId) > 0) return { ok: false, reason: 'on_cooldown' };
 
-  if ((spellId === 'boulder' || spellId === 'earthquake') && getCharge(state) <= 0) {
+  if (spell.requiresCharge && getCharge(state) <= 0) {
     return { ok: false, reason: 'no_charge' };
   }
 
@@ -234,7 +131,7 @@ export function canCastSpell(state: GameState, spellId: string, target?: SpellTa
     if (gridDistance(state, getWizardPosition(state.tower), target.cell) > spell.range) {
       return { ok: false, reason: 'out_of_range' };
     }
-    if (!isValidGeyserPlacement(state, target.cell)) {
+    if (spell.validatePlacement && !spell.validatePlacement(state, target.cell)) {
       return { ok: false, reason: 'invalid_placement' };
     }
   }
@@ -244,11 +141,7 @@ export function canCastSpell(state: GameState, spellId: string, target?: SpellTa
     if (gridDistance(state, getWizardPosition(state.tower), target.cell) > spell.range) {
       return { ok: false, reason: 'out_of_range' };
     }
-    const placementOk =
-      spellId === 'fault'
-        ? isValidFaultPlacement(state.tower, target.cell)
-        : isValidKindlingPlacement(state.tower, target.cell);
-    if (!placementOk) {
+    if (!spell.validatePlacement?.(state, target.cell)) {
       return { ok: false, reason: 'invalid_placement' };
     }
   }
@@ -317,11 +210,11 @@ export function castSpell(state: GameState, spellId: string, target: SpellTarget
   const check = canCastSpell(state, spellId, target);
   if (!check.ok) return check;
 
-  if (isFortified(state) && SPEND_SPELL_IDS.has(spellId)) {
+  const spell = getSpell(spellId)!;
+  if (isFortified(state) && spell.breaksConcentration) {
     clearFortify(state, 'Fortify breaks — the mountain moves!');
   }
 
-  const spell = getSpell(spellId)!;
   state.player.mana -= spell.manaCost;
   state.spellCooldowns[spellId] = spell.cooldown;
   spell.cast(buildContext(state, spell), target);

@@ -1,9 +1,8 @@
 import { clearElevators, initElevators } from './elevators';
 import { prepareWaveNames } from './game';
 import { addMessage } from './messages';
-import { resetBoilerRuntime } from './boilers';
 import { lockPipeFluids } from './pipes';
-import { resetSteamTurretRuntime } from './steamTurrets';
+import { resetRoomBehaviors } from './rooms';
 import { clearStaffAfterWave, deployStaffForWave } from './staff';
 import { assignSurplusLaborers, maxWaterReachRow } from './staff/harvest';
 import { rewardGold } from '../calculations/economy';
@@ -64,8 +63,7 @@ export function beginWave(state: GameState): void {
   state.spawnTimer = 0;
   state.waveTimer = 0;
   state.roomEffectTimers = {};
-  resetBoilerRuntime(state);
-  resetSteamTurretRuntime(state);
+  resetRoomBehaviors(state);
   deployStaffForWave(state);
   assignSurplusLaborers(state);
   state.tower = lockPipeFluids(state.tower, maxWaterReachRow(state));

@@ -1,137 +1,107 @@
 # Contributing
 
-This guide is for human contributors and cloud agents working on Wizard Tower Builder. Read the [README architecture section](../README.md#architecture) first for the mental model.
+Read the [README “Where do I…?” table](../README.md#where-do-i) first. Folder READMEs under `src/` are the short checklists.
 
 ## Engine vs shell
 
-The game engine is **UI-agnostic**:
-
-| Engine (do not couple to DOM/canvas) | Shell (swappable) |
-|--------------------------------------|-------------------|
+| Engine (UI-agnostic) | Shell (swappable) |
+|----------------------|-------------------|
 | `src/model/` | `src/view/` |
 | `src/calculations/` | `src/main.ts` |
 | `src/store/` | `index.html` |
+| `src/config/` | |
 
-A replacement UI only needs `Store`, `Intent`, `Snapshot`, and functions from `src/store/selectors.ts`.
+A replacement UI only needs `Store`, `Intent`, `Snapshot`, and `src/store/selectors/`.
 
-## Layer rules (enforced by ESLint)
+## Layer rules (ESLint)
 
-1. **`model/`** — pure game state and rules. No imports from `store/` or `view/`.
-2. **`calculations/`** — shared pure helpers (grid, combat, pathfinding, camera scroll math). No imports from `store/` or `view/`.
-3. **`store/`** — orchestrates intents, owns `GameState` + `ViewState`. No imports from `view/`. Handlers live in `src/store/handlers/`.
-4. **`view/`** — reads snapshots and selectors; dispatches intents. Must not call rule predicates (`canPlace`, `canApplyModification`, etc.) — use selectors.
-
-## Agent guardrails
-
-1. Never import `view/` from `store/`, `model/`, or `calculations/`.
-2. Never mutate `snapshot.game` outside `store/handlers/`.
-3. Never call `canPlace` / `canApplyModification` / similar from `view/` — add or use a selector in `selectors.ts`.
-4. New user actions = new `Intent` type + handler module + tests; view only dispatches.
-5. Run `npm run lint` before finishing — import boundary violations fail CI.
-
-## Swapping the UI
-
-1. Keep `src/model/`, `src/calculations/`, `src/store/` unchanged.
-2. Replace `src/view/` and `main.ts` with your shell.
-3. Wire: `new Store()` → `store.subscribe(render)` → read `getSnapshot()` + selectors.
-4. Map gestures → `store.dispatch({ type: ... })`.
-5. Run `npm test` — all engine tests pass without any view code.
+1. **`model/`** — no `store/` or `view/`.
+2. **`calculations/`** — no `store/` or `view/`.
+3. **`config/`** — leaf knobs; no `model/` / `store/` / `view/`.
+4. **`store/`** — no `view/`. Handlers are the only writers of game state.
+5. **`view/`** — no rule predicates (`canPlace`, …); use selectors.
 
 ## Task recipes
 
-### Add a blueprint
+### Add a spell
 
-1. Add entry to [`src/model/blueprints.ts`](../src/model/blueprints.ts) (or `infraBlueprints.ts` for infra).
-2. Assign a library section in [`src/static/librarySections.ts`](../src/static/librarySections.ts).
-3. Add placement/stability tests in [`src/model/tower.test.ts`](../src/model/tower.test.ts) if rules differ.
-4. Library auto-lists via `selectLibrarySections` — no view change unless custom UI.
+See [`src/model/spells/README.md`](../src/model/spells/README.md).
 
-### Add a modification (spikes-style add-on)
+1. Create `<school>/<name>.ts` exporting a `SpellDef` (hooks: `validatePlacement`, `previewCells`, `requiresCharge`, …).
+2. Register in [`src/model/spells/registry.ts`](../src/model/spells/registry.ts) (`SPELLS` + school hotbar ids).
+3. Put knobs in `<school>/constants.ts` or on the SpellDef.
+4. Test in `<school>.test.ts`. Lasting FX → school `tick.ts` + `view/canvas/layers/spellFx.ts`.
+5. Do **not** add spell-id branches in `cast.ts`.
 
-1. Create [`src/model/modifications/<name>.ts`](../src/model/modifications/) exporting a `ModificationDef`.
-2. Register in [`src/model/modifications/index.ts`](../src/model/modifications/index.ts).
-3. Test in `modifications.test.ts` / `effects.test.ts` if combat hooks apply.
+### Add a blueprint (passive room / framing / infra)
 
-### Add a specialty room (turret, gold mine, etc.)
+1. Entry in [`src/model/blueprints.ts`](../src/model/blueprints.ts) or [`infraBlueprints.ts`](../src/model/infraBlueprints.ts).
+2. Library section in [`src/store/librarySections.ts`](../src/store/librarySections.ts).
+3. Placement tests in [`src/model/tower.test.ts`](../src/model/tower.test.ts) only if rules differ.
 
-1. Add blueprint in [`src/model/blueprints.ts`](../src/model/blueprints.ts).
-2. Add behavior in [`src/model/roomBehaviors/`](../src/model/roomBehaviors/) and register in `index.ts`.
-3. Test in `effects.test.ts`. Library lists the blueprint automatically via selectors.
+### Add a behavioral room
 
-### Infrastructure / housing feature (guardrooms, slots, stairs, …)
+See [`src/model/rooms/README.md`](../src/model/rooms/README.md).
 
-Read [`docs/INFRASTRUCTURE.md`](../docs/INFRASTRUCTURE.md) and [`docs/HOUSING.md`](../docs/HOUSING.md) first. Key rules:
+1. Blueprint + library section (above).
+2. One file in [`src/model/rooms/`](../src/model/rooms/) + one line in `registry.ts`.
+3. Use `attack` (cooldown volley), `tick` (continuous), and/or `roles` (identity).
+4. Pipe graph stays in `model/pipes/` — only room behavior lives in `rooms/`.
 
-- Infra shares the macro grid; **one** infra kind per cell (`stair` or `pipe`).
-- Staff live in `GameState.staff` (`StaffUnit`); movement runs in **attack phase** only.
-- Housing: `guardroomRoom` / `chamberRoom` / `quartersRoom` with `housingRecruited`.
-- Layer id is **`workers`** (not `soldiers`).
-- Interior pathfinding is separate from enemy exterior pathfinding.
-- Slot / mana-spring staffing uses headcount allocations + auto-assign at wave start.
-- Reuse the **modifications** system for housing/slot capacity upgrades (`guardroomExpansion`, `chamberExpansion`, `quartersExpansion`, `slotExpansion`).
-- Core logic lives in `src/model/staff/`; intents in `src/store/handlers/staff.ts`.
+### Add a modification
 
-### Pipe / boiler / steam feature
+1. `src/model/modifications/<name>.ts` exporting a `ModificationDef`.
+2. Register in `modifications/index.ts`.
+3. Test in `effects.test.ts` if combat hooks apply.
 
-Read [`docs/PIPES.md`](../docs/PIPES.md) first. Key rules:
+### Infrastructure / housing / pipes
 
-- Generic pipe with **preview typing** (water = row 0, steam = steam turret); **locks at wave start**.
-- **Reject** placement that merges water and steam networks.
-- Boiler **1×2**; no pipes through boiler cells — water/steam on **adjacent** cells only.
-- Shared **mana** pool; mana springs (2×2) need water **and stationed magi**; boilers drain mana while producing.
-- Pipe / boiler / steam warnings are **per-room** alerts (outline + hover), not a HUD dump.
+- Design: [`INFRASTRUCTURE.md`](INFRASTRUCTURE.md), [`HOUSING.md`](HOUSING.md), [`PIPES.md`](PIPES.md).
+- Staff: `src/model/staff/` (`deploy`, `assign`, `combat`, `harvest`).
+- Layer id is **`workers`**.
 
 ### Add an intent and UI control
 
-1. Add variant to `Intent` in [`src/store/intents.ts`](../src/store/intents.ts).
-2. Handle in appropriate [`src/store/handlers/`](../src/store/handlers/) module.
-3. Add selector if the UI needs derived enable/disable state.
-4. Dispatch from [`src/view/dom/`](../src/view/dom/) or [`src/view/input.ts`](../src/view/input.ts).
-5. Wire mount in [`src/main.ts`](../src/main.ts) / [`index.html`](../index.html) if new panel.
-6. Add store or selector tests.
+See [`src/store/README.md`](../src/store/README.md).
+
+1. `Intent` variant in `intents.ts`.
+2. Handler in `handlers/`.
+3. Selector in `selectors/` if needed.
+4. Dispatch from `view/dom/` or `input.ts`.
 
 ### Change placement rules
 
-- [`src/model/tower.ts`](../src/model/tower.ts) — `canPlace`, `validateTower`, `placeRoomReplacing`
+- [`src/model/tower/`](../src/model/tower/) — `placement.ts`, `stability.ts`
 - [`src/model/tower.test.ts`](../src/model/tower.test.ts)
 
-### Change combat
+### Change combat / attack loop
 
-- [`src/calculations/combat.ts`](../src/calculations/combat.ts) — damage formulas
-- [`src/model/game.ts`](../src/model/game.ts) — attack-phase `step()`
-- [`src/model/modifications/effects.ts`](../src/model/modifications/effects.ts) — mod hooks
+- Damage formulas: [`src/calculations/combat.ts`](../src/calculations/combat.ts)
+- Attack tick order: [`src/model/tick.ts`](../src/model/tick.ts)
+- Phase FSM: [`src/model/phases.ts`](../src/model/phases.ts)
+- Mod / room hooks: [`src/model/modifications/effects.ts`](../src/model/modifications/effects.ts)
 
 ### Change enemy movement
 
 - [`src/calculations/pathfinding.ts`](../src/calculations/pathfinding.ts)
 - [`src/model/enemies.ts`](../src/model/enemies.ts)
+- Fliers: [`docs/FLYING.md`](FLYING.md)
 
-### Add or change balance scenarios
+### Tweak balance
 
-Playability scenarios live in [`src/store/playability.test.ts`](../src/store/playability.test.ts) and use the test driver in [`src/test/playability.ts`](../src/test/playability.ts).
-
-- Use `new Store(seed)`, intents, and fixed-timestep advancement through `PlayabilityDriver`; do not mutate `GameState` or inject enemies directly.
-- Give every scenario a fixed seed and a bounded step count. Terminal diagnostics must identify the seed, phase, scene, wizard HP, and remaining enemies/queue.
-- Add an item to a scenario only when it is part of a supported strategy. Test its intended measurable effect in its own focused model/store test as well.
-- Run `npm run test:playability` for the focused balance gate. Pull requests run it as the dedicated `playability` GitHub Actions job; `npm test` remains the complete regression suite.
+Index: [`src/config/README.md`](../src/config/README.md). Playability gate: [`src/store/playability.test.ts`](../src/store/playability.test.ts) + `npm run test:playability`.
 
 ## Conventions
 
 - Colocate tests as `*.test.ts` next to source.
-- Use `@/` alias in `store/` and `view/`; relative imports inside `model/` are fine.
-- DOM modules: `createX(root, store) => render` factory pattern.
-- Barrel files (`src/model/index.ts`, etc.) are discovery entry points — do not bulk-rewrite internal imports to use them.
+- Prefer `@/` in `store/` and `view/`; relative imports inside `model/` are fine.
+- DOM modules: `createX(root, store) => render`.
+- Historical plans in `.cursor/plans/` are not contributor docs.
 
 ## Before opening a PR
 
 ```bash
-npm test
-npm run typecheck
-npm run lint
+npm run lint && npm test
 ```
 
-CI runs on Node.js LTS (see `.nvmrc`).
-
-## Internal design notes
-
-Historical plans live in `.cursor/plans/` — not contributor documentation.
+CI uses Node.js LTS (`.nvmrc`).

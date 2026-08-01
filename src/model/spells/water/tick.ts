@@ -1,6 +1,6 @@
 import type { GameState } from '@/model/types';
+import { resetHydrantTimers, tickHydrants } from '@/model/rooms/hydrant';
 import { clearSoak, tickSoakDecay } from './soak';
-import { resetHydrantTimers, tickHydrants } from './hydrant';
 import { resetWetCells, tickWetCells } from './wetCells';
 import { resetActiveWaterfalls, tickActiveWaterfalls } from './waterfall';
 
@@ -27,7 +27,12 @@ export function tickWaterEffects(state: GameState, dt: number): void {
 export * from './constants';
 export * from './soak';
 export * from './wetCells';
-export * from './hydrant';
+export {
+  hydrantHasWater,
+  hydrantSprayCells,
+  resetHydrantTimers,
+  tickHydrants,
+} from '@/model/rooms/hydrant';
 export * from './splash';
 export * from './waterfall';
 export * from './deadweight';

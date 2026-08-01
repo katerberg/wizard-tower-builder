@@ -1,5 +1,6 @@
 import type { Cell, GameState } from '../../types';
-import { BLIZZARD_RADIUS } from './constants';
+import type { SpellDef } from '../types';
+import { BLIZZARD_DURATION, BLIZZARD_RADIUS } from './constants';
 import { ensureAirState } from './tornado';
 
 export function isInBlizzardZone(state: GameState, macroCol: number, macroRow: number): boolean {
@@ -37,3 +38,21 @@ export function tickBlizzardZones(state: GameState): void {
   ensureAirState(state);
   state.blizzardZones = state.blizzardZones.filter((z) => z.expiresAt > state.waveTimer);
 }
+
+export const blizzard: SpellDef = {
+  id: 'blizzard',
+  name: 'Blizzard',
+  glyph: 'B',
+  description: 'Large slowing snowfield. Light wind damage — sets up Gust and Tornado.',
+  manaCost: 4,
+  cooldown: 3,
+  targeting: 'gridPoint',
+  range: 8,
+  damage: 0,
+  previewCells: (_state, cell) => blizzardZoneCells(cell),
+  cast(ctx, target) {
+    if (target.kind !== 'cell') return;
+    addBlizzardZone(ctx.state, target.cell, ctx.state.waveTimer + BLIZZARD_DURATION);
+    ctx.log('Blizzard howls across the approach.', 'combat');
+  },
+};

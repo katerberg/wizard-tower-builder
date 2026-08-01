@@ -21,7 +21,7 @@ import {
 } from '@/model/spells/water/constants';
 import { addSheet, tickWetCells, waterfallPath } from '@/model/spells/water/wetCells';
 import { tickActiveWaterfalls } from '@/model/spells/water/waterfall';
-import { hydrantSprayCells, tickHydrants } from '@/model/spells/water/hydrant';
+import { hydrantSprayCells, tickHydrants } from '@/model/rooms/hydrant';
 import { deadweightDamage } from '@/model/spells/water/deadweight';
 import { createRoom, createStructure, createTower, placeRoom, placeStructure } from '@/model/tower';
 import type { GameState } from '@/model/types';

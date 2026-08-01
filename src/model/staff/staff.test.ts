@@ -12,7 +12,7 @@ import { getBlueprint } from '@/model/blueprints';
 import { createRoom,
   createStructure, createTower, placeRoom, placeStructure } from '@/model/tower';
 import { placeInfra } from '@/model/infra';
-import { tickManaSprings } from '@/model/manaSprings';
+import { tickManaSprings } from '@/model/rooms/manaSpring';
 import {
   deployStaffForWave,
   housingCapacity,

@@ -3,7 +3,7 @@ import { SUB_CELLS_PER_MACRO } from '@/config/constants';
 import { macroCellOfNode } from '@/calculations/subGrid';
 import { getEnemyTemplate } from '@/model/enemies';
 import type { ActiveWaterfall, Cell, GameState, MovementProfile } from '@/model/types';
-import type { SpellCastContext } from '../types';
+import type { SpellCastContext, SpellDef } from '../types';
 import {
   SHEET_FLOW_INTERVAL,
   WATERFALL_MAX_CELLS,
@@ -156,3 +156,21 @@ export function castWaterfall(ctx: SpellCastContext, start: Cell): void {
 export function waterfallPreviewCells(tower: GameState['tower'], start: Cell): Cell[] {
   return waterfallPath(tower, start, WATERFALL_MAX_CELLS);
 }
+
+export const waterfall: SpellDef = {
+  id: 'waterfall',
+  name: 'Waterfall',
+  glyph: 'W',
+  description:
+    'Continuous stream down the face (up to 10 cells). Washes climbers down, pools at the bottom, then fades from the top.',
+  manaCost: 4,
+  cooldown: 4,
+  targeting: 'gridPoint',
+  range: 10,
+  damage: 0,
+  previewCells: (state, cell) => waterfallPreviewCells(state.tower, cell),
+  cast(ctx, target) {
+    if (target.kind !== 'cell') return;
+    castWaterfall(ctx, target.cell);
+  },
+};

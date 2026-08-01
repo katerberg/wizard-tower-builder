@@ -3,6 +3,7 @@ import { cellKey } from '@/calculations/grid';
 import { macroCellOfNode } from '@/calculations/subGrid';
 import { addMessage } from '@/model/messages';
 import type { Cell, Enemy, GameState, Tower } from '@/model/types';
+import type { SpellDef } from '../types';
 import { FAULT_CHARGE_PER_PASS, FAULT_PATCH_DURATION } from './constants';
 import { addCharge, ensureEarthState } from './charge';
 
@@ -42,3 +43,21 @@ export function tickFaultPatches(state: GameState): void {
     addMessage(state, 'A Fault scar fades.', 'info');
   }
 }
+
+export const fault: SpellDef = {
+  id: 'fault',
+  name: 'Fault',
+  glyph: 'F',
+  description: 'Scar a climb tile. Each enemy pass feeds Charge.',
+  manaCost: 2,
+  cooldown: 4,
+  targeting: 'trapAdjacent',
+  range: 8,
+  damage: 0,
+  validatePlacement: (state, cell) => isValidFaultPlacement(state.tower, cell),
+  cast(ctx, target) {
+    if (target.kind !== 'cell') return;
+    addFaultPatch(ctx.state, target.cell);
+    ctx.log('Fault cracks the climb path.', 'combat');
+  },
+};

@@ -2,6 +2,7 @@ import { inMacroAirBounds, surfaceContactsMacro } from '../../../calculations/ex
 import { cellKey } from '../../../calculations/grid';
 import { macroCellOfNode } from '../../../calculations/subGrid';
 import type { Cell, Enemy, GameState, Tower } from '../../types';
+import type { SpellDef } from '../types';
 import { KINDLING_PATCH_DURATION } from './constants';
 import { applyKindled } from './kindled';
 import { ensureFireState } from './wall';
@@ -37,3 +38,21 @@ export function tickKindlingPatches(state: GameState): void {
   ensureFireState(state);
   state.kindlingPatches = state.kindlingPatches.filter((p) => p.expiresAt > state.waveTimer);
 }
+
+export const kindling: SpellDef = {
+  id: 'kindling',
+  name: 'Kindling',
+  glyph: 'K',
+  description: 'Place a visible trap beside the tower. Stepping on it marks the enemy Kindled for 15s.',
+  manaCost: 2,
+  cooldown: 3,
+  targeting: 'trapAdjacent',
+  range: 8,
+  damage: 0,
+  validatePlacement: (state, cell) => isValidKindlingPlacement(state.tower, cell),
+  cast(ctx, target) {
+    if (target.kind !== 'cell') return;
+    addKindlingPatch(ctx.state, target.cell);
+    ctx.log('Kindling trap armed.', 'combat');
+  },
+};

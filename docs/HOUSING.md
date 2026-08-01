@@ -4,7 +4,7 @@
 
 Three housing room types, each tied to a distinct staff role. The economy reshapes the tower — especially forcing **mana springs** to be sited where **chambers** can staff them.
 
-Numbers below match `src/config/constants.ts`. Treat gold/stone/metal/souls amounts as flexible until playtested.
+Numbers below match `src/config/staff.ts` / `src/config/economy.ts` (see `src/config/README.md`). Treat amounts as flexible until playtested.
 
 ---
 
@@ -195,7 +195,7 @@ flowchart TB
   build --> waveStart --> attack --> waveEnd --> build
 ```
 
-Attack `game.step` order (staff-related): `stepStaff` → `tickLaborerRepairs` → room behaviors (slots) → `tickManaSprings` → boilers → steam turrets.
+Attack tick order (staff-related) in `src/model/tick.ts`: `stepStaff` → `tickLaborerRepairs` → room effects (slots) → `tickRoomBehaviors` (mana springs → boilers → steam turrets).
 
 ---
 
@@ -205,7 +205,7 @@ Attack `game.step` order (staff-related): `stepStaff` → `tickLaborerRepairs` �
 |------|----------|
 | Blueprints | `guardroomRoom`, `chamberRoom`, `quartersRoom` |
 | Roster / deploy / move / repair | `src/model/staff/` |
-| Mana gate | `src/model/manaSprings.ts` |
+| Mana gate | `src/model/rooms/manaSpring.ts` |
 | Expansion mods | `guardroomExpansion`, `chamberExpansion`, `quartersExpansion` |
 | Intents | `recruitStaff`, `unrecruitStaff`, `setSlotAllocation`, `setManaSpringAllocation` |
 | Layer | `workers` |

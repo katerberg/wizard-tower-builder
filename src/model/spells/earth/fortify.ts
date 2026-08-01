@@ -1,5 +1,6 @@
 import { addMessage } from '@/model/messages';
 import type { GameState } from '@/model/types';
+import type { SpellDef } from '../types';
 import { FORTIFY_CHARGE_PER_SEC, FORTIFY_DAMAGE_MULT } from './constants';
 import { addCharge, ensureEarthState } from './charge';
 
@@ -38,3 +39,18 @@ export function mitigateWizardDamage(state: GameState, damage: number): number {
   if (!isFortified(state)) return damage;
   return Math.max(1, Math.floor(damage * FORTIFY_DAMAGE_MULT));
 }
+
+export const fortify: SpellDef = {
+  id: 'fortify',
+  name: 'Fortify',
+  glyph: 'O',
+  description: 'Concentrate: take 25% damage, gain Charge, cannot cast until you go.',
+  manaCost: 1,
+  cooldown: 2,
+  targeting: 'self',
+  range: 0,
+  damage: 0,
+  cast(ctx) {
+    startFortify(ctx.state);
+  },
+};

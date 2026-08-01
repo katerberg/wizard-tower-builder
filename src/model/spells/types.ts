@@ -56,6 +56,16 @@ export interface SpellDef {
   autoCast?: boolean;
   /** Chebyshev radius for gridPoint AoE (1 = 3×3). */
   aoeRadius?: number;
+  /** When true, casting requires earth charge > 0. */
+  requiresCharge?: boolean;
+  /** When true, may be cast while Fortify is active. */
+  allowedWhileConcentrating?: boolean;
+  /** When true, casting clears Fortify. */
+  breaksConcentration?: boolean;
+  /** Extra placement check for cell-targeted spells (trapAdjacent, puddle, etc.). */
+  validatePlacement?: (state: GameState, cell: Cell) => boolean;
+  /** Cells to highlight while aiming; defaults to aoe/single cell in selectors. */
+  previewCells?: (state: GameState, cell: Cell) => Cell[];
   cast: (ctx: SpellCastContext, target: SpellTarget) => void;
 }
 

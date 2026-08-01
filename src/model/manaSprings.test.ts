@@ -3,7 +3,7 @@ import { MANA_SPRING_PER_SEC, MAX_MANA } from '@/config/constants';
 import { getBlueprint } from './blueprints';
 import { placeInfra } from './infra';
 import { createInitialState } from './game';
-import { tickManaSprings } from './manaSprings';
+import { tickManaSprings } from './rooms/manaSpring';
 import { selectPipeConnectivityReport } from './pipes';
 import { createRoom, createTower, placeRoom } from './tower';
 import type { StaffUnit } from './types';
