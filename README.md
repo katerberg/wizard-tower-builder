@@ -8,8 +8,8 @@ Stack: **TypeScript**, **Vite**, **HTML5 Canvas** (board), **DOM** (UI chrome). 
 
 The run alternates between two phases:
 
-1. **Build** — Spend gold to place **framing** (spires / buttresses), **rooms**, and **infra**. Framing holds the tower up; rooms and infra sit on it (and auto-add Spire Blocks when needed). Paint **stairs** and **pipes**; recruit staff into housing; allocate slot/spring headcounts. Use the **Select** tool to inspect rooms (and bare framing). Right-click sells the room first (framing stays); click again to sell framing. When the tower is stable, start the wave.
-2. **Attack** — Enemies spawn at the base and pathfind toward the wizard. Staff path on the **interior** (horizontal through framing / passable rooms; **stairs/elevators** to change floors) to slots, mana springs, and repair jobs. Defenses: wizard **Wand Strike** (auto) plus a four-spell hotbar; **Turret** / **Steam Turret** rooms; soldier **Slots**; **spikes** (modification). **Gold Mines** pay out when a wave clears; mana regenerates from staffed springs. Survive the wave to earn gold and return to build. Lose if the wizard’s HP reaches zero.
+1. **Build** — Spend **stone**, **metal**, and **souls** to place **framing** (spires / buttresses), **rooms**, and **infra**. Framing holds the tower up; rooms and infra sit on it (and auto-add Spire Blocks when needed). Paint **stairs** and **pipes**; recruit staff into housing (**gold** payroll); allocate slot/spring headcounts. Use the **Select** tool to inspect rooms (and bare framing). Right-click sells the room first (framing stays); click again to sell framing. When the tower is stable, start the wave.
+2. **Attack** — Enemies spawn at the base and pathfind toward the wizard. Staff path on the **interior** (horizontal through framing / passable rooms; **stairs/elevators** to change floors) to slots, mana springs, and repair jobs. Surplus laborers **hand-pump** water and **harvest** stone/metal underground. Defenses: wizard **Wand Strike** (auto) plus a four-spell hotbar; **Turret** / **Steam Turret** rooms; soldier **Slots**; **spikes** (modification). Stone-built mass weathers and takes climber abrasion. Survive the wave to earn **gold** (clear) and **souls** (kills) and return to build. Lose if the wizard’s HP reaches zero.
 
 **Win** by clearing a wave while framing height is still **≥ 100**. Difficulty scales with tower height at Start Wave (plateaus + permanent enemy unlocks); see [`docs/HEIGHT_PROGRESSION.md`](docs/HEIGHT_PROGRESSION.md).
 
@@ -83,7 +83,7 @@ Contributor recipes: [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md).
 - All user actions flow **Input → Intent → Store handlers → Model**
 - Rules live in `src/model/` and `src/calculations/`; test with Vitest
 - **UI never mutates `GameState` directly** — only `store.dispatch(intent)`
-- Build phase uses draft economy (`buildBaseline`); gold commits on `startWave`
+- Build phase uses draft economy (`buildBaseline`); resources commit on `startWave`
 - **Build vs Select mode:** blueprint selected = place/replace; Select tool = inspect/modify
 
 ### Engine vs shell
@@ -178,7 +178,7 @@ Mount points: `#board`, `#stage`, `#hud`, `#library`, `#message-log`, `#modal-ro
 |------|---------|
 | **Tower** | Structures (framing) + rooms + occupancy maps + infra |
 | **Room** | Placed blueprint instance (origin, size, hp, modifications) |
-| **Blueprint** | Room type definition (cost, size, base hp, description) — structure rooms and specialty rooms (Turret, Steam Turret, Gold Mine, housing, Slot, Boiler, Mana Spring, …) |
+| **Blueprint** | Room type definition (multi-resource cost, size, base hp, description) — framing, housing, Slot, Boiler, Mana Spring, Turret, Steam Turret, Water Pump, … |
 | **Modification** | Leveled add-on on a room (spikes, housing/slot/boiler expansions, …) |
 | **Infra layer** | Per-cell overlay (`stair`, `pipe`, or `elevator`) on the same grid as rooms; one kind per cell |
 | **Staff** | Mobile units (soldier / mage / laborer) recruited into housing; route to workplaces during attack |
@@ -187,7 +187,7 @@ Mount points: `#board`, `#stage`, `#hud`, `#library`, `#message-log`, `#modal-ro
 | **Phase** | `build` or `attack` within a run |
 | **Scene** | `menu`, `run`, `gameOver`, `victory` |
 | **Intent** | Typed action dispatched to the store |
-| **buildBaseline** | Tower + gold snapshot at phase start; planning edits diff against this |
+| **buildBaseline** | Tower + resources snapshot at phase start; planning edits diff against this |
 | **Selectors** | Pure functions deriving UI affordances from `Snapshot` |
 
 ### Project layout
@@ -277,8 +277,9 @@ Still not done:
 - Movement-controlling structures (e.g. moats, parapets, cornices)
 - Structures such as crenels / murderholes beyond existing turrets
 - Further non-elemental spell kits / spell shop
-- Additional turret / economy room types beyond Gold Mine, Boiler, Mana Spring, Turret, and Steam Turret
+- Additional turret / economy room types beyond Boiler, Mana Spring, Turret, Steam Turret, and Water Pump
 - Infra/mod repair and mid-wave building (laborers repair room HP only today)
+- Exact harvest/wear balance curves; weather events on the weathering channel
 
 ## License
 

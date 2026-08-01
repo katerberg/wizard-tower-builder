@@ -89,7 +89,7 @@ Keep **Build → Start Wave → Attack → Build**.
 - Replace “Level N / 10” HUD with **height** (and keep a wave counter only if useful for debug; player-facing focus is height).
 - **Longer dwell at mid heights**; plateaus on the difficulty curve so 20→50→80→100 are chapters, not a linear panic.
 - Target feel: late game (approaching / holding ~100) ~**5 minutes** of epic defense, not a single spike wave.
-- Clear gold: scale with **difficulty (height-driven)** for now — incentivize climbing; revisit when resource harvesting lands.
+- Clear gold: scale with **difficulty (height-driven)** for payroll (recruit/upkeep); kill rewards are **souls**. Construction uses stone/metal/souls from laborer harvest.
 
 ### Hold & refine vs grind
 

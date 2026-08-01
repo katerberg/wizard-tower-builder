@@ -11,13 +11,25 @@ export type Fluid = 'water' | 'steam' | 'unassigned';
 export type HousingKind = 'guardroom' | 'chamber' | 'quarters';
 export type StaffKind = 'soldier' | 'mage' | 'laborer';
 
+export type ResourceId = 'gold' | 'metal' | 'stone' | 'souls';
+
+/** Full wallet / cost bag. Missing keys on Partial costs are treated as 0. */
+export interface Resources {
+  gold: number;
+  metal: number;
+  stone: number;
+  souls: number;
+}
+
+export type ResourceCost = Partial<Resources>;
+
 export interface Blueprint {
   id: string;
   name: string;
   glyph: string;
   color: string;
   size: { w: number; h: number };
-  cost: number;
+  cost: ResourceCost;
   baseHp: number;
   description: string;
   category?: BlueprintCategory;
@@ -130,10 +142,10 @@ export type Soldier = StaffUnit;
 /** @deprecated Prefer StaffStatus. */
 export type SoldierStatus = StaffStatus;
 
-/** Snapshot of tower + gold at the start of a build phase (planning baseline). */
+/** Snapshot of tower + resources at the start of a build phase (planning baseline). */
 export interface BuildBaseline {
   tower: Tower;
-  currency: number;
+  resources: Resources;
   housingRecruited: Record<string, number>;
   slotAllocations: Record<string, number>;
   manaSpringAllocations: Record<string, number>;
@@ -183,7 +195,8 @@ export interface EnemyTemplate {
   color: string;
   stats: { strength: number; dexterity: number; maxHp: number };
   speed: number;
-  currencyReward: number;
+  /** Souls granted when this enemy is killed. */
+  soulsReward: number;
   movement: MovementProfile;
   sizeTier: EnemySizeTier;
   /** Contact attack then self-remove (kamikaze). */
@@ -251,7 +264,7 @@ export type GameMessageKind = 'info' | 'combat' | 'economy';
 export interface GameMessage { text: string; kind: GameMessageKind }
 
 export interface Player {
-  currency: number;
+  resources: Resources;
   unlockedBlueprints: string[];
   levelIndex: number;
   wizard: Wizard;

@@ -78,7 +78,7 @@ function recruitStaff(ctx: HandlerContext, housingRoomId: string): void {
   }
 
   const cost = recruitCost(kind);
-  if (!canAffordBuild(game.buildBaseline, game.tower, cost, game.buildRecruitSpend)) {
+  if (!canAffordBuild(game.buildBaseline, game.tower, { gold: cost }, game.buildRecruitSpend)) {
     addMessage(game, `Not enough gold to recruit a ${staffLabel(kind)} (${cost}).`, 'economy');
     return;
   }

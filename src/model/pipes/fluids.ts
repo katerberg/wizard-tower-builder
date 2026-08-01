@@ -67,6 +67,7 @@ function flood(
   seeds: Cell[],
   assign: Record<string, PipeFluid>,
   label: 'water' | 'steam',
+  maxRow = Infinity,
 ): void {
   const queue = [...seeds];
   const seen = new Set<string>();
@@ -80,6 +81,7 @@ function flood(
       const n = { col: cur.col + dc, row: cur.row + dr };
       const key = cellKey(n.col, n.row);
       if (seen.has(key) || !hasPipe(tower, n.col, n.row)) continue;
+      if (label === 'water' && n.row > maxRow) continue;
       seen.add(key);
       queue.push(n);
     }
@@ -87,10 +89,13 @@ function flood(
 }
 
 /**
- * Water: flood from row-0 pipes.
+ * Water: flood from row-0 pipes up to `maxWaterRow`.
  * Steam: flood from pipes adjacent to steam turrets that are not water.
  */
-export function selectPipeFluids(tower: Tower): Record<string, PipeFluid> {
+export function selectPipeFluids(
+  tower: Tower,
+  maxWaterRow = Infinity,
+): Record<string, PipeFluid> {
   const result: Record<string, PipeFluid> = {};
   const pipes = pipeCells(tower);
   for (const c of pipes) {
@@ -98,7 +103,7 @@ export function selectPipeFluids(tower: Tower): Record<string, PipeFluid> {
   }
 
   const waterSeeds = pipes.filter((c) => c.row === 0);
-  flood(tower, waterSeeds, result, 'water');
+  flood(tower, waterSeeds, result, 'water', maxWaterRow);
 
   const steamSeeds: Cell[] = [];
   for (const foot of steamTurretFootprintCells(tower)) {
@@ -172,8 +177,8 @@ export function wouldMixFluids(tower: Tower, cell: Cell): boolean {
 }
 
 /** Write resolved fluids onto pipe cells (call at wave start). */
-export function lockPipeFluids(tower: Tower): Tower {
-  const fluids = selectPipeFluids(tower);
+export function lockPipeFluids(tower: Tower, maxWaterRow = Infinity): Tower {
+  const fluids = selectPipeFluids(tower, maxWaterRow);
   const infra = { ...tower.infra };
   for (const [key, cell] of Object.entries(infra)) {
     if (cell.kind !== 'pipe') continue;

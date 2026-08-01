@@ -1,4 +1,5 @@
 import { canAffordBuild } from '@/calculations/buildCost';
+import { formatResourceCost } from '@/calculations/resources';
 import { addMessage } from '@/model/messages';
 import {
   canApplyModification,
@@ -33,7 +34,7 @@ function addModificationTo(ctx: HandlerContext, roomId: string, modId: string): 
   }
   const cost = modificationCost(def, 1);
   if (!canAffordBuild(game.buildBaseline, game.tower, cost, game.buildRecruitSpend)) {
-    addMessage(game, `Not enough gold for ${def.name} (${cost}).`, 'economy');
+    addMessage(game, `Not enough resources for ${def.name} (${formatResourceCost(cost)}).`, 'economy');
     return;
   }
   ctx.recordBuildStep();
@@ -55,7 +56,7 @@ function upgradeModificationOn(ctx: HandlerContext, roomId: string, modId: strin
   }
   const cost = modificationCost(def, mod.level + 1);
   if (!canAffordBuild(game.buildBaseline, game.tower, cost, game.buildRecruitSpend)) {
-    addMessage(game, `Not enough gold to upgrade ${def.name} (${cost}).`, 'economy');
+    addMessage(game, `Not enough resources to upgrade ${def.name} (${formatResourceCost(cost)}).`, 'economy');
     return;
   }
   ctx.recordBuildStep();

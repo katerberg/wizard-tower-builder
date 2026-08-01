@@ -1,6 +1,7 @@
 import { getBlueprint, isStructureBlueprint } from '@/model/blueprints';
 import { isInfraBlueprint } from '@/model/infraBlueprints';
 import { canAffordBuild } from '@/calculations/buildCost';
+import { formatResourceCost } from '@/calculations/resources';
 import { addMessage } from '@/model/messages';
 import { pruneHousingState, pruneOrphanStaffState, seedSpecialtyRoomDefaults } from '@/model/staff';
 import {
@@ -64,8 +65,8 @@ function placeSelected(ctx: HandlerContext, cell: { col: number; row: number }):
       addMessage(game, `Cannot build here: ${placed.reason.replace(/_/g, ' ')}.`, 'info');
       return;
     }
-    if (!canAffordBuild(game.buildBaseline, placed.tower, 0, game.buildRecruitSpend)) {
-      addMessage(game, `Not enough gold for ${blueprint.name} (${blueprint.cost}).`, 'economy');
+    if (!canAffordBuild(game.buildBaseline, placed.tower, {}, game.buildRecruitSpend)) {
+      addMessage(game, `Not enough resources for ${blueprint.name} (${formatResourceCost(blueprint.cost)}).`, 'economy');
       return;
     }
     ctx.recordBuildStep();
@@ -84,8 +85,8 @@ function placeSelected(ctx: HandlerContext, cell: { col: number; row: number }):
     addMessage(game, `Cannot build here: ${placed.reason.replace(/_/g, ' ')}.`, 'info');
     return;
   }
-  if (!canAffordBuild(game.buildBaseline, placed.tower, 0, game.buildRecruitSpend)) {
-    addMessage(game, `Not enough gold for ${blueprint.name} (${blueprint.cost}).`, 'economy');
+  if (!canAffordBuild(game.buildBaseline, placed.tower, {}, game.buildRecruitSpend)) {
+    addMessage(game, `Not enough resources for ${blueprint.name} (${formatResourceCost(blueprint.cost)}).`, 'economy');
     return;
   }
   ctx.recordBuildStep();

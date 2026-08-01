@@ -9,6 +9,6 @@ export const chamberExpansion: ModificationDef = {
   description: 'Increases capacity from 1 to 2 magi.',
   mechanicsAtLevel: () => 'Capacity 2 magi',
   maxLevel: 1,
-  cost: (level) => (level === 1 ? 10 : 0),
+  cost: (level) => (level === 1 ? { souls: 10 } : {}),
   canApply: (room) => isChamber(room),
 };

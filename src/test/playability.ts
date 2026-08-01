@@ -84,7 +84,7 @@ export class PlayabilityDriver {
       scene: game.scene,
       phase: game.phase,
       wizardHp: game.player.wizard.hp,
-      currency: game.player.currency,
+      currency: game.player.resources.gold,
       enemiesRemaining: game.enemies.length,
       spawnQueueRemaining: game.spawnQueue.length,
     };

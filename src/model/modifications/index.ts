@@ -1,3 +1,8 @@
+import {
+  addResources,
+  emptyResources,
+  scaleResources,
+} from '../../calculations/resources';
 import type { Room, RoomStats, Tower } from '../types';
 import type { ModificationDef } from './types';
 import { boilerExpansion } from './boilerExpansion';
@@ -29,8 +34,8 @@ export function listModifications(): ModificationDef[] {
   return MODIFICATIONS;
 }
 
-/** Gold cost to bring a modification to `level` (level 1 = adding it). */
-export function modificationCost(def: ModificationDef, level: number): number {
+/** Resource cost to bring a modification to `level` (level 1 = adding it). */
+export function modificationCost(def: ModificationDef, level: number) {
   return def.cost(level);
 }
 
@@ -73,18 +78,24 @@ export function canUpgradeModification(room: Room, id: string): boolean {
   return level > 0 && level < def.maxLevel;
 }
 
-/** Total gold refunded for all of a room's modifications when it is sold. */
-export function modificationRefund(room: Room): number {
-  let refund = 0;
+/** Total resources refunded for all of a room's modifications when it is sold. */
+export function modificationRefund(room: Room) {
+  let refund = emptyResources();
   for (const mod of room.modifications) {
     const def = getModification(mod.id);
     if (!def) continue;
     const rate = def.sellRefundRate ?? DEFAULT_REFUND_RATE;
-    let spent = 0;
+    let spent = emptyResources();
     for (let level = 1; level <= mod.level; level++) {
-      spent += def.cost(level);
+      spent = addResources(spent, def.cost(level));
     }
-    refund += Math.floor(spent * rate);
+    const partial = scaleResources(spent, rate);
+    refund = addResources(refund, {
+      gold: Math.floor(partial.gold),
+      metal: Math.floor(partial.metal),
+      stone: Math.floor(partial.stone),
+      souls: Math.floor(partial.souls),
+    });
   }
   return refund;
 }

@@ -1,3 +1,4 @@
+import { formatResourceAmount } from '@/calculations/resources';
 import { WIN_HEIGHT } from '@/model/waves';
 import { towerExtents } from '@/model/tower';
 import {
@@ -63,10 +64,19 @@ export function createHud(root: HTMLElement, store: Store): () => void {
         : inBuild
           ? '<p class="mode-hint">Select rooms to modify</p>'
           : '';
-    const goldLabel =
-      economy.isPlanning && economy.committedGold > 0
-        ? `${economy.remainingGold} (${economy.committedGold} committed)`
-        : `${economy.remainingGold}`;
+    const r = economy.remaining;
+    const committed = economy.committed;
+    const showCommitted =
+      economy.isPlanning &&
+      (committed.gold > 0 || committed.metal > 0 || committed.stone > 0 || committed.souls > 0);
+    const fmt = (n: number, c: number) => {
+      const amount = formatResourceAmount(n);
+      return showCommitted && c > 0 ? `${amount} (${formatResourceAmount(c)} in)` : amount;
+    };
+    const goldLabel = fmt(r.gold, committed.gold);
+    const metalLabel = fmt(r.metal, committed.metal);
+    const stoneLabel = fmt(r.stone, committed.stone);
+    const soulsLabel = fmt(r.souls, committed.souls);
     const logistics = inBuild ? selectLogisticsReport(snapshot.game) : null;
     const logisticsHtml =
       logistics && logistics.warnings.length > 0
@@ -92,7 +102,7 @@ export function createHud(root: HTMLElement, store: Store): () => void {
 
     const devControls = game.devMode
       ? `<div class="dev-row">
-           <button data-action="devAddCurrency">+50 gold</button>
+           <button data-action="devAddCurrency">+50 all</button>
            <button data-action="devSkipWave">Skip wave</button>
          </div>
          <div class="dev-row">
@@ -108,6 +118,9 @@ export function createHud(root: HTMLElement, store: Store): () => void {
       <div class="stat"><span>Phase</span><strong>${labelPhase(game.scene, game.phase)}</strong></div>
       <div class="stat"><span>Height</span><strong>${height} / ${WIN_HEIGHT}</strong></div>
       <div class="stat"><span>Gold</span><strong>${goldLabel}</strong></div>
+      <div class="stat"><span>Metal</span><strong>${metalLabel}</strong></div>
+      <div class="stat"><span>Stone</span><strong>${stoneLabel}</strong></div>
+      <div class="stat"><span>Souls</span><strong>${soulsLabel}</strong></div>
       <div class="stat"><span>Wizard HP</span><strong>${player.wizard.hp} / ${player.wizard.maxHp}</strong></div>
       ${attackInfo}
       ${buildModeHint}

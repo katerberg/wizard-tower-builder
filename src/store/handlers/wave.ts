@@ -1,4 +1,5 @@
 import { netBuildCost } from '@/calculations/buildCost';
+import { subResources } from '@/calculations/resources';
 import { beginRun, createInitialState } from '@/model/game';
 import { addMessage } from '@/model/messages';
 import { beginWave } from '@/model/phases';
@@ -31,7 +32,10 @@ function startWave(ctx: HandlerContext): void {
   }
   if (game.buildBaseline) {
     const net = netBuildCost(game.buildBaseline, game.tower);
-    game.player.currency = game.buildBaseline.currency - net - game.buildRecruitSpend;
+    game.player.resources = subResources(
+      subResources(game.buildBaseline.resources, net),
+      { gold: game.buildRecruitSpend },
+    );
   }
   ctx.clearBuildHistory();
   beginWave(game);

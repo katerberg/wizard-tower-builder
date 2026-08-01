@@ -1,7 +1,7 @@
-import { SUB_CELLS_PER_MACRO } from '@/config/constants';
+import { SUB_CELLS_PER_MACRO, STARTING_RESOURCES } from '@/config/constants';
 import { describe, expect, it } from 'vitest';
-import { netBuildCost, remainingBuildGold } from '@/calculations/buildCost';
-import { STARTING_CURRENCY } from '@/config/constants';
+import { netBuildCost, remainingBuildResources } from '@/calculations/buildCost';
+import { emptyResources, resourcesEqual } from '@/calculations/resources';
 import { createInitialState } from './game';
 import { createStarterTower, STARTER_TOWER_PLACEMENTS } from './starterTower';
 import { getWizardPosition, isOccupied, isTowerConnected, isTowerStable } from './tower';
@@ -45,8 +45,12 @@ describe('createInitialState starter economy', () => {
     expect(state.tower.structures.length).toBeGreaterThan(0);
     expect(state.tower.rooms.length).toBe(0);
     expect(state.buildBaseline).not.toBeNull();
-    expect(netBuildCost(state.buildBaseline!, state.tower)).toBe(0);
-    expect(remainingBuildGold(state.buildBaseline!, state.tower)).toBe(STARTING_CURRENCY);
-    expect(state.player.currency).toBe(STARTING_CURRENCY);
+    expect(resourcesEqual(netBuildCost(state.buildBaseline!, state.tower), emptyResources())).toBe(
+      true,
+    );
+    expect(remainingBuildResources(state.buildBaseline!, state.tower)).toEqual({
+      ...STARTING_RESOURCES,
+    });
+    expect(state.player.resources.gold).toBe(STARTING_RESOURCES.gold);
   });
 });

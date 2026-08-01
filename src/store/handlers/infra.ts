@@ -1,4 +1,5 @@
 import { canAffordBuild } from '@/calculations/buildCost';
+import { formatResourceCost } from '@/calculations/resources';
 import { getInfraBlueprint, isInfraBlueprint } from '@/model/infraBlueprints';
 import { getInfraAt, removeInfraAt } from '@/model/infra';
 import { applyInfraPlacement, planInfraPlacement } from '@/model/infraPlacement';
@@ -50,8 +51,8 @@ function placeInfraSelected(ctx: HandlerContext, cell: { col: number; row: numbe
   }
 
   const nextTower = applyInfraPlacement(game.tower, blueprint, cell, ctx.nextRoomId(), plan);
-  if (!canAffordBuild(game.buildBaseline, nextTower, 0, game.buildRecruitSpend)) {
-    addMessage(game, `Not enough gold for ${blueprint.name} (${blueprint.cost}).`, 'economy');
+  if (!canAffordBuild(game.buildBaseline, nextTower, {}, game.buildRecruitSpend)) {
+    addMessage(game, `Not enough resources for ${blueprint.name} (${formatResourceCost(blueprint.cost)}).`, 'economy');
     return;
   }
 

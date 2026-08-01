@@ -12,7 +12,10 @@ export const spikes: ModificationDef = {
   description: 'Punishes climbers who step on or beside this room.',
   mechanicsAtLevel: (level) => `${SPIKES_DAMAGE_PER_LEVEL * level} damage per enemy step on/adjacent`,
   maxLevel: COSTS.length,
-  cost: (level) => COSTS[level - 1] ?? Infinity,
+  cost: (level) => {
+    const n = COSTS[level - 1];
+    return n == null ? { stone: Infinity } : { stone: n };
+  },
   onEnemyStep: {
     run: (ctx) => {
       if (!ctx.enemyTouchesFootprint) return;

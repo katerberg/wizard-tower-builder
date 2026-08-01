@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ELEVATOR_CAPACITY, SOLDIER_RECRUIT_COST } from '@/config/constants';
+import { totalResourceUnits } from '@/calculations/resources';
 import { canSoldierTraverse, isSoldierWalkable } from '@/calculations/interiorGraph';
 import { findInteriorPath } from '@/calculations/interiorPathfinding';
 import { createInitialState } from '@/model/game';
@@ -218,6 +219,8 @@ describe('elevator blueprint', () => {
   it('exposes an elevator infra blueprint', () => {
     const bp = getInfraBlueprint('elevator');
     expect(bp?.infraKind).toBe('elevator');
-    expect(bp?.cost).toBeGreaterThan(getInfraBlueprint('staircase')!.cost);
+    expect(totalResourceUnits(bp!.cost)).toBeGreaterThan(
+      totalResourceUnits(getInfraBlueprint('staircase')!.cost),
+    );
   });
 });

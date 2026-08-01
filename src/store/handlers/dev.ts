@@ -1,4 +1,5 @@
 import { reward } from '@/calculations/economy';
+import { addResources } from '@/calculations/resources';
 import { addMessage } from '@/model/messages';
 import { setActiveSpellSchool } from '@/model/spells';
 import type { HandlerContext } from '../context';
@@ -12,9 +13,12 @@ export function handleDevIntent(ctx: HandlerContext, intent: Intent): void {
       break;
     case 'devAddCurrency':
       if (ctx.game.devMode) {
-        reward(ctx.game, 50);
-        if (ctx.game.buildBaseline) ctx.game.buildBaseline.currency += 50;
-        addMessage(ctx.game, 'Dev: +50 gold.', 'economy');
+        const grant = { gold: 50, metal: 50, stone: 50, souls: 50 };
+        reward(ctx.game, grant);
+        if (ctx.game.buildBaseline) {
+          ctx.game.buildBaseline.resources = addResources(ctx.game.buildBaseline.resources, grant);
+        }
+        addMessage(ctx.game, 'Dev: +50 to each resource.', 'economy');
       }
       break;
     case 'devSkipWave':

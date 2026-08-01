@@ -4,11 +4,15 @@ import {
   CARRIER_LAUNCH_INTERVAL,
   MAX_LIVE_ENEMIES,
   MAX_MANA,
-  STARTING_CURRENCY,
+  STARTING_RESOURCES,
   WIZARD_DEFAULTS,
 } from '@/config/constants';
+import { cloneResources } from '@/calculations/resources';
+import { rewardSouls } from '@/calculations/economy';
 import { sameMacroCell, macroCellOfNode } from '@/calculations/subGrid';
 import { resetStaffCounter, stepStaff, tickLaborerRepairs } from './staff';
+import { tickLaborerHarvestAndPump } from './staff/harvest';
+import { applyExteriorAbrasion, tickStoneWeathering } from './wear';
 import { stepElevators } from './elevators';
 import { tickBoilers } from './boilers';
 import { tickManaSprings } from './manaSprings';
@@ -83,7 +87,7 @@ export function createInitialState(seed: string | number = 'wizard'): GameState 
     unlockedEnemyIds: [],
     simSpeed: loadSimSpeed(),
     player: {
-      currency: STARTING_CURRENCY,
+      resources: cloneResources({ ...STARTING_RESOURCES }),
       unlockedBlueprints: [...STARTING_BLUEPRINT_IDS],
       levelIndex: 0,
       wizard: { ...WIZARD_DEFAULTS, hp: WIZARD_DEFAULTS.maxHp, glyph: '@' },
@@ -251,11 +255,14 @@ function macroManhattan(a: ExteriorNode, b: ExteriorNode): number {
   return Math.abs(am.col - bm.col) + Math.abs(am.row - bm.row);
 }
 
-function trackMacroMovement(enemy: Enemy): void {
+function trackMacroMovement(enemy: Enemy, state: GameState, canFly: boolean): void {
   const m = macroCellOfNode(enemy.pos);
   const key = `${m.col},${m.row}`;
   if (enemy.lastMacroKey && enemy.lastMacroKey !== key) {
     enemy.macroCellsMoved = (enemy.macroCellsMoved ?? 0) + 1;
+    if (!canFly && enemy.pos.face !== 'air') {
+      applyExteriorAbrasion(state, { col: m.col, row: m.row });
+    }
   }
   enemy.lastMacroKey = key;
   if (
@@ -354,7 +361,7 @@ export function step(state: GameState, dt: number): void {
           isWalkable(state.tower, col, row, template.movement));
         if (stepTo) {
           enemy.pos = stepTo;
-          trackMacroMovement(enemy);
+          trackMacroMovement(enemy, state, template.movement.canFly);
         }
         enemy.moveCooldown = (1 / template.speed) * moveSlowMultiplier(state, enemy);
       }
@@ -375,7 +382,7 @@ export function step(state: GameState, dt: number): void {
       }
       enemy.pathIndex += 1;
       enemy.pos = nextPos;
-      trackMacroMovement(enemy);
+      trackMacroMovement(enemy, state, template.movement.canFly);
       enemy.moveCooldown = (1 / template.speed) * moveSlowMultiplier(state, enemy);
       if (!template.movement.canFly) {
         runEnemyStepEffects(state, enemy);
@@ -400,10 +407,12 @@ export function step(state: GameState, dt: number): void {
   tickEarthEffects(state, dt, (spellName) => buildSpellContext(state, spellName));
   tickWaterEffects(state, dt);
 
-  // Elevator cars, then staff movement and laborer repairs during attack.
+  // Elevator cars, then staff movement, repairs, harvest, and stone wear.
   stepElevators(state, dt);
   stepStaff(state, dt);
   tickLaborerRepairs(state, dt);
+  tickLaborerHarvestAndPump(state, dt);
+  tickStoneWeathering(state, dt);
 
   // Room behaviors (turret rooms, slot volleys) and modifications (spikes) act on enemies this tick.
   runRoomEffects(state, dt);
@@ -413,14 +422,18 @@ export function step(state: GameState, dt: number): void {
   tickBoilers(state, dt);
   tickSteamTurrets(state, dt);
 
-  // Reap dead enemies and award currency.
+  // Reap dead enemies and award souls.
   const survivors: Enemy[] = [];
   for (const enemy of state.enemies) {
     if (enemy.currentHp <= 0) {
       const template = getEnemyTemplate(enemy.templateId);
       if (template) {
-        state.player.currency += template.currencyReward;
-        addMessage(state, `${enemy.name} the ${template.type} destroyed. +${template.currencyReward} gold.`, 'economy');
+        rewardSouls(state, template.soulsReward);
+        addMessage(
+          state,
+          `${enemy.name} the ${template.type} destroyed. +${template.soulsReward} souls.`,
+          'economy',
+        );
       }
     } else {
       survivors.push(enemy);
