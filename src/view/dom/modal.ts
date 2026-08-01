@@ -165,7 +165,7 @@ function roomBody(inspector: RoomInspector): string {
       ${
         isBuildPhase
           ? `<div class="slot-stepper">
-               <button class="mod-btn ${atMin ? 'disabled' : ''}" data-action="unrecruitStaff" data-room="${room.id}">−</button>
+               <button class="mod-btn stepper-btn ${atMin ? 'disabled' : ''}" data-action="unrecruitStaff" data-room="${room.id}">−</button>
                <button class="mod-btn ${full ? 'disabled' : ''}" data-action="recruitStaff" data-room="${room.id}">Recruit · ${inspector.recruitCost}g</button>
              </div>`
           : ''
@@ -179,9 +179,9 @@ function roomBody(inspector: RoomInspector): string {
       ${
         isBuildPhase
           ? `<div class="slot-stepper">
-               <button data-action="slotMinus" data-room="${room.id}">−</button>
+               <button class="stepper-btn" data-action="slotMinus" data-room="${room.id}">−</button>
                <span>${inspector.slotAllocated}</span>
-               <button data-action="slotPlus" data-room="${room.id}">+</button>
+               <button class="stepper-btn" data-action="slotPlus" data-room="${room.id}">+</button>
              </div>`
           : ''
       }`;
@@ -194,9 +194,9 @@ function roomBody(inspector: RoomInspector): string {
       ${
         isBuildPhase
           ? `<div class="slot-stepper">
-               <button data-action="springMinus" data-room="${room.id}">−</button>
+               <button class="stepper-btn" data-action="springMinus" data-room="${room.id}">−</button>
                <span>${inspector.manaSpringAllocated}</span>
-               <button data-action="springPlus" data-room="${room.id}">+</button>
+               <button class="stepper-btn" data-action="springPlus" data-room="${room.id}">+</button>
              </div>`
           : ''
       }`;

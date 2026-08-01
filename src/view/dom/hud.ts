@@ -1,3 +1,4 @@
+import { formatResourceAmount } from '@/calculations/resources';
 import { WIN_HEIGHT } from '@/model/waves';
 import { towerExtents } from '@/model/tower';
 import {
@@ -68,7 +69,10 @@ export function createHud(root: HTMLElement, store: Store): () => void {
     const showCommitted =
       economy.isPlanning &&
       (committed.gold > 0 || committed.metal > 0 || committed.stone > 0 || committed.souls > 0);
-    const fmt = (n: number, c: number) => (showCommitted && c > 0 ? `${n} (${c} in)` : `${n}`);
+    const fmt = (n: number, c: number) => {
+      const amount = formatResourceAmount(n);
+      return showCommitted && c > 0 ? `${amount} (${formatResourceAmount(c)} in)` : amount;
+    };
     const goldLabel = fmt(r.gold, committed.gold);
     const metalLabel = fmt(r.metal, committed.metal);
     const stoneLabel = fmt(r.stone, committed.stone);

@@ -76,12 +76,22 @@ export function resourcesEqual(a: Resources, b: Resources): boolean {
   return a.gold === b.gold && a.metal === b.metal && a.stone === b.stone && a.souls === b.souls;
 }
 
+const RESOURCE_AMOUNT_FORMAT = new Intl.NumberFormat('en-US', {
+  maximumFractionDigits: 1,
+  useGrouping: false,
+});
+
+/** Display amount with at most one decimal place (e.g. 40, 36.1). */
+export function formatResourceAmount(n: number): string {
+  return RESOURCE_AMOUNT_FORMAT.format(n);
+}
+
 /** Human-readable cost, e.g. "6 metal" or "4 metal + 2 souls". */
 export function formatResourceCost(cost: ResourceCost): string {
   const parts: string[] = [];
   for (const id of RESOURCE_IDS) {
     const n = cost[id] ?? 0;
-    if (n !== 0) parts.push(`${n} ${id}`);
+    if (n !== 0) parts.push(`${formatResourceAmount(n)} ${id}`);
   }
   return parts.length > 0 ? parts.join(' + ') : 'free';
 }

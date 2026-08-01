@@ -15,6 +15,7 @@ export {
   canAffordResources,
   cloneResources,
   emptyResources,
+  formatResourceAmount,
   formatResourceCost,
   isZeroCost,
   resourcesEqual,

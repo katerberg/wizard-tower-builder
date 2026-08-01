@@ -143,6 +143,10 @@ button {
   border: 1px solid #2d3748;
   border-radius: 6px;
   padding: 8px 10px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 button:hover {
@@ -553,8 +557,8 @@ button:disabled:hover {
 
 .mod-btn {
   font-size: 12px;
-  white-space: nowrap;
-  flex-shrink: 0;
+  flex-shrink: 1;
+  min-width: 0;
 }
 
 .mod-max {
@@ -706,11 +710,17 @@ button.danger {
   align-items: center;
   gap: 8px;
   margin: 8px 0;
+  min-width: 0;
 }
 
-.slot-stepper button {
+.slot-stepper .stepper-btn {
   width: 32px;
   padding: 4px;
+  flex-shrink: 0;
+}
+
+.slot-stepper .mod-btn:not(.stepper-btn) {
+  flex: 1;
 }
 
 .connectivity-warn p {
