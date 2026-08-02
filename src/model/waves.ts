@@ -1,6 +1,7 @@
 import {
   SPAWN_INTERVAL_BRUTE,
   SPAWN_INTERVAL_CARRIER,
+  SPAWN_INTERVAL_DEMOLISHER,
   SPAWN_INTERVAL_ELITE,
   SPAWN_INTERVAL_KAMIKAZE,
   SPAWN_INTERVAL_SKIRMISHER,
@@ -19,6 +20,9 @@ export const ENEMY_POINT_COST: Record<string, number> = {
   striker: 3,
   kamikaze: 4,
   elite: 8,
+  demolisher: 8,
+  demolisherElite: 8,
+  demolisherBrute: 8,
   carrier: 15,
   brute: 20,
 };
@@ -27,9 +31,11 @@ export const ENEMY_POINT_COST: Record<string, number> = {
 export const UNLOCK_THRESHOLDS: readonly { height: number; ids: readonly string[] }[] = [
   { height: 0, ids: ['swarm', 'elite'] },
   { height: 15, ids: ['striker'] },
-  { height: 30, ids: ['kamikaze'] },
+  { height: 30, ids: ['kamikaze', 'demolisher'] },
   { height: 40, ids: ['skirmisher'] },
+  { height: 55, ids: ['demolisherElite'] },
   { height: 70, ids: ['carrier'] },
+  { height: 80, ids: ['demolisherBrute'] },
   { height: 85, ids: ['brute'] },
 ];
 
@@ -39,8 +45,11 @@ const HOME_HEIGHT: Record<string, number> = {
   elite: 0,
   striker: 15,
   kamikaze: 30,
+  demolisher: 30,
   skirmisher: 40,
+  demolisherElite: 55,
   carrier: 70,
+  demolisherBrute: 80,
   brute: 85,
 };
 
@@ -53,6 +62,9 @@ const BELOW_HOME_MAX: Record<string, number> = {
   striker: 2,
   kamikaze: 1,
   skirmisher: 8,
+  demolisher: 1,
+  demolisherElite: 1,
+  demolisherBrute: 1,
 };
 
 interface Plateau {
@@ -61,6 +73,8 @@ interface Plateau {
   eliteSlots: number;
   bruteSlots: number;
   carrierSlots: number;
+  /** Cap across all demolisher size tiers combined. */
+  demolisherSlots: number;
   strikerTarget: number;
   kamikazeTarget: number;
   /** Fraction of remaining fodder budget spent on skirmishers when unlocked at/above home. */
@@ -75,6 +89,7 @@ const PLATEAUS: readonly Plateau[] = [
     eliteSlots: 1,
     bruteSlots: 0,
     carrierSlots: 0,
+    demolisherSlots: 0,
     strikerTarget: 0,
     kamikazeTarget: 0,
     skirmisherShare: 0,
@@ -85,6 +100,7 @@ const PLATEAUS: readonly Plateau[] = [
     eliteSlots: 1,
     bruteSlots: 0,
     carrierSlots: 0,
+    demolisherSlots: 0,
     strikerTarget: 3,
     kamikazeTarget: 0,
     skirmisherShare: 0,
@@ -95,6 +111,7 @@ const PLATEAUS: readonly Plateau[] = [
     eliteSlots: 2,
     bruteSlots: 0,
     carrierSlots: 0,
+    demolisherSlots: 1,
     strikerTarget: 5,
     kamikazeTarget: 2,
     skirmisherShare: 0,
@@ -105,6 +122,7 @@ const PLATEAUS: readonly Plateau[] = [
     eliteSlots: 2,
     bruteSlots: 0,
     carrierSlots: 0,
+    demolisherSlots: 1,
     strikerTarget: 6,
     kamikazeTarget: 3,
     skirmisherShare: 0.28,
@@ -115,6 +133,7 @@ const PLATEAUS: readonly Plateau[] = [
     eliteSlots: 4,
     bruteSlots: 0,
     carrierSlots: 0,
+    demolisherSlots: 1,
     strikerTarget: 8,
     kamikazeTarget: 4,
     skirmisherShare: 0.3,
@@ -125,6 +144,7 @@ const PLATEAUS: readonly Plateau[] = [
     eliteSlots: 5,
     bruteSlots: 0,
     carrierSlots: 1,
+    demolisherSlots: 2,
     strikerTarget: 10,
     kamikazeTarget: 5,
     skirmisherShare: 0.3,
@@ -135,6 +155,7 @@ const PLATEAUS: readonly Plateau[] = [
     eliteSlots: 5,
     bruteSlots: 1,
     carrierSlots: 2,
+    demolisherSlots: 2,
     strikerTarget: 12,
     kamikazeTarget: 6,
     skirmisherShare: 0.32,
@@ -145,6 +166,7 @@ const PLATEAUS: readonly Plateau[] = [
     eliteSlots: 6,
     bruteSlots: 2,
     carrierSlots: 2,
+    demolisherSlots: 2,
     strikerTarget: 14,
     kamikazeTarget: 7,
     skirmisherShare: 0.32,
@@ -200,6 +222,8 @@ function takeCount(
   budget.remaining -= n * cost;
 }
 
+const DEMOLISHER_TIERS = ['demolisherBrute', 'demolisherElite', 'demolisher'] as const;
+
 function composeWave(ctx: WaveContext): WaveDef {
   const height = Math.max(0, Math.floor(ctx.height));
   const plateau = plateauForHeight(height);
@@ -213,6 +237,15 @@ function composeWave(ctx: WaveContext): WaveDef {
   }
   if (isUnlocked(unlocked, 'carrier')) {
     takeCount(counts, 'carrier', maxForType('carrier', height, plateau.carrierSlots), budget);
+  }
+  // Prefer heavier demolisher tiers; share a single slot budget across the ladder.
+  let demolisherRemaining = plateau.demolisherSlots;
+  for (const id of DEMOLISHER_TIERS) {
+    if (!isUnlocked(unlocked, id) || demolisherRemaining <= 0) continue;
+    const want = maxForType(id, height, demolisherRemaining);
+    const before = counts[id] ?? 0;
+    takeCount(counts, id, want, budget);
+    demolisherRemaining -= (counts[id] ?? 0) - before;
   }
   if (isUnlocked(unlocked, 'elite')) {
     takeCount(counts, 'elite', maxForType('elite', height, plateau.eliteSlots), budget);
@@ -239,6 +272,9 @@ function composeWave(ctx: WaveContext): WaveDef {
     { templateId: 'swarm', count: counts.swarm ?? 0 },
     { templateId: 'skirmisher', count: counts.skirmisher ?? 0 },
     { templateId: 'elite', count: counts.elite ?? 0 },
+    { templateId: 'demolisher', count: counts.demolisher ?? 0 },
+    { templateId: 'demolisherElite', count: counts.demolisherElite ?? 0 },
+    { templateId: 'demolisherBrute', count: counts.demolisherBrute ?? 0 },
     { templateId: 'brute', count: counts.brute ?? 0 },
     { templateId: 'striker', count: counts.striker ?? 0 },
     { templateId: 'kamikaze', count: counts.kamikaze ?? 0 },
@@ -276,6 +312,10 @@ export function spawnIntervalFor(templateId: string): number {
       return SPAWN_INTERVAL_SKIRMISHER;
     case 'elite':
       return SPAWN_INTERVAL_ELITE;
+    case 'demolisher':
+    case 'demolisherElite':
+    case 'demolisherBrute':
+      return SPAWN_INTERVAL_DEMOLISHER;
     case 'brute':
       return SPAWN_INTERVAL_BRUTE;
     case 'striker':

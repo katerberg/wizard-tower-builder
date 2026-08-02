@@ -4,6 +4,7 @@ import { SUB_CELLS_PER_MACRO, VIEWPORT_AIR_ROWS } from './grid';
 export const SPAWN_INTERVAL_SWARM = 0.45;
 export const SPAWN_INTERVAL_SKIRMISHER = 0.6;
 export const SPAWN_INTERVAL_ELITE = 7.5;
+export const SPAWN_INTERVAL_DEMOLISHER = 8.0;
 export const SPAWN_INTERVAL_BRUTE = 10.5;
 export const SPAWN_INTERVAL_STRIKER = 2.5;
 export const SPAWN_INTERVAL_KAMIKAZE = 3.5;

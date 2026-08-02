@@ -59,6 +59,10 @@ export interface ModificationDef {
   onEnemyStep?: {
     run: (ctx: ModEffectContext & { enemy: Enemy; enemyTouchesFootprint: boolean }) => void;
   };
+  /** Fired when an enemy melee-attacks this room (demolisher smashes, etc.). */
+  onEnemyAttackRoom?: {
+    run: (ctx: ModEffectContext & { enemy: Enemy }) => void;
+  };
   /** Lifecycle hook fired once when a wave is cleared (e.g. passive income). */
   onWaveCleared?: (ctx: Omit<ModEffectContext, 'dt'>) => void;
 }

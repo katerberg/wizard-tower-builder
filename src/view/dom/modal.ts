@@ -235,6 +235,7 @@ function helpBody(): string {
       <li>Build framing (spires / buttresses), then place rooms on top. Infra and rooms auto-add framing when needed.</li>
       <li>Recruit staff in housing, allocate slots and mana springs, connect floors with stairs.</li>
       <li>Crawlers climb the outside of framing and rooms; fliers pass through bare framing and only rooms block them.</li>
+      <li>Demolishers cannot crawl under overhangs — they smash rooms, then framing, on their path. Collapses cascade and pipe networks re-resolve mid-wave.</li>
       <li>Workers need stairs to change floors even on empty framing.</li>
       <li>Right-click sells the room first (framing stays); click again to sell framing.</li>
       <li>Climb your framing toward height 100. Clear a wave while still at 100+ to win — taller towers face harder pressure, but collapse eases the next fight. Climb when ready; don't grind for a seal.</li>

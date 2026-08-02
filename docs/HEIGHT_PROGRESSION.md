@@ -54,7 +54,7 @@ Document this in UI copy / help when the feature ships: the fantasy is **climb w
 
 If the tower loses height between waves, the next wave should feel like the world is **giving you a breather**: unlocks remain, but overall weight drops toward the new height. Players should want to keep going after a bad hit.
 
-**Enemy damage to framing** (wings knocked off by foes) is **out of scope for this plan** — separate design. v1 pressure relief still works via player demolition, Earthquake, and voluntary reshape between waves.
+**Enemy damage to framing** is implemented for **demolishers** (room then framing on overhang paths, with immediate unsupported cascade). Mid-wave height drop still does not retune the spawn queue; dropping below 100 voids that wave’s win.
 
 ---
 
@@ -156,8 +156,8 @@ Enough to playtest the fantasy:
 
 | Topic | Notes |
 |-------|--------|
-| Enemy framing damage / wing collapse from foes | Separate plan; must stay impactful without making continue feel worthless |
-| New enemy types / full roster retune | Coming soon; keep current templates for wiring |
+| Enemy framing damage / wing collapse from foes | Demolisher ladder + cascade (see enemies / demolisherCombat) |
+| New enemy types / full roster retune | Demolishers added; further roster changes later |
 | Complex resource harvesting economy | Later; don’t paint into a grind corner meanwhile |
 | Mid-wave difficulty retuning | Locked at Start Wave |
 | Endless mode after victory | Not for now |
@@ -169,7 +169,7 @@ Enough to playtest the fantasy:
 
 1. **Below-home heavy count** — “a few” is the intent; exact slot caps TBD in playtest.
 2. **Exact plateau breakpoints and ~5 minute endgame pacing** — needs playtest instrumentation (wave duration, height histogram).
-3. **Framing-break fantasy** — deferred to its own design thread (breather vs run-ender tension).
+3. **Framing-break fantasy** — demolishers ship v1; tune cascade vs breather feel in playtest.
 
 ---
 
@@ -194,8 +194,8 @@ Enough to playtest the fantasy:
 | 15 | Phase loop | Keep Build / Attack |
 | 16 | Clear gold | Scale with difficulty for now |
 | 17 | Hold vs grind | Refine OK; document anti-grind |
-| 18 | Enemy framing damage | Deferred |
+| 18 | Enemy framing damage | Demolishers (room→framing, cascade) |
 | 19 | Collapse → easier next wave | Yes |
 | 20 | Ruined tower feel | Breather |
-| 21 | v1 scope | Height budget + unlocks + win + HUD; no mid-wave retune / framing damage |
-| 22 | Enemy roster | Keep current for wiring |
+| 21 | v1 scope | Height budget + unlocks + win + HUD; no mid-wave retune |
+| 22 | Enemy roster | Demolisher size ladder added |

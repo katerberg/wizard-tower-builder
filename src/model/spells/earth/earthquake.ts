@@ -3,7 +3,13 @@ import { macroCellOfNode } from '@/calculations/subGrid';
 import { addMessage } from '@/model/messages';
 import { computeStructureStats } from '@/calculations/combat';
 import { getBlueprint } from '@/model/blueprints';
-import { removeStructure, structureAt } from '@/model/tower';
+import { applyDestructionAftermath, mergeRemovalDeltas } from '@/model/staff/destruction';
+import {
+  cascadeUnsupportedStructures,
+  removeStructureDetailed,
+  structureAt,
+} from '@/model/tower';
+import type { RemovalDelta } from '@/model/tower/sell';
 import type { Cell, GameState, Structure, Tower } from '@/model/types';
 import type { SpellCastContext, SpellDef } from '../types';
 import {
@@ -164,15 +170,28 @@ export function castEarthquake(state: GameState, tipStructureId: string, ctx: Sp
     if (live.hp <= 0) destroyed.push(live.id);
   }
 
+  let quakeDelta: RemovalDelta = {
+    removedRoomIds: [],
+    removedStructureIds: [],
+    clearedCells: [],
+  };
   for (const id of destroyed) {
     const piece = (state.tower.structures ?? []).find((s) => s.id === id);
-    const name = piece ? getBlueprint(piece.blueprintId)?.name ?? 'Structure' : 'Structure';
-    state.tower = removeStructure(state.tower, id);
+    if (!piece) continue;
+    const name = getBlueprint(piece.blueprintId)?.name ?? 'Structure';
+    const removed = removeStructureDetailed(state.tower, id);
+    state.tower = removed.tower;
+    quakeDelta = mergeRemovalDeltas(quakeDelta, removed.delta);
     addMessage(state, `${name} collapses under the quake!`, 'combat');
-    for (const enemy of state.enemies) {
-      enemy.path = [];
-      enemy.pathIndex = 0;
+  }
+  if (quakeDelta.removedStructureIds.length > 0) {
+    const cascaded = cascadeUnsupportedStructures(state.tower);
+    state.tower = cascaded.tower;
+    quakeDelta = mergeRemovalDeltas(quakeDelta, cascaded.delta);
+    if (cascaded.delta.removedStructureIds.length > 0) {
+      addMessage(state, 'Unsupported framing cascades down the tower!', 'combat');
     }
+    applyDestructionAftermath(state, quakeDelta);
   }
 }
 
