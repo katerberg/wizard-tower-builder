@@ -1,4 +1,5 @@
 import { MAGIC_TURRET_MANA_COST } from '@/config/constants';
+import { flameTurretHasForge } from '../pipes';
 import { KINDLED_DURATION } from '../spells/fire/constants';
 import { applyKindled } from '../spells/fire/kindled';
 import type { RoomBehaviorDef } from './types';
@@ -15,7 +16,13 @@ export const flameTurretRoom: RoomBehaviorDef = {
     cooldown: () => FLAME_TURRET_COOLDOWN,
     run: (ctx) => {
       const target = ctx.enemiesNear(FLAME_TURRET_RANGE)[0];
-      if (!target || ctx.state.player.mana < MAGIC_TURRET_MANA_COST) return;
+      if (
+        !target ||
+        !flameTurretHasForge(ctx.state.tower, ctx.room, ctx.state.phase) ||
+        ctx.state.player.mana < MAGIC_TURRET_MANA_COST
+      ) {
+        return;
+      }
 
       ctx.state.player.mana -= MAGIC_TURRET_MANA_COST;
       const hpBefore = target.currentHp;

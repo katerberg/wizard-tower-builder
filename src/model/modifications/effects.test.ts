@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { getBlueprint } from '../blueprints';
 import { createInitialState } from '../game';
+import { placeInfra } from '../infra';
 import { isKindled } from '../spells/fire/kindled';
 import { createRoom, placeRoom } from '../tower';
 import { runEnemyStepEffects, runRoomEffects, runWaveClearedEffects } from './effects';
@@ -20,6 +21,16 @@ function stateWithRoom(
   const room = createRoom('r0', getBlueprint(blueprintId)!, { col: 8, row: 0 });
   if (mod) room.modifications.push(mod);
   state.tower = placeRoom(state.tower, room);
+  return state;
+}
+
+function stateWithFlameTurret(seed: string): GameState {
+  const state = stateWithRoom(seed, 'flameTurretRoom');
+  const forge = createRoom('forge', getBlueprint('forgeRoom')!, { col: 5, row: 0 });
+  state.tower = placeRoom(state.tower, forge);
+  state.tower = placeInfra(state.tower, { col: 6, row: 0 }, 'pipe');
+  state.tower = placeInfra(state.tower, { col: 7, row: 0 }, 'pipe');
+  state.phase = 'attack';
   return state;
 }
 
@@ -65,7 +76,7 @@ describe('turret room effect', () => {
 
 describe('flame turret room effect', () => {
   it('deals chip damage and Kindles an enemy it hits', () => {
-    const state = stateWithRoom('flame-turret', 'flameTurretRoom');
+    const state = stateWithFlameTurret('flame-turret');
     const brute = makeEnemy('brute', 8, 2, 55);
     state.enemies = [brute];
 
@@ -76,7 +87,7 @@ describe('flame turret room effect', () => {
   });
 
   it('refreshes the Kindled timer on another successful hit', () => {
-    const state = stateWithRoom('flame-turret-refresh', 'flameTurretRoom');
+    const state = stateWithFlameTurret('flame-turret-refresh');
     const brute = makeEnemy('brute', 8, 2, 55);
     state.enemies = [brute];
 
@@ -89,7 +100,7 @@ describe('flame turret room effect', () => {
   });
 
   it('does not fire or Kindle when mana is empty', () => {
-    const state = stateWithRoom('flame-turret-dry', 'flameTurretRoom');
+    const state = stateWithFlameTurret('flame-turret-dry');
     const elite = makeEnemy('elite', 8, 2, 28);
     state.enemies = [elite];
     state.player.mana = 0;
@@ -98,6 +109,19 @@ describe('flame turret room effect', () => {
 
     expect(elite.currentHp).toBe(28);
     expect(isKindled(elite, state)).toBe(false);
+  });
+
+  it('does not fire without a water-connected Forge', () => {
+    const state = stateWithRoom('flame-turret-forge', 'flameTurretRoom');
+    const brute = makeEnemy('brute', 8, 2, 55);
+    state.enemies = [brute];
+    const manaBefore = state.player.mana;
+
+    runRoomEffects(state, 1.0);
+
+    expect(brute.currentHp).toBe(55);
+    expect(isKindled(brute, state)).toBe(false);
+    expect(state.player.mana).toBe(manaBefore);
   });
 });
 

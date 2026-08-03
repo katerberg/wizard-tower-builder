@@ -118,4 +118,23 @@ describe('selectPipeConnectivityReport', () => {
       true,
     );
   });
+
+  it('warns when a forge lacks water', () => {
+    const state = createInitialState('forge-warn');
+    state.tower = createTower();
+    state.tower = placeRoom(state.tower, createRoom('forge', getBlueprint('forgeRoom')!, { col: 5, row: 0 }));
+    const report = selectPipeConnectivityReport(state);
+    expect(report.rooms.some((r) => r.roomId === 'forge' && r.warning.includes('water'))).toBe(true);
+  });
+
+  it('warns when a flame turret has no water-connected forge', () => {
+    const state = createInitialState('flame-forge-warn');
+    state.tower = createTower();
+    state.tower = placeRoom(
+      state.tower,
+      createRoom('turret', getBlueprint('flameTurretRoom')!, { col: 5, row: 1 }),
+    );
+    const report = selectPipeConnectivityReport(state);
+    expect(report.rooms.some((r) => r.roomId === 'turret' && r.warning.includes('forge'))).toBe(true);
+  });
 });

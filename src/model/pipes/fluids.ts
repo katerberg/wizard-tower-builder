@@ -27,6 +27,14 @@ export function isHydrantRoom(room: { blueprintId: string }): boolean {
   return room.blueprintId === 'hydrantRoom';
 }
 
+export function isForgeRoom(room: { blueprintId: string }): boolean {
+  return room.blueprintId === 'forgeRoom';
+}
+
+export function isFlameTurretRoom(room: { blueprintId: string }): boolean {
+  return room.blueprintId === 'flameTurretRoom';
+}
+
 function pipeCells(tower: Tower): Cell[] {
   const cells: Cell[] = [];
   for (const [key, cell] of Object.entries(tower.infra ?? {})) {
@@ -193,8 +201,9 @@ export function roomHasFluidPort(
   roomOrigin: Cell,
   roomSize: { w: number; h: number },
   fluid: 'water' | 'steam',
+  phase: 'build' | 'attack' = 'build',
 ): boolean {
-  const fluids = selectPipeFluids(tower);
+  const fluids = resolvePipeFluids(tower, phase);
   for (const c of roomCells(roomOrigin, roomSize)) {
     for (const [dc, dr] of ORTHO) {
       const n = { col: c.col + dc, row: c.row + dr };
@@ -218,6 +227,74 @@ export function boilerHasSteamPort(
   roomSize: { w: number; h: number },
 ): boolean {
   return roomHasFluidPort(tower, roomOrigin, roomSize, 'steam');
+}
+
+export function forgeHasWaterPort(
+  tower: Tower,
+  roomOrigin: Cell,
+  roomSize: { w: number; h: number },
+  phase: 'build' | 'attack' = 'build',
+): boolean {
+  return roomHasFluidPort(tower, roomOrigin, roomSize, 'water', phase);
+}
+
+/** Keys of water pipes reachable from `start` within the water network. */
+export function waterComponentKeys(
+  tower: Tower,
+  start: Cell,
+  phase: 'build' | 'attack' = 'build',
+): Set<string> {
+  const fluids = resolvePipeFluids(tower, phase);
+  const startKey = cellKey(start.col, start.row);
+  if (fluids[startKey] !== 'water') return new Set();
+
+  const seen = new Set<string>([startKey]);
+  const queue = [start];
+  while (queue.length > 0) {
+    const cur = queue.shift()!;
+    for (const [dc, dr] of ORTHO) {
+      const n = { col: cur.col + dc, row: cur.row + dr };
+      const key = cellKey(n.col, n.row);
+      if (seen.has(key) || fluids[key] !== 'water') continue;
+      seen.add(key);
+      queue.push(n);
+    }
+  }
+  return seen;
+}
+
+export function adjacentWaterPipeKeys(
+  tower: Tower,
+  roomOrigin: Cell,
+  roomSize: { w: number; h: number },
+  phase: 'build' | 'attack' = 'build',
+): string[] {
+  const fluids = resolvePipeFluids(tower, phase);
+  const keys: string[] = [];
+  for (const c of roomCells(roomOrigin, roomSize)) {
+    for (const [dc, dr] of ORTHO) {
+      const n = { col: c.col + dc, row: c.row + dr };
+      const key = cellKey(n.col, n.row);
+      if (fluids[key] === 'water') keys.push(key);
+    }
+  }
+  return keys;
+}
+
+/** True when a Flame Turret shares a water-pipe component with a water-fed Forge. */
+export function flameTurretHasForge(
+  tower: Tower,
+  turret: { origin: Cell; size: { w: number; h: number } },
+  phase: 'build' | 'attack' = 'build',
+): boolean {
+  const pipeKeys = adjacentWaterPipeKeys(tower, turret.origin, turret.size, phase);
+  if (pipeKeys.length === 0) return false;
+  const component = waterComponentKeys(tower, parseKey(pipeKeys[0]), phase);
+  return tower.rooms.some(
+    (room) =>
+      isForgeRoom(room) &&
+      adjacentWaterPipeKeys(tower, room.origin, room.size, phase).some((key) => component.has(key)),
+  );
 }
 
 /** Keys of steam pipes reachable from `start` within the steam network. */
@@ -263,7 +340,9 @@ function isFluidPortRoom(room: { blueprintId: string }): boolean {
     isBoilerRoom(room) ||
     isManaSpringRoom(room) ||
     isSteamTurretRoom(room) ||
-    isHydrantRoom(room)
+    isHydrantRoom(room) ||
+    isForgeRoom(room) ||
+    isFlameTurretRoom(room)
   );
 }
 
