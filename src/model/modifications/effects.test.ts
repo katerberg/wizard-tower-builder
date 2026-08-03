@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { getBlueprint } from '../blueprints';
 import { createInitialState } from '../game';
+import { isKindled } from '../spells/fire/kindled';
 import { createRoom, placeRoom } from '../tower';
 import { runEnemyStepEffects, runRoomEffects, runWaveClearedEffects } from './effects';
 import type { GameState } from '../types';
@@ -59,6 +60,44 @@ describe('turret room effect', () => {
     for (let i = 0; i < 5; i++) runRoomEffects(state, 1.0);
 
     expect(far.currentHp).toBe(28);
+  });
+});
+
+describe('flame turret room effect', () => {
+  it('deals chip damage and Kindles an enemy it hits', () => {
+    const state = stateWithRoom('flame-turret', 'flameTurretRoom');
+    const elite = makeEnemy('elite', 8, 2, 28);
+    state.enemies = [elite];
+
+    runRoomEffects(state, 1.0);
+
+    expect(elite.currentHp).toBeLessThan(28);
+    expect(isKindled(elite, state)).toBe(true);
+  });
+
+  it('refreshes the Kindled timer on another successful hit', () => {
+    const state = stateWithRoom('flame-turret-refresh', 'flameTurretRoom');
+    const elite = makeEnemy('elite', 8, 2, 28);
+    state.enemies = [elite];
+
+    runRoomEffects(state, 1.0);
+    const firstExpiry = elite.kindledUntil;
+    state.waveTimer = 5;
+    runRoomEffects(state, 1.0);
+
+    expect(elite.kindledUntil).toBeGreaterThan(firstExpiry!);
+  });
+
+  it('does not fire or Kindle when mana is empty', () => {
+    const state = stateWithRoom('flame-turret-dry', 'flameTurretRoom');
+    const elite = makeEnemy('elite', 8, 2, 28);
+    state.enemies = [elite];
+    state.player.mana = 0;
+
+    runRoomEffects(state, 1.0);
+
+    expect(elite.currentHp).toBe(28);
+    expect(isKindled(elite, state)).toBe(false);
   });
 });
 
