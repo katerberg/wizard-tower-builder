@@ -24,6 +24,14 @@ const surfaceClimb: MovementProfile = {
   canTransferFaces: false,
 };
 
+const attackOverhang: MovementProfile = {
+  kind: 'attack_overhang',
+  canPassUnderOverhang: false,
+  canAttackOverhang: true,
+  canFly: false,
+  canTransferFaces: false,
+};
+
 // stem (5,0) -> stem (5,1) -> buttress3 (4,2): a T whose cap overhangs to cols 4 and 6.
 function tShape(): Tower {
   let tower = createTower();
@@ -74,11 +82,12 @@ describe('isWalkable', () => {
     expect(isWalkable(tower, room.col, room.row, underOverhang)).toBe(false);
   });
 
-  it('lets under_overhang pass beneath an overhang but blocks surface_climb', () => {
+  it('lets under_overhang pass beneath an overhang but blocks surface_climb and attack_overhang', () => {
     const tower = tShape();
     const under = { col: 12, row: 5 };
     expect(isWalkable(tower, under.col, under.row, underOverhang)).toBe(true);
     expect(isWalkable(tower, under.col, under.row, surfaceClimb)).toBe(false);
+    expect(isWalkable(tower, under.col, under.row, attackOverhang)).toBe(false);
   });
 
   it('rejects a cell that only touches a room at a corner', () => {

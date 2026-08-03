@@ -9,6 +9,7 @@ import { hasInfraKind } from '@/model/infra';
 import { addMessage } from '@/model/messages';
 import { isManaSpringRoom } from '@/model/pipes';
 import {
+  housingCapacity,
   housingKindOf,
   isQuarters,
   isSlotRoom,
@@ -240,6 +241,15 @@ export const deploySoldiersForWave = deployStaffForWave;
 
 export function clearStaffAfterWave(state: GameState): void {
   state.staff = [];
+  // Supply limits: drop recruited counts for units that finished the wave homeless
+  // (homeHousingId cleared mid-wave) and clamp to living housing capacity.
+  for (const room of state.tower.rooms) {
+    const housing = housingKindOf(room);
+    if (!housing) continue;
+    const cap = housingCapacity(room);
+    const recruited = state.housingRecruited[room.id] ?? 0;
+    if (recruited > cap) state.housingRecruited[room.id] = cap;
+  }
 }
 
 /** @deprecated Use clearStaffAfterWave. */

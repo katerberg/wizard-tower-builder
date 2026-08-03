@@ -10,6 +10,7 @@ import { createOverlay } from './view/dom/overlay';
 import { createSpeedBar } from './view/dom/speedBar';
 import { createSpellBar } from './view/dom/spellBar';
 import { createTooltip } from './view/dom/tooltip';
+import { createWaveBuilder } from './view/dom/waveBuilder';
 import { startLoop } from './view/loop';
 import { Store } from './store/store';
 
@@ -45,6 +46,7 @@ new ResizeObserver(() => syncViewportHeight()).observe(stage);
 
 const domViews = [
   createHud(requireEl('hud'), store),
+  createWaveBuilder(requireEl('wave-builder'), store),
   createSpellBar(requireEl('spell-bar'), store),
   createLibrary(requireEl('library'), store),
   createLayersPanel(requireEl('layers'), store),

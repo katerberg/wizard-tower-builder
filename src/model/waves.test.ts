@@ -6,9 +6,12 @@ import { beginWave, endWave } from '@/model/phases';
 import { createStructure, createTower, placeStructure, removeStructure, towerExtents } from '@/model/tower';
 import {
   buildSpawnQueue,
+  estimatePlateauForScore,
   heightProgression,
   plateauForHeight,
   unlockEnemiesForHeight,
+  waveDefFromCounts,
+  wavePointScore,
   WIN_HEIGHT,
 } from '@/model/waves';
 
@@ -143,5 +146,54 @@ describe('height progression', () => {
     }
     expect(steps).toBeGreaterThanOrEqual(minSteps);
     expect(state.enemies.length + state.spawnQueue.length).toBeGreaterThan(0);
+  });
+
+  it('wavePointScore sums chess points for mixed entries', () => {
+    expect(
+      wavePointScore({
+        entries: [
+          { templateId: 'swarm', count: 10 },
+          { templateId: 'elite', count: 2 },
+          { templateId: 'striker', count: 3 },
+        ],
+      }),
+    ).toBe(10 * 1 + 2 * 8 + 3 * 3);
+  });
+
+  it('estimatePlateauForScore picks nearest budget (ties prefer lower height)', () => {
+    expect(estimatePlateauForScore(48)).toEqual({ minHeight: 0, budget: 48 });
+    expect(estimatePlateauForScore(100)).toEqual({ minHeight: 30, budget: 100 });
+    // Midway 72↔100 → equal distance 14; prefer lower minHeight (15).
+    expect(estimatePlateauForScore(86)).toEqual({ minHeight: 15, budget: 72 });
+    expect(estimatePlateauForScore(320)).toEqual({ minHeight: 100, budget: 320 });
+  });
+
+  it('waveDefFromCounts drops zeros and preserves builder order', () => {
+    expect(waveDefFromCounts({ swarm: 5, elite: 0, striker: 2 })).toEqual({
+      entries: [
+        { templateId: 'swarm', count: 5 },
+        { templateId: 'striker', count: 2 },
+      ],
+    });
+  });
+
+  it('beginWave override replaces composition but keeps real height snapshot', () => {
+    const state = tallTower(createInitialState('custom-wave'), 40);
+    beginWave(state, {
+      entries: [
+        { templateId: 'brute', count: 2 },
+        { templateId: 'swarm', count: 3 },
+      ],
+    });
+    expect(state.waveStartHeight).toBe(40);
+    expect(state.spawnQueue).toEqual(['brute', 'swarm', 'brute', 'swarm', 'swarm']);
+    expect(state.unlockedEnemyIds).toContain('skirmisher');
+  });
+
+  it('beginWave without override still height-composes', () => {
+    const state = tallTower(createInitialState('normal-wave'), 5);
+    beginWave(state);
+    expect(state.spawnQueue.length).toBeGreaterThan(20);
+    expect(countOf(state.spawnQueue, 'swarm')).toBeGreaterThan(15);
   });
 });

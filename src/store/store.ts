@@ -42,6 +42,7 @@ export class Store {
         viewportHeight: MIN_VIEWPORT_HEIGHT,
         layerVisibility: { rooms: true, infra: true, workers: true },
         connectivityFocusSlotId: null,
+        waveBuilder: { open: false, counts: {} },
       },
       buildHistory: [],
     };

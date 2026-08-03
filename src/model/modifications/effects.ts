@@ -136,6 +136,22 @@ export function runEnemyStepEffects(state: GameState, enemy: Enemy): void {
   }
 }
 
+/** Hazards that punish melee attacks against a room (e.g. spikes on demolisher swings). */
+export function runEnemyAttackRoomEffects(state: GameState, enemy: Enemy, room: Room): void {
+  if (enemy.currentHp <= 0) return;
+  const live = state.tower.rooms.find((r) => r.id === room.id);
+  if (!live) return;
+  const cells = roomCells(live.origin, live.size);
+  for (const mod of live.modifications) {
+    const def = getModification(mod.id);
+    if (!def?.onEnemyAttackRoom) continue;
+    def.onEnemyAttackRoom.run({
+      ...buildModContext(state, live, cells, mod.level, 0, def),
+      enemy,
+    });
+  }
+}
+
 /**
  * Run active room and modification effects for one attack-phase tick. Cooldowns
  * are tracked in `state.roomEffectTimers`.

@@ -26,6 +26,10 @@ export type Intent =
   | { type: 'devAddCurrency' }
   | { type: 'devSkipWave' }
   | { type: 'devSetSpellSchool'; school: 'fire' | 'air' | 'earth' | 'water' }
+  | { type: 'toggleWaveBuilder' }
+  | { type: 'devSetWaveCount'; templateId: string; count: number }
+  | { type: 'devClearWaveBuilder' }
+  | { type: 'devLoadCurrentWave' }
   | { type: 'scrollCamera'; deltaY: number }
   | { type: 'setViewportHeight'; height: number }
   | { type: 'undoBuild' }
@@ -39,6 +43,12 @@ export type ModalData =
   | { kind: 'room'; roomId: string }
   | { kind: 'structure'; structureId: string }
   | { kind: 'help' };
+
+export interface WaveBuilderState {
+  open: boolean;
+  /** templateId → count for the custom wave draft. */
+  counts: Record<string, number>;
+}
 
 export interface ViewState {
   selectedBlueprintId: string | null;
@@ -54,4 +64,6 @@ export interface ViewState {
   layerVisibility: Record<TowerLayer, boolean>;
   /** Slot room id highlighted for connectivity (hover/inspect). */
   connectivityFocusSlotId: string | null;
+  /** Dev-only custom wave draft; Start Wave uses it while open. */
+  waveBuilder: WaveBuilderState;
 }

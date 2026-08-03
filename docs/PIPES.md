@@ -2,7 +2,7 @@
 
 Developer spec for the **fluid logistics** slice: ground water, boilers, mana springs, steam turrets, and typed pipe networks. Complements [`INFRASTRUCTURE.md`](INFRASTRUCTURE.md) (layers, workers, stairs) and [`HOUSING.md`](HOUSING.md) (magi staffing springs).
 
-**Status:** Shipped (P0–P7). Topology is static for the wave; see [Deferred / out of scope](#deferred--out-of-scope).
+**Status:** Shipped (P0–P7). Fluids lock at wave start and **re-lock mid-wave** when rooms/framing are destroyed (demolishers, fliers, Earthquake cascade).
 
 ---
 
@@ -195,7 +195,7 @@ Intent: mana springs + turret shots compete with boiler fire — the player cann
 
 ### Network breaks
 
-**MVP:** topology is **static for the wave** — no mid-wave pipe/room destruction, no re-resolve. See deferred list below.
+When rooms or framing are destroyed mid-wave, call `lockPipeFluids` again (with current `maxWaterReachRow`) so attack-phase `InfraCell.fluid` matches live topology. Boilers, springs, and steam turrets re-query connectivity and go dark when seeds/paths break.
 
 ---
 
@@ -277,7 +277,6 @@ steamTurretRuntime: Record<roomId, { charge: number; chargeRate: number }>;
 |------|-------|
 | Crossover / bridge buildings | Not planned |
 | Pipe damage | Not planned |
-| Dynamic mid-wave network breaks | Topology static for the wave |
 | Separate `waterSpring` structure | Ground row only |
 | Orphan-pipe component warnings | Gray unassigned is the signal |
 | Boiler mana-forecast warning | Not implemented |

@@ -236,7 +236,7 @@ Today WoF requires same exterior **face** endpoints (`sameFaceEndpoints` in cast
 - Ranged hovering fliers (noted as future)
 - Smart steam/cone evasion
 - Dedicated AA rooms
-- Attack-overhang / face-transfer crawler modes
+- Face-transfer crawler modes (attack-overhang demolishers are shipped)
 - Diving from top of screen as the default spawn
 - Pathing through intact rooms
 

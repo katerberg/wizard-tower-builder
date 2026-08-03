@@ -4,6 +4,7 @@ import { macroCellOfNode } from '@/calculations/subGrid';
 import { computeDamage, type Combatant } from '@/calculations/combat';
 import { getBlueprint } from '../blueprints';
 import { addMessage } from '../messages';
+import { applyDestructionAftermath, roomRemovalDelta } from '../staff/destruction';
 import { removeRoom, roomAt } from '../tower';
 import type { Enemy, EnemyTemplate, ExteriorNode, GameState, Room } from '../types';
 
@@ -106,12 +107,10 @@ export function attackBlockingRoom(
   enemy.attackCooldown = ENEMY_ATTACK_COOLDOWN;
 
   if (live.hp <= 0) {
+    const delta = roomRemovalDelta(state, live.id);
     state.tower = removeRoom(state.tower, live.id);
     addMessage(state, `${bp?.name ?? 'Room'} collapses under air assault!`, 'combat');
-    for (const e of state.enemies) {
-      e.path = [];
-      e.pathIndex = 0;
-    }
+    applyDestructionAftermath(state, delta);
   }
 
   if (template.kamikaze) {

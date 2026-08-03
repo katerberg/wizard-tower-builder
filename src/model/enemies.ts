@@ -9,6 +9,17 @@ const underOverhang: MovementProfile = {
   canTransferFaces: false,
 };
 
+/** Preferred-path planning for demolishers (shortest crawl as if under-overhang were allowed). */
+export const PLANNING_UNDER_OVERHANG: MovementProfile = underOverhang;
+
+const attackOverhang: MovementProfile = {
+  kind: 'attack_overhang',
+  canPassUnderOverhang: false,
+  canAttackOverhang: true,
+  canFly: false,
+  canTransferFaces: false,
+};
+
 const fly: MovementProfile = {
   kind: 'fly',
   canPassUnderOverhang: false,
@@ -63,6 +74,40 @@ export const ENEMY_TEMPLATES: Record<string, EnemyTemplate> = {
     speed: 0.7,
     soulsReward: 8,
     movement: underOverhang,
+    sizeTier: 'large',
+  },
+  /** Sapper: cannot crawl under overhangs — smashes rooms then framing on the preferred path. */
+  demolisher: {
+    id: 'demolisher',
+    type: 'Demolisher',
+    glyph: 'd',
+    color: '#c05621',
+    stats: { strength: 5, dexterity: 1, maxHp: 12 },
+    speed: 1.4,
+    soulsReward: 4,
+    movement: attackOverhang,
+    sizeTier: 'small',
+  },
+  demolisherElite: {
+    id: 'demolisherElite',
+    type: 'Demolisher Elite',
+    glyph: 'D',
+    color: '#dd6b20',
+    stats: { strength: 7, dexterity: 1, maxHp: 28 },
+    speed: 1.0,
+    soulsReward: 6,
+    movement: attackOverhang,
+    sizeTier: 'medium',
+  },
+  demolisherBrute: {
+    id: 'demolisherBrute',
+    type: 'Demolisher Brute',
+    glyph: 'M',
+    color: '#9c4221',
+    stats: { strength: 10, dexterity: 0, maxHp: 50 },
+    speed: 0.7,
+    soulsReward: 10,
+    movement: attackOverhang,
     sizeTier: 'large',
   },
   /** Fast melee flier — early tease / mid packs. */

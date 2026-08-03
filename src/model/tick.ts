@@ -12,7 +12,8 @@ import { applyExteriorAbrasion, tickStoneWeathering } from './wear';
 import { stepElevators } from './elevators';
 import { tickRoomBehaviors } from './rooms';
 import { faceOf, flySpawnBandForCrown, isWalkable, spawnAirNode, spawnNode } from '../calculations/exteriorGraph';
-import { getEnemyTemplate } from './enemies';
+import { getEnemyTemplate, PLANNING_UNDER_OVERHANG } from './enemies';
+import { attackOverhangBlocking } from './enemies/demolisherCombat';
 import { attackBlockingRoom, attackWizard, closestRoomToEnemy, enemyTouchesRoom, greedyStepTowardRoom } from './enemies/flierCombat';
 import { addMessage } from './messages';
 import { findPath } from '../calculations/pathfinding';
@@ -28,7 +29,7 @@ import { endWave, loseGame } from './phases';
 import { shuffle } from '../calculations/rng';
 import { goblinNames, bruteNames, wispNames } from './names';
 import { spawnIntervalFor } from './waves';
-import type { Enemy, EnemyTemplate, ExteriorNode, GameState } from './types';
+import type { Enemy, EnemyTemplate, ExteriorNode, GameState, MovementProfile } from './types';
 
 let enemyCounter = 0;
 let waveNamePools: Record<string, string[]> = {};
@@ -41,9 +42,14 @@ export function resetTickState(): void {
 
 const namePools: Record<string, readonly string[]> = {
   swarm: goblinNames, skirmisher: wispNames, elite: bruteNames, brute: bruteNames,
+  demolisher: bruteNames, demolisherElite: bruteNames, demolisherBrute: bruteNames,
   striker: wispNames, kamikaze: wispNames, carrier: bruteNames, carrierKamikaze: wispNames,
   goblin: goblinNames, wisp: wispNames,
 };
+
+function pathProfileFor(movement: MovementProfile): MovementProfile {
+  return movement.canAttackOverhang ? PLANNING_UNDER_OVERHANG : movement;
+}
 
 export function prepareWaveNames(state: GameState): void {
   waveNamePools = {};
@@ -146,7 +152,11 @@ export function step(state: GameState, dt: number): void {
     if (!template || enemy.airborne) continue;
     const needsRepath = enemy.path.length === 0 || (template.movement.canFly && enemy.pathGoalKey !== goalKey) ||
       (enemy.path.length > 0 && enemy.pathIndex >= enemy.path.length - 1 && !reached(enemy.pos, wizardPos));
-    if (needsRepath) { enemy.path = findPath(state.tower, enemy.pos, wizardPos, template.movement); enemy.pathIndex = 0; enemy.pathGoalKey = goalKey; }
+    if (needsRepath) {
+      enemy.path = findPath(state.tower, enemy.pos, wizardPos, pathProfileFor(template.movement));
+      enemy.pathIndex = 0;
+      enemy.pathGoalKey = goalKey;
+    }
     if (template.carrier) {
       const dist = macroManhattan(enemy.pos, wizardPos);
       enemy.carrierLaunchTimer = (enemy.carrierLaunchTimer ?? 0) - dt;
@@ -165,11 +175,21 @@ export function step(state: GameState, dt: number): void {
       }
       continue;
     }
+    // Demolisher with no preferred path and nothing to smash: idle.
+    if (template.movement.canAttackOverhang && enemy.path.length === 0) continue;
     enemy.moveCooldown -= dt;
     if (enemy.moveCooldown <= 0 && enemy.pathIndex < enemy.path.length - 1) {
       const nextPos = enemy.path[enemy.pathIndex + 1]; const nextMacro = macroCellOfNode(nextPos);
       if (isMacroCellBlockedByTornado(state, nextMacro.col, nextMacro.row)) { enemy.moveCooldown = 0.2; continue; }
       if (shouldStubDiscombobulatedStep(state.tower, enemy, nextPos)) { enemy.moveCooldown = (1 / template.speed) * moveSlowMultiplier(state, enemy); continue; }
+      if (!isWalkable(state.tower, nextPos.col, nextPos.row, template.movement)) {
+        if (template.movement.canAttackOverhang) {
+          attackOverhangBlocking(state, enemy, template, nextPos, dt);
+        }
+        // Blocked — stay put; attackCooldown gates swings. Retry next tick.
+        enemy.moveCooldown = 0;
+        continue;
+      }
       enemy.pathIndex += 1; enemy.pos = nextPos; trackMacroMovement(enemy, state, template.movement.canFly);
       enemy.moveCooldown = (1 / template.speed) * moveSlowMultiplier(state, enemy);
       if (!template.movement.canFly) { runEnemyStepEffects(state, enemy); onEnemyWallStep(state, enemy); }
