@@ -66,26 +66,26 @@ describe('turret room effect', () => {
 describe('flame turret room effect', () => {
   it('deals chip damage and Kindles an enemy it hits', () => {
     const state = stateWithRoom('flame-turret', 'flameTurretRoom');
-    const elite = makeEnemy('elite', 8, 2, 28);
-    state.enemies = [elite];
+    const brute = makeEnemy('brute', 8, 2, 55);
+    state.enemies = [brute];
 
     runRoomEffects(state, 1.0);
 
-    expect(elite.currentHp).toBeLessThan(28);
-    expect(isKindled(elite, state)).toBe(true);
+    expect(brute.currentHp).toBeLessThan(55);
+    expect(isKindled(brute, state)).toBe(true);
   });
 
   it('refreshes the Kindled timer on another successful hit', () => {
     const state = stateWithRoom('flame-turret-refresh', 'flameTurretRoom');
-    const elite = makeEnemy('elite', 8, 2, 28);
-    state.enemies = [elite];
+    const brute = makeEnemy('brute', 8, 2, 55);
+    state.enemies = [brute];
 
     runRoomEffects(state, 1.0);
-    const firstExpiry = elite.kindledUntil;
+    const firstExpiry = brute.kindledUntil;
     state.waveTimer = 5;
     runRoomEffects(state, 1.0);
 
-    expect(elite.kindledUntil).toBeGreaterThan(firstExpiry!);
+    expect(brute.kindledUntil).toBeGreaterThan(firstExpiry!);
   });
 
   it('does not fire or Kindle when mana is empty', () => {
