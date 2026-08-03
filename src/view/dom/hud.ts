@@ -100,10 +100,14 @@ export function createHud(root: HTMLElement, store: Store): () => void {
            <div class="stat"><span>Mana</span><strong>${selectMana(snapshot).label}</strong></div>`
         : '';
 
+    const waveBuilderOpen = snapshot.view.waveBuilder.open;
     const devControls = game.devMode
       ? `<div class="dev-row">
            <button data-action="devAddCurrency">+50 all</button>
            <button data-action="devSkipWave">Skip wave</button>
+         </div>
+         <div class="dev-row">
+           <button data-action="toggleWaveBuilder">${waveBuilderOpen ? 'Wave builder: on' : 'Wave builder'}</button>
          </div>
          <div class="dev-row">
            <button data-action="devSetSpellSchool" data-school="fire" ${game.activeSpellSchool === 'fire' ? 'disabled' : ''}>Fire school</button>

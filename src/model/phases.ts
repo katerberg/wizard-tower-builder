@@ -19,6 +19,7 @@ import {
 import { heightProgression, unlockEnemiesForHeight, WIN_HEIGHT } from './waves';
 import { buildSpawnQueue } from './waves';
 import { towerExtents } from './tower';
+import type { WaveDef } from './progression';
 import type { GameState } from './types';
 
 export function captureBuildBaseline(state: GameState): void {
@@ -47,15 +48,17 @@ export function framingHeight(state: GameState): number {
   return towerExtents(state.tower).maxOccupiedRow;
 }
 
-export function beginWave(state: GameState): void {
+export function beginWave(state: GameState, override?: WaveDef): void {
   const height = framingHeight(state);
   state.waveStartHeight = height;
   state.unlockedEnemyIds = unlockEnemiesForHeight(state.unlockedEnemyIds, height);
 
-  const wave = heightProgression.getWave({
-    height,
-    unlockedEnemyIds: new Set(state.unlockedEnemyIds),
-  });
+  const wave =
+    override ??
+    heightProgression.getWave({
+      height,
+      unlockedEnemyIds: new Set(state.unlockedEnemyIds),
+    });
   state.phase = 'attack';
   state.enemies = [];
   state.spawnQueue = buildSpawnQueue(wave);
@@ -74,9 +77,10 @@ export function beginWave(state: GameState): void {
   resetAirState(state);
   resetEarthState(state);
   resetWaterState(state);
+  const customNote = override ? ' (custom)' : '';
   addMessage(
     state,
-    `Wave ${state.levelIndex + 1} at height ${height}: ${state.spawnQueue.length} foes.`,
+    `Wave ${state.levelIndex + 1} at height ${height}: ${state.spawnQueue.length} foes${customNote}.`,
     'combat',
   );
 }

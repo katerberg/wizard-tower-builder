@@ -344,3 +344,51 @@ export function buildSpawnQueue(def: WaveDef): string[] {
   }
   return queue;
 }
+
+/** Enemy ids the wave composer (and wave builder) can place — excludes carrier drones. */
+export const WAVE_BUILDER_ENEMY_IDS = [
+  'swarm',
+  'skirmisher',
+  'elite',
+  'demolisher',
+  'demolisherElite',
+  'demolisherBrute',
+  'brute',
+  'striker',
+  'kamikaze',
+  'carrier',
+] as const;
+
+/** Chess-point total for a wave definition. */
+export function wavePointScore(def: WaveDef): number {
+  let score = 0;
+  for (const entry of def.entries) {
+    if (entry.count <= 0) continue;
+    score += entry.count * (ENEMY_POINT_COST[entry.templateId] ?? 1);
+  }
+  return score;
+}
+
+/** Nearest plateau by budget; ties prefer the lower minHeight. */
+export function estimatePlateauForScore(score: number): { minHeight: number; budget: number } {
+  const s = Math.max(0, score);
+  let best = PLATEAUS[0];
+  let bestDist = Math.abs(best.budget - s);
+  for (const p of PLATEAUS) {
+    const dist = Math.abs(p.budget - s);
+    if (dist < bestDist || (dist === bestDist && p.minHeight < best.minHeight)) {
+      best = p;
+      bestDist = dist;
+    }
+  }
+  return { minHeight: best.minHeight, budget: best.budget };
+}
+
+/** Build a WaveDef from a count map (drops zero/negative counts). */
+export function waveDefFromCounts(counts: Readonly<Record<string, number>>): WaveDef {
+  const entries = WAVE_BUILDER_ENEMY_IDS.map((templateId) => ({
+    templateId,
+    count: Math.max(0, Math.floor(counts[templateId] ?? 0)),
+  })).filter((e) => e.count > 0);
+  return { entries };
+}

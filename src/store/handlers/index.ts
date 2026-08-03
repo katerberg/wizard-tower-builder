@@ -60,6 +60,10 @@ export function applyIntent(ctx: HandlerContext, intent: Intent): void {
     case 'devAddCurrency':
     case 'devSkipWave':
     case 'devSetSpellSchool':
+    case 'toggleWaveBuilder':
+    case 'devSetWaveCount':
+    case 'devClearWaveBuilder':
+    case 'devLoadCurrentWave':
       handleDevIntent(ctx, intent);
       break;
 

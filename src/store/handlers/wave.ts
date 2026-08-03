@@ -4,6 +4,7 @@ import { beginRun, createInitialState } from '@/model/game';
 import { addMessage } from '@/model/messages';
 import { beginWave } from '@/model/phases';
 import { isTowerStable } from '@/model/tower';
+import { waveDefFromCounts } from '@/model/waves';
 import { resetToSelectMode } from '../viewState';
 import type { HandlerContext } from '../context';
 import type { Intent } from '../intents';
@@ -38,7 +39,12 @@ function startWave(ctx: HandlerContext): void {
     );
   }
   ctx.clearBuildHistory();
-  beginWave(game);
+  const useCustom = game.devMode && ctx.view.waveBuilder.open;
+  if (useCustom) {
+    beginWave(game, waveDefFromCounts(ctx.view.waveBuilder.counts));
+  } else {
+    beginWave(game);
+  }
   resetToSelectMode(ctx.view);
 }
 
@@ -57,5 +63,6 @@ function restart(ctx: HandlerContext): void {
     viewportHeight,
     layerVisibility: { rooms: true, infra: true, workers: true },
     connectivityFocusSlotId: null,
+    waveBuilder: { open: false, counts: {} },
   };
 }
