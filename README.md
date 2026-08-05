@@ -179,7 +179,8 @@ Mount points: `#board`, `#stage`, `#hud`, `#library`, `#message-log`, `#modal-ro
 | **Tower** | Structures (framing) + rooms + occupancy maps + infra |
 | **Room** | Placed blueprint instance (origin, size, hp, modifications) |
 | **Blueprint** | Room type definition (multi-resource cost, size, base hp, description) — framing, housing, Slot, Boiler, Mana Spring, Turret, Steam Turret, Water Pump, … |
-| **Modification** | Leveled add-on on a room (spikes, housing/slot/boiler expansions, …) |
+| **Modification** | Leveled add-on on a room (spikes today; housing/slot/boiler expansions, …) |
+| **Shell fortification** | Exterior framing-cell attachment for crawler routing / shell hazards — designed in [`docs/FORTIFICATIONS.md`](docs/FORTIFICATIONS.md); not shipped |
 | **Infra layer** | Per-cell overlay (`stair`, `pipe`, or `elevator`) on the same grid as rooms; one kind per cell |
 | **Staff** | Mobile units (soldier / mage / laborer) recruited into housing; route to workplaces during attack |
 | **Spell / school** | Hotbar ability spending mana; fire · air · earth · water kits |
@@ -197,6 +198,7 @@ Mount points: `#board`, `#stage`, `#hud`, `#library`, `#message-log`, `#modal-ro
 | Add a spell | [`src/model/spells/README.md`](src/model/spells/README.md) |
 | Add a room (passive or behavioral) | [`src/model/rooms/README.md`](src/model/rooms/README.md) + `blueprints.ts` |
 | Add a modification | `src/model/modifications/` (one file + registry line) |
+| Shell fortifications (design / roadmap) | [`docs/FORTIFICATIONS.md`](docs/FORTIFICATIONS.md) + [`.cursor/plans/fortifications_index.plan.md`](.cursor/plans/fortifications_index.plan.md) |
 | Tweak balance numbers | [`src/config/README.md`](src/config/README.md) |
 | Change the attack tick order | [`src/model/tick.ts`](src/model/tick.ts) |
 | Change build/attack phases | [`src/model/phases.ts`](src/model/phases.ts) |
@@ -285,8 +287,8 @@ Still not done:
 - Visual polish beyond ASCII-style glyphs on canvas
 - Training rooms (troops of certain types required to populate other rooms)
 - Research rooms; Mana Well / spell shop / grimoire unlocks
-- Movement-controlling structures (e.g. moats, parapets, cornices)
-- Structures such as crenels / murderholes beyond existing turrets
+- Shell fortifications (moats, glacis, parapets, cornices, stakes, barbican) — designed in [`docs/FORTIFICATIONS.md`](docs/FORTIFICATIONS.md); not shipped
+- Structures such as crenels / murderholes beyond existing turrets (populated shell — separate from fortifications)
 - Further non-elemental spell kits / spell shop
 - Additional turret / economy room types beyond Boiler, Mana Spring, Turret, Steam Turret, and Water Pump
 - Infra/mod repair and mid-wave building (laborers repair room HP only today)
