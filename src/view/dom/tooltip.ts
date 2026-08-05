@@ -1,5 +1,7 @@
 import { formatResourceCost } from '@/calculations/resources';
 import { getBlueprint } from '@/model/blueprints';
+import { getInfraBlueprint } from '@/model/infraBlueprints';
+import { getFortificationBlueprint } from '@/model/fortificationBlueprints';
 import { roomAt } from '@/model/tower';
 import { selectGhostPlacement, selectUiTooltip, type UiTooltipTarget } from '@/store/selectors';
 import type { Store } from '@/store/store';
@@ -141,7 +143,10 @@ export function createTooltip(
     let text = '';
     if (game.phase === 'build' && view.selectedBlueprintId) {
       const ghost = selectGhostPlacement(store.getSnapshot());
-      const blueprint = getBlueprint(view.selectedBlueprintId);
+      const blueprint =
+        getBlueprint(view.selectedBlueprintId) ??
+        getInfraBlueprint(view.selectedBlueprintId) ??
+        getFortificationBlueprint(view.selectedBlueprintId);
       if (ghost && blueprint) {
         const action = room ? 'Replace with' : 'Place';
         text = ghost.valid

@@ -1,5 +1,6 @@
 import { getBlueprint, isStructureBlueprint } from '@/model/blueprints';
 import { isInfraBlueprint } from '@/model/infraBlueprints';
+import { isFortificationBlueprint } from '@/model/fortificationBlueprints';
 import { canAffordBuild } from '@/calculations/buildCost';
 import { formatResourceCost } from '@/calculations/resources';
 import { addMessage } from '@/model/messages';
@@ -48,6 +49,7 @@ function placeSelected(ctx: HandlerContext, cell: { col: number; row: number }):
   const id = view.selectedBlueprintId;
   if (!id) return;
   if (isInfraBlueprint(id)) return; // handled by infra handler
+  if (isFortificationBlueprint(id)) return; // handled by fortification handler
 
   const blueprint = getBlueprint(id);
   if (!blueprint) return;

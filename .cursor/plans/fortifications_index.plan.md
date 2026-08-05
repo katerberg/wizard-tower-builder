@@ -121,11 +121,8 @@ Rules:
 
 | Order | Status | Deliverable |
 | ----- | ------ | ----------- |
-| **1 Design** | 📄 this PR | `docs/FORTIFICATIONS.md` + this index |
-| **2 Engine** | ⏳ next | shell map, exterior, strip, `stepCost` |
-| **3 Ground** | ⏳ | Moat + Glacis |
-| **4 Shell** | ⏳ | Parapet + Cornice |
-| **5 Funnel** | ⏳ | Stakes + Barbican |
+| **1 Design** | ✅ | `docs/FORTIFICATIONS.md` + this index |
+| **2–5 Engine + roster** | ✅ lean 6 shipped | shell map, exterior, strip, `stepCost`, Moat/Glacis/Parapet/Cornice/Stakes/Barbican |
 | **6 Spikes** | ⏳ | Migrate spikes → shell; drop upgrades |
 
 ---

@@ -7,6 +7,11 @@ import {
 } from '@/config/constants';
 import { macroCol, macroRow } from './subGrid';
 import { hasRoomAt, hasStructure, towerExtents } from '../model/tower';
+import {
+  isCorniceBlocked,
+  isMoatBlockedGround,
+  isParapetBlocked,
+} from '../model/fortifications/effects';
 import type { ExteriorFace, ExteriorNode, MovementProfile, Tower } from '../model/types';
 
 /** Crawler solid: framing (rooms always sit on structure). */
@@ -134,6 +139,10 @@ export function isWalkable(tower: Tower, subCol: number, subRow: number, profile
   if (contacts.has('leftWall') && contacts.has('rightWall') && !supported) {
     return false;
   }
+
+  if (isMoatBlockedGround(tower, subCol, subRow)) return false;
+  if (isParapetBlocked(tower, subCol, subRow, contacts)) return false;
+  if (isCorniceBlocked(tower, subCol, subRow, contacts)) return false;
 
   return true;
 }

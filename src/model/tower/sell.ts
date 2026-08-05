@@ -1,4 +1,5 @@
 import { clearInfraInCells } from '../infra';
+import { clearShellInCells, reconcileShellAfterStructureEdit } from '../fortifications/shell';
 import { cellKey, parseKey, roomCells } from '../../calculations/grid';
 import type { Cell, Tower } from '../types';
 import { roomAt } from './query';
@@ -10,7 +11,7 @@ export interface RemovalDelta {
   clearedCells: Cell[];
 }
 
-/** Remove a room; keep structure and infra. */
+/** Remove a room; keep structure, infra, and shell. */
 export function removeRoom(tower: Tower, roomId: string): Tower {
   const occupancy: Record<string, string> = {};
   for (const [key, id] of Object.entries(tower.occupancy)) {
@@ -25,6 +26,7 @@ export function removeRoom(tower: Tower, roomId: string): Tower {
     rooms: tower.rooms.filter((r) => r.id !== roomId),
     occupancy,
     infra: tower.infra ?? {},
+    shell: tower.shell ?? {},
   };
 }
 
@@ -64,11 +66,14 @@ export function removeStructureDetailed(tower: Tower, structureId: string): {
     rooms: tower.rooms,
     occupancy: tower.occupancy,
     infra: tower.infra ?? {},
+    shell: tower.shell ?? {},
   };
   next = clearInfraInCells(next, cellsToClear);
+  next = clearShellInCells(next, cellsToClear);
   for (const roomId of roomIdsToRemove) {
     next = removeRoom(next, roomId);
   }
+  next = reconcileShellAfterStructureEdit(next);
   return {
     tower: next,
     delta: {

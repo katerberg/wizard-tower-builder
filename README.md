@@ -180,7 +180,7 @@ Mount points: `#board`, `#stage`, `#hud`, `#library`, `#message-log`, `#modal-ro
 | **Room** | Placed blueprint instance (origin, size, hp, modifications) |
 | **Blueprint** | Room type definition (multi-resource cost, size, base hp, description) — framing, housing, Slot, Boiler, Mana Spring, Turret, Steam Turret, Water Pump, … |
 | **Modification** | Leveled add-on on a room (spikes today; housing/slot/boiler expansions, …) |
-| **Shell fortification** | Exterior framing-cell attachment for crawler routing / shell hazards — designed in [`docs/FORTIFICATIONS.md`](docs/FORTIFICATIONS.md); not shipped |
+| **Shell fortification** | Exterior framing-cell attachment for crawler routing / shell hazards — see [`docs/FORTIFICATIONS.md`](docs/FORTIFICATIONS.md) |
 | **Infra layer** | Per-cell overlay (`stair`, `pipe`, or `elevator`) on the same grid as rooms; one kind per cell |
 | **Staff** | Mobile units (soldier / mage / laborer) recruited into housing; route to workplaces during attack |
 | **Spell / school** | Hotbar ability spending mana; fire · air · earth · water kits |
@@ -287,7 +287,7 @@ Still not done:
 - Visual polish beyond ASCII-style glyphs on canvas
 - Training rooms (troops of certain types required to populate other rooms)
 - Research rooms; Mana Well / spell shop / grimoire unlocks
-- Shell fortifications (moats, glacis, parapets, cornices, stakes, barbican) — designed in [`docs/FORTIFICATIONS.md`](docs/FORTIFICATIONS.md); not shipped
+- Shell fortifications (moats, glacis, parapets, cornices, stakes, barbican) — shipped; see [`docs/FORTIFICATIONS.md`](docs/FORTIFICATIONS.md). Spikes migration to shell still deferred.
 - Structures such as crenels / murderholes beyond existing turrets (populated shell — separate from fortifications)
 - Further non-elemental spell kits / spell shop
 - Additional turret / economy room types beyond Boiler, Mana Spring, Turret, Steam Turret, and Water Pump

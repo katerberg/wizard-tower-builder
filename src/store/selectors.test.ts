@@ -62,7 +62,16 @@ describe('selectLibrarySections', () => {
       'housing',
       'generators',
       'infrastructure',
+      'fortifications',
       'damagers',
+    ]);
+    expect(sections.find((s) => s.id === 'fortifications')?.items.map((i) => i.id)).toEqual([
+      'moat',
+      'glacis',
+      'parapet',
+      'cornice',
+      'stakes',
+      'barbican',
     ]);
     expect(sections.find((s) => s.id === 'housing')?.items.map((i) => i.id)).toEqual([
       'guardroomRoom',

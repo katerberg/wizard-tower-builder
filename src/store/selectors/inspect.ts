@@ -28,10 +28,13 @@ import {
 import { selectConnectivityReport } from '@/model/staff/connectivity';
 import { getEffectiveWizardPosition } from '@/model/spells';
 import { getBlueprint } from '@/model/blueprints';
+import { getFortificationBlueprint } from '@/model/fortificationBlueprints';
 import { getUnstableStructureIds, structureAt } from '@/model/tower';
+import { roomCells } from '@/calculations/grid';
 import type {
   Blueprint,
   ExteriorNode,
+  FortificationId,
   Room,
   RoomStats,
   StaffKind,
@@ -134,6 +137,8 @@ export interface StructureInspector {
   isBuildPhase: boolean;
   canRemove: boolean;
   buildAlert?: string;
+  /** Shell fortifications on this structure's footprint cells. */
+  shellEntries: { col: number; row: number; kind: FortificationId; name: string; glyph: string }[];
 }
 
 export function selectRoomInspector(snapshot: Snapshot, roomId: string): RoomInspector | null {
@@ -274,6 +279,19 @@ export function selectStructureInspector(
   const blueprint = getBlueprint(structure.blueprintId);
   if (!blueprint) return null;
   const isBuildPhase = snapshot.game.scene === 'run' && snapshot.game.phase === 'build';
+  const shellEntries: StructureInspector['shellEntries'] = [];
+  for (const cell of roomCells(structure.origin, structure.size)) {
+    const kind = snapshot.game.tower.shell?.[`${cell.col},${cell.row}`]?.kind;
+    if (!kind) continue;
+    const fortBp = getFortificationBlueprint(kind);
+    shellEntries.push({
+      col: cell.col,
+      row: cell.row,
+      kind,
+      name: fortBp?.name ?? kind,
+      glyph: fortBp?.glyph ?? '?',
+    });
+  }
   return {
     structure,
     blueprint,
@@ -282,6 +300,7 @@ export function selectStructureInspector(
     canRemove: isBuildPhase,
     buildAlert: selectStructureBuildAlerts(snapshot).find((a) => a.structureId === structureId)
       ?.message,
+    shellEntries,
   };
 }
 

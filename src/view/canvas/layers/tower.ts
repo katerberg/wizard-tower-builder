@@ -3,6 +3,7 @@ import { colors } from '@/view/theme';
 import { computeRoomStats, computeStructureStats } from '@/calculations/combat';
 import { parseKey, roomCells } from '@/calculations/grid';
 import { getBlueprint } from '@/model/blueprints';
+import { getFortificationBlueprint } from '@/model/fortificationBlueprints';
 import { getModification } from '@/model/modifications';
 import { resolvePipeFluids, pipeVisualLinks } from '@/model/pipes';
 import { getUnstableStructureIds } from '@/model/tower';
@@ -14,6 +15,7 @@ import { drawHpBar, pipeFluidColor } from './shared';
 export function drawTower(ctx: CanvasRenderingContext2D, snapshot: Snapshot, scrollY: number, viewportHeight: number): void {
   drawStructures(ctx, snapshot, scrollY, viewportHeight);
   drawRooms(ctx, snapshot, scrollY, viewportHeight);
+  drawShellFortifications(ctx, snapshot, scrollY, viewportHeight);
 }
 
 export function drawInfra(ctx: CanvasRenderingContext2D, snapshot: Snapshot, scrollY: number, viewportHeight: number): void {
@@ -104,6 +106,34 @@ function drawModIndicators(ctx: CanvasRenderingContext2D, modifications: { id: s
     const def = getModification(mod.id); if (!def) continue;
     const label = mod.level > 1 ? `${def.glyph}${mod.level}` : def.glyph; const badgeW = ctx.measureText(label).width + padX * 2; const badgeY = badgeBottom - badgeH;
     ctx.fillStyle = 'rgba(0, 0, 0, 0.85)'; ctx.fillRect(cursorX, badgeY, badgeW, badgeH); ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)'; ctx.lineWidth = 1; ctx.strokeRect(cursorX + 0.5, badgeY + 0.5, badgeW - 1, badgeH - 1); ctx.fillStyle = def.color; ctx.fillText(label, cursorX + padX, badgeBottom - padY); cursorX += badgeW + size * 0.35;
+  }
+}
+
+function drawShellFortifications(ctx: CanvasRenderingContext2D, snapshot: Snapshot, scrollY: number, viewportHeight: number): void {
+  const { minRow, maxRow } = visibleRowRange(scrollY, viewportHeight);
+  const shell = snapshot.game.tower.shell ?? {};
+  for (const [key, cell] of Object.entries(shell)) {
+    const { col, row } = parseKey(key);
+    if (row < minRow || row > maxRow) continue;
+    const bp = getFortificationBlueprint(cell.kind);
+    if (!bp) continue;
+    const { x, y } = cellTopLeft(col, row, scrollY, viewportHeight);
+    const size = Math.floor(CELL_SIZE * 0.32);
+    const pad = 3;
+    const badgeW = size + pad * 2;
+    const badgeH = size + pad * 2;
+    const bx = x + CELL_SIZE - badgeW - 3;
+    const by = y + 3;
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+    ctx.fillRect(bx, by, badgeW, badgeH);
+    ctx.strokeStyle = bp.color;
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(bx + 0.5, by + 0.5, badgeW - 1, badgeH - 1);
+    ctx.fillStyle = bp.color;
+    ctx.font = `${size}px monospace`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(bp.glyph, bx + badgeW / 2, by + badgeH / 2 + 1);
   }
 }
 

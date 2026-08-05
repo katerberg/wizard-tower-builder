@@ -8,6 +8,12 @@ import {
 import { roomCells } from '@/calculations/grid';
 import { BLUEPRINTS, getBlueprint, isStructureBlueprint } from '@/model/blueprints';
 import { INFRA_BLUEPRINTS, getInfraBlueprint, isInfraBlueprint } from '@/model/infraBlueprints';
+import {
+  FORTIFICATION_BLUEPRINTS,
+  getFortificationBlueprint,
+  isFortificationBlueprint,
+} from '@/model/fortificationBlueprints';
+import { planFortificationPlacement } from '@/model/fortifications/shell';
 import { planInfraPlacement } from '@/model/infraPlacement';
 import { selectPipeConnectivityReport } from '@/model/pipes';
 import { selectLogisticsReport } from '@/model/staff/connectivity';
@@ -95,7 +101,7 @@ export function selectBuildUndoState(snapshot: Snapshot): BuildUndoState {
 export function selectSelectedBlueprint(snapshot: Snapshot): Blueprint | undefined {
   const id = snapshot.view.selectedBlueprintId;
   if (!id) return undefined;
-  return getBlueprint(id) ?? getInfraBlueprint(id);
+  return getBlueprint(id) ?? getInfraBlueprint(id) ?? getFortificationBlueprint(id);
 }
 
 export interface GhostPlacement {
@@ -127,6 +133,18 @@ export function selectGhostPlacement(snapshot: Snapshot): GhostPlacement | null 
       infraKind: blueprint.infraKind,
       needsStem: plan.needsStem,
       stemCells: plan.needsStem ? [view.hoveredCell] : [],
+    };
+  }
+
+  if (isFortificationBlueprint(id)) {
+    const blueprint = getFortificationBlueprint(id);
+    if (!blueprint?.id) return null;
+    const kind = blueprint.id as import('@/model/types').FortificationId;
+    const plan = planFortificationPlacement(game.tower, kind, view.hoveredCell);
+    return {
+      cells: [view.hoveredCell],
+      valid: plan.ok || plan.isToggleOff,
+      reason: plan.isToggleOff ? 'ok' : plan.reason,
     };
   }
 
@@ -163,7 +181,7 @@ export interface LibraryBlueprintItem {
   baseHp: number;
   affordable: boolean;
   selected: boolean;
-  category: 'structure' | 'room' | 'infra';
+  category: 'structure' | 'room' | 'infra' | 'fortification';
   section: LibrarySectionId;
 }
 
@@ -177,7 +195,7 @@ function toLibraryItem(
   b: Blueprint,
   remaining: Resources,
   selectedBlueprintId: string | null,
-  category: 'structure' | 'room' | 'infra',
+  category: 'structure' | 'room' | 'infra' | 'fortification',
 ): LibraryBlueprintItem | null {
   const section = librarySectionFor(b.id);
   if (!section) return null;
@@ -214,7 +232,11 @@ export function selectLibraryBlueprints(snapshot: Snapshot): LibraryBlueprintIte
     toLibraryItem(b, remaining, view.selectedBlueprintId, 'infra'),
   ).filter((b): b is LibraryBlueprintItem => b !== null);
 
-  return [...framing, ...rooms, ...infra];
+  const forts = FORTIFICATION_BLUEPRINTS.filter((b) => unlocked.has(b.id))
+    .map((b) => toLibraryItem(b, remaining, view.selectedBlueprintId, 'fortification'))
+    .filter((b): b is LibraryBlueprintItem => b !== null);
+
+  return [...framing, ...rooms, ...infra, ...forts];
 }
 
 /** Blueprints grouped into sidebar sections (empty sections omitted). */

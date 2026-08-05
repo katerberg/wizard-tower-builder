@@ -2,7 +2,7 @@
 
 Design for exterior **shell fortifications** — framing-cell attachments that reshape crawler routing (and, later, contact hazards). Players place them intentionally to funnel, deny, or tax enemy climbs without consuming the room layer.
 
-**Status:** Designed / not shipped. Implementation is split into one-shot plans — see [`.cursor/plans/fortifications_index.plan.md`](../.cursor/plans/fortifications_index.plan.md).
+**Status:** Implemented (lean 6 routing fortifications). Spikes remain a room modification until the migration plan. Numbers remain flexible for playtest.
 
 The old deferred README line “Movement-controlling structures (e.g. moats, parapets, cornices)” maps here. **Murderholes / crenels** (populated shell rooms) stay on a separate track.
 

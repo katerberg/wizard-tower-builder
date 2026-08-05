@@ -5,6 +5,7 @@ import type { Blueprint, Cell, PlacementReason, PlacementResult, Room, Structure
 import { roomAt, structureAt, hasStructure } from './query';
 import { analyzeSupport, type SupportAnalysis } from './stability';
 import { removeRoom, removeStructure } from './sell';
+import { reconcileShellAfterStructureEdit } from '../fortifications/shell';
 
 export function createStructure(id: string, blueprint: Blueprint, origin: Cell): Structure {
   return {
@@ -274,6 +275,7 @@ export function placeStructure(tower: Tower, structure: Structure): Tower {
     rooms: tower.rooms ?? [],
     occupancy: tower.occupancy ?? {},
     infra: tower.infra ?? {},
+    shell: tower.shell ?? {},
   };
 }
 
@@ -289,6 +291,7 @@ export function placeRoom(tower: Tower, room: Room): Tower {
     rooms: [...tower.rooms, room],
     occupancy,
     infra: tower.infra ?? {},
+    shell: tower.shell ?? {},
   };
 }
 
@@ -307,7 +310,8 @@ export function placeStructureReplacing(
   if (!legality.ok) {
     return legality;
   }
-  return { ok: true, reason: 'ok', tower: placeStructure(cleared.tower, structure) };
+  const placed = placeStructure(cleared.tower, structure);
+  return { ok: true, reason: 'ok', tower: reconcileShellAfterStructureEdit(placed) };
 }
 
 /**
@@ -340,5 +344,6 @@ export function placeRoomReplacing(
     next = placeStructure(next, createStructure(nextId(), stem, cell));
   }
   next = placeRoom(next, room);
+  next = reconcileShellAfterStructureEdit(next);
   return { ok: true, reason: 'ok', tower: next };
 }

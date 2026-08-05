@@ -17,6 +17,7 @@ import { attackOverhangBlocking } from './enemies/demolisherCombat';
 import { attackBlockingRoom, attackWizard, closestRoomToEnemy, enemyTouchesRoom, greedyStepTowardRoom } from './enemies/flierCombat';
 import { addMessage } from './messages';
 import { findPath } from '../calculations/pathfinding';
+import { stakesSlowMultiplier } from './fortifications/effects';
 import { runEnemyStepEffects, runRoomEffects } from './modifications/effects';
 import {
   buildSpellContext, blizzardSlowMultiplier, getEffectiveWizardPosition,
@@ -112,7 +113,9 @@ function macroManhattan(a: ExteriorNode, b: ExteriorNode): number {
   return Math.abs(am.col - bm.col) + Math.abs(am.row - bm.row);
 }
 function moveSlowMultiplier(state: GameState, enemy: Enemy): number {
-  return blizzardSlowMultiplier(state, enemy) * soakSlowMultiplier(state, enemy);
+  const template = getEnemyTemplate(enemy.templateId);
+  const stakes = stakesSlowMultiplier(state.tower, enemy.pos, template?.movement.canFly === true);
+  return blizzardSlowMultiplier(state, enemy) * soakSlowMultiplier(state, enemy) * stakes;
 }
 function trackMacroMovement(enemy: Enemy, state: GameState, canFly: boolean): void {
   const m = macroCellOfNode(enemy.pos); const key = `${m.col},${m.row}`;

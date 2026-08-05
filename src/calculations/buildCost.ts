@@ -1,5 +1,6 @@
 import { getBlueprint } from '@/model/blueprints';
 import { getInfraBlueprint, infraBlueprintIdForKind } from '@/model/infraBlueprints';
+import { shellBuildCost } from '@/model/fortifications/shell';
 import { getModification, modificationCost } from '@/model/modifications';
 import type { BuildBaseline, ResourceCost, Resources, Room, Structure, Tower } from '@/model/types';
 import {
@@ -45,7 +46,8 @@ export function towerBuildCost(tower: Tower): Resources {
   for (const room of tower.rooms) {
     total = addResources(total, roomBuildCost(room));
   }
-  return addResources(total, infraBuildCost(tower));
+  total = addResources(total, infraBuildCost(tower));
+  return addResources(total, shellBuildCost(tower));
 }
 
 export function netBuildCost(baseline: BuildBaseline, draft: Tower): Resources {
