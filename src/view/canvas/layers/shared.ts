@@ -18,5 +18,6 @@ export function drawHpBar(
 export function pipeFluidColor(fluid: PipeFluid): string {
   if (fluid === 'water') return colors.infraPipe;
   if (fluid === 'steam') return colors.infraPipeSteam;
+  if (fluid === 'fire') return colors.infraPipeFire;
   return colors.infraPipeDry;
 }

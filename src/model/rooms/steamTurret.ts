@@ -1,7 +1,6 @@
 import { STEAM_TURRET_BLAST_DEPTH, STEAM_TURRET_CHARGE_SEC, STEAM_TURRET_DAMAGE } from '@/config/constants';
-import { cellKey, parseKey } from '@/calculations/grid';
+import { parseKey } from '@/calculations/grid';
 import { computeDamage, type Combatant } from '@/calculations/combat';
-import { macroCellOfNode } from '@/calculations/subGrid';
 import { addMessage } from '../messages';
 import { getEnemyTemplate } from '../enemies';
 import {
@@ -12,33 +11,12 @@ import {
 } from '../pipes';
 import type { Cell, Enemy, GameState, Room, Tower } from '../types';
 import { boilerThroughput } from './boiler';
+import { enemiesInBlastCells, exteriorSideBlastCells } from './sideBlast';
 import type { RoomBehaviorDef } from './types';
-
-function isOccupied(tower: Tower, col: number, row: number): boolean {
-  return Object.prototype.hasOwnProperty.call(tower.occupancy, cellKey(col, row));
-}
 
 /** Exterior blast cells for open left/right faces (depth × 3-wide). */
 export function steamTurretBlastCells(tower: Tower, origin: Cell): Cell[] {
-  const cells: Cell[] = [];
-  const { col: c, row: r } = origin;
-  const offsets = [-1, 0, 1] as const;
-  if (!isOccupied(tower, c - 1, r)) {
-    for (let d = 1; d <= STEAM_TURRET_BLAST_DEPTH; d++) {
-      for (const o of offsets) cells.push({ col: c - d, row: r + o });
-    }
-  }
-  if (!isOccupied(tower, c + 1, r)) {
-    for (let d = 1; d <= STEAM_TURRET_BLAST_DEPTH; d++) {
-      for (const o of offsets) cells.push({ col: c + d, row: r + o });
-    }
-  }
-  return cells;
-}
-
-function enemiesInBlast(state: GameState, blast: Cell[]): Enemy[] {
-  const keys = new Set(blast.map((c) => cellKey(c.col, c.row)));
-  return state.enemies.filter((e) => e.currentHp > 0 && keys.has(cellKey(macroCellOfNode(e.pos).col, macroCellOfNode(e.pos).row)));
+  return exteriorSideBlastCells(tower, origin, STEAM_TURRET_BLAST_DEPTH);
 }
 
 function attackEnemy(state: GameState, enemy: Enemy): void {
@@ -105,7 +83,7 @@ export function tickSteamTurrets(state: GameState, dt: number): void {
     const chargeRate = rates.get(turret.id) ?? 0;
     let charge = Math.min(1, previous.charge + (dt / STEAM_TURRET_CHARGE_SEC) * chargeRate);
     if (charge >= 1) {
-      const hits = enemiesInBlast(state, steamTurretBlastCells(state.tower, turret.origin));
+      const hits = enemiesInBlastCells(state, steamTurretBlastCells(state.tower, turret.origin));
       if (hits.length > 0) {
         for (const enemy of hits) attackEnemy(state, enemy);
         charge = 0;

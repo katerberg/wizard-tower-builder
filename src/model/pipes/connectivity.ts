@@ -4,7 +4,7 @@ import {
   boilerHasSteamPort,
   boilerHasWaterPort,
   flameTurretHasForge,
-  forgeHasWaterPort,
+  forgeHasFirePort,
   isBoilerRoom,
   isFlameTurretRoom,
   isForgeRoom,
@@ -53,15 +53,15 @@ export function selectPipeConnectivityReport(state: GameState): PipeConnectivity
     }
 
     if (isForgeRoom(room)) {
-      if (!forgeHasWaterPort(state.tower, room.origin, room.size)) {
-        push(room.id, 'Needs water from ground pipes');
+      if (!forgeHasFirePort(state.tower, room.origin, room.size)) {
+        push(room.id, 'Needs a fire pipe outlet');
       }
       continue;
     }
 
     if (isFlameTurretRoom(room)) {
       if (!flameTurretHasForge(state.tower, room)) {
-        push(room.id, 'Needs a water-connected forge');
+        push(room.id, 'Needs a fire-connected forge');
       }
       continue;
     }

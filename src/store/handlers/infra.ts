@@ -41,7 +41,7 @@ function placeInfraSelected(ctx: HandlerContext, cell: { col: number; row: numbe
 
   if (!plan.ok) {
     if (plan.reason === 'fluid_mix') {
-      addMessage(game, 'Would mix water and steam.', 'info');
+      addMessage(game, 'Would mix pipe fluids.', 'info');
     } else if (plan.reason === 'boiler_footprint') {
       addMessage(game, 'Cannot place pipes on a boiler.', 'info');
     } else {

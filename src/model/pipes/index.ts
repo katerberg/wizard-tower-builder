@@ -1,4 +1,4 @@
-export type { PipeFluid } from './fluids';
+export type { PipeFluid, AssignedPipeFluid } from './fluids';
 export {
   isBoilerRoom,
   isSteamTurretRoom,
@@ -16,9 +16,12 @@ export {
   roomHasFluidPort,
   boilerHasWaterPort,
   boilerHasSteamPort,
+  forgeHasFirePort,
   forgeHasWaterPort,
   waterComponentKeys,
   adjacentWaterPipeKeys,
+  fireComponentKeys,
+  adjacentFirePipeKeys,
   flameTurretHasForge,
   steamComponentKeys,
   adjacentSteamPipeKeys,

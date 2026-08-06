@@ -9,7 +9,7 @@ Stack: **TypeScript**, **Vite**, **HTML5 Canvas** (board), **DOM** (UI chrome). 
 The run alternates between two phases:
 
 1. **Build** — Spend **stone**, **metal**, and **souls** to place **framing** (spires / buttresses), **rooms**, and **infra**. Framing holds the tower up; rooms and infra sit on it (and auto-add Spire Blocks when needed). Paint **stairs** and **pipes**; recruit staff into housing (**gold** payroll); allocate slot/spring headcounts. Use the **Select** tool to inspect rooms (and bare framing). Right-click sells the room first (framing stays); click again to sell framing. When the tower is stable, start the wave.
-2. **Attack** — Enemies spawn at the base and pathfind toward the wizard. Staff path on the **interior** (horizontal through framing / passable rooms; **stairs/elevators** to change floors) to slots, mana springs, and repair jobs. Surplus laborers **hand-pump** water and **harvest** stone/metal underground. Defenses: wizard **Wand Strike** (auto) plus a four-spell hotbar; **Turret** / **Steam Turret** rooms; soldier **Slots**; **spikes** (modification). Stone-built mass weathers and takes climber abrasion. Survive the wave to earn **gold** (clear) and **souls** (kills) and return to build. Lose if the wizard’s HP reaches zero.
+2. **Attack** — Enemies spawn at the base and pathfind toward the wizard. Staff path on the **interior** (horizontal through framing / passable rooms; **stairs/elevators** to change floors) to slots, mana springs, and repair jobs. Surplus laborers **hand-pump** water and **harvest** stone/metal underground. Defenses: wizard **Wand Strike** (auto) plus a four-spell hotbar; **Turret** / **Steam Turret** / **Flame Turret** (+ **Forge** fire pipes) rooms; soldier **Slots**; **spikes** (modification). Stone-built mass weathers and takes climber abrasion. Survive the wave to earn **gold** (clear) and **souls** (kills) and return to build. Lose if the wizard’s HP reaches zero.
 
 **Win** by clearing a wave while framing height is still **≥ 100**. Difficulty scales with tower height at Start Wave (plateaus + permanent enemy unlocks); see [`docs/HEIGHT_PROGRESSION.md`](docs/HEIGHT_PROGRESSION.md).
 
@@ -178,7 +178,7 @@ Mount points: `#board`, `#stage`, `#hud`, `#library`, `#message-log`, `#modal-ro
 |------|---------|
 | **Tower** | Structures (framing) + rooms + occupancy maps + infra |
 | **Room** | Placed blueprint instance (origin, size, hp, modifications) |
-| **Blueprint** | Room type definition (multi-resource cost, size, base hp, description) — framing, housing, Slot, Boiler, Mana Spring, Turret, Steam Turret, Water Pump, … |
+| **Blueprint** | Room type definition (multi-resource cost, size, base hp, description) — framing, housing, Slot, Boiler, Mana Spring, Turret, Steam Turret, Forge, Flame Turret, Water Pump, … |
 | **Modification** | Leveled add-on on a room (spikes, housing/slot/boiler expansions, …) |
 | **Infra layer** | Per-cell overlay (`stair`, `pipe`, or `elevator`) on the same grid as rooms; one kind per cell |
 | **Staff** | Mobile units (soldier / mage / laborer) recruited into housing; route to workplaces during attack |
@@ -271,7 +271,7 @@ flowchart TB
 | **Pathfinding** | Interior/infra graph for staff; exterior graph for enemies (unchanged) |
 | **Logistics** | Warn-only before wave; hover/click shows broken routes |
 
-**Implementation status:** Housing + staff workplaces shipped (see [`docs/HOUSING.md`](docs/HOUSING.md)). Pipes/boilers/springs shipped ([`docs/PIPES.md`](docs/PIPES.md)). Fire · air · earth · water spell schools shipped. Elevators shipped. Mid-wave pipe breaks remain deferred.
+**Implementation status:** Housing + staff workplaces shipped (see [`docs/HOUSING.md`](docs/HOUSING.md)). Pipes/boilers/springs/forge fire shipped ([`docs/PIPES.md`](docs/PIPES.md)). Fire · air · earth · water spell schools shipped. Elevators shipped. Mid-wave pipe breaks remain deferred.
 
 ## Deferred / not in v1
 
@@ -288,7 +288,7 @@ Still not done:
 - Movement-controlling structures (e.g. moats, parapets, cornices)
 - Structures such as crenels / murderholes beyond existing turrets
 - Further non-elemental spell kits / spell shop
-- Additional turret / economy room types beyond Boiler, Mana Spring, Turret, Steam Turret, and Water Pump
+- Additional turret / economy room types beyond Boiler, Mana Spring, Turret, Steam Turret, Forge, Flame Turret, and Water Pump
 - Infra/mod repair and mid-wave building (laborers repair room HP only today)
 - Exact harvest/wear balance curves; weather events on the weathering channel
 

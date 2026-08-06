@@ -62,7 +62,7 @@ export const ROOM_BLUEPRINTS: Blueprint[] = [
     baseHp: 18,
     category: 'room',
     description:
-      'Deals low damage and Kindles nearby climbers for fire-spell bursts. Costs 1 mana per shot and souls.',
+      'Charges, then blasts open sides to Kindle climbers for fire-spell bursts. Needs a fire pipe from a Forge. Costs 1 mana per blast and souls.',
   },
   {
     id: 'forgeRoom',
@@ -75,7 +75,7 @@ export const ROOM_BLUEPRINTS: Blueprint[] = [
     category: 'room',
     passable: false,
     description:
-      'Needs water from ground pipes. Supports Flame Turrets on the same water-pipe network. Costs metal.',
+      'Seeds fire into adjacent pipes. Supports Flame Turrets on the same fire-pipe network. Costs metal.',
   },
   {
     id: 'guardroomRoom',

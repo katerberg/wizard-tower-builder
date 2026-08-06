@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
+import { FLAME_TURRET_CHARGE_SEC } from '@/config/constants';
 import { getBlueprint } from '../blueprints';
 import { createInitialState } from '../game';
 import { placeInfra } from '../infra';
+import {
+  flameTurretBlastCells,
+  resetFlameTurretRuntime,
+  tickFlameTurrets,
+} from '../rooms/flameTurret';
 import { isKindled } from '../spells/fire/kindled';
 import { createRoom, placeRoom } from '../tower';
 import { runEnemyStepEffects, runRoomEffects, runWaveClearedEffects } from './effects';
@@ -25,13 +31,34 @@ function stateWithRoom(
 }
 
 function stateWithFlameTurret(seed: string): GameState {
-  const state = stateWithRoom(seed, 'flameTurretRoom');
-  const forge = createRoom('forge', getBlueprint('forgeRoom')!, { col: 5, row: 0 });
-  state.tower = placeRoom(state.tower, forge);
-  state.tower = placeInfra(state.tower, { col: 6, row: 0 }, 'pipe');
-  state.tower = placeInfra(state.tower, { col: 7, row: 0 }, 'pipe');
+  const state = createInitialState(seed);
+  // Elevated fire run (row 1): ground pipes are always water, so forge heat stays off row 0.
+  // Turret at (8,1) has open right face for side blast; left is blocked by pipe stems.
+  for (const col of [5, 6, 7, 8]) {
+    state.tower = placeRoom(
+      state.tower,
+      createRoom(`g${col}`, getBlueprint('stem')!, { col, row: 0 }),
+    );
+  }
+  state.tower = placeRoom(
+    state.tower,
+    createRoom('forge', getBlueprint('forgeRoom')!, { col: 5, row: 1 }),
+  );
+  state.tower = placeRoom(state.tower, createRoom('p6', getBlueprint('stem')!, { col: 6, row: 1 }));
+  state.tower = placeRoom(state.tower, createRoom('p7', getBlueprint('stem')!, { col: 7, row: 1 }));
+  state.tower = placeRoom(
+    state.tower,
+    createRoom('r0', getBlueprint('flameTurretRoom')!, { col: 8, row: 1 }),
+  );
+  state.tower = placeInfra(state.tower, { col: 6, row: 1 }, 'pipe');
+  state.tower = placeInfra(state.tower, { col: 7, row: 1 }, 'pipe');
   state.phase = 'attack';
+  resetFlameTurretRuntime(state);
   return state;
+}
+
+function chargeAndDump(state: GameState): void {
+  tickFlameTurrets(state, FLAME_TURRET_CHARGE_SEC + 0.01);
 }
 
 describe('turret room effect', () => {
@@ -75,53 +102,73 @@ describe('turret room effect', () => {
 });
 
 describe('flame turret room effect', () => {
-  it('deals chip damage and Kindles an enemy it hits', () => {
+  it('charges then blasts an open side, Kindling every hit', () => {
     const state = stateWithFlameTurret('flame-turret');
-    const brute = makeEnemy('brute', 8, 2, 55);
-    state.enemies = [brute];
+    const a = makeEnemy('brute', 9, 1, 55);
+    const b = makeEnemy('elite', 9, 2, 28);
+    state.enemies = [a, b];
 
-    runRoomEffects(state, 1.0);
+    tickFlameTurrets(state, FLAME_TURRET_CHARGE_SEC * 0.5);
+    expect(state.flameTurretRuntime.r0.charge).toBeGreaterThan(0);
+    expect(state.flameTurretRuntime.r0.charge).toBeLessThan(1);
+    expect(a.currentHp).toBe(55);
 
-    expect(brute.currentHp).toBeLessThan(55);
-    expect(isKindled(brute, state)).toBe(true);
+    chargeAndDump(state);
+
+    expect(a.currentHp).toBeLessThan(55);
+    expect(b.currentHp).toBeLessThan(28);
+    expect(isKindled(a, state)).toBe(true);
+    expect(isKindled(b, state)).toBe(true);
+    expect(state.flameTurretRuntime.r0.charge).toBe(0);
   });
 
-  it('refreshes the Kindled timer on another successful hit', () => {
+  it('blasts the open right lane like a steam turret', () => {
+    const state = stateWithFlameTurret('flame-blast');
+    const blast = flameTurretBlastCells(state.tower, { col: 8, row: 1 });
+    expect(blast.some((c) => c.col === 9 && c.row === 1)).toBe(true);
+    expect(blast.some((c) => c.col === 7 && c.row === 1)).toBe(false);
+  });
+
+  it('refreshes the Kindled timer on another successful blast', () => {
     const state = stateWithFlameTurret('flame-turret-refresh');
-    const brute = makeEnemy('brute', 8, 2, 55);
+    const brute = makeEnemy('brute', 9, 1, 55);
     state.enemies = [brute];
 
-    runRoomEffects(state, 1.0);
+    chargeAndDump(state);
     const firstExpiry = brute.kindledUntil;
     state.waveTimer = 5;
-    runRoomEffects(state, 1.0);
+    chargeAndDump(state);
 
     expect(brute.kindledUntil).toBeGreaterThan(firstExpiry!);
   });
 
-  it('does not fire or Kindle when mana is empty', () => {
+  it('does not dump or Kindle when mana is empty', () => {
     const state = stateWithFlameTurret('flame-turret-dry');
-    const elite = makeEnemy('elite', 8, 2, 28);
+    const elite = makeEnemy('elite', 9, 1, 28);
     state.enemies = [elite];
     state.player.mana = 0;
 
-    runRoomEffects(state, 1.0);
+    chargeAndDump(state);
 
     expect(elite.currentHp).toBe(28);
     expect(isKindled(elite, state)).toBe(false);
+    expect(state.flameTurretRuntime.r0.charge).toBe(1);
   });
 
-  it('does not fire without a water-connected Forge', () => {
+  it('does not charge without a fire-connected Forge', () => {
     const state = stateWithRoom('flame-turret-forge', 'flameTurretRoom');
-    const brute = makeEnemy('brute', 8, 2, 55);
+    state.phase = 'attack';
+    resetFlameTurretRuntime(state);
+    const brute = makeEnemy('brute', 9, 0, 55);
     state.enemies = [brute];
     const manaBefore = state.player.mana;
 
-    runRoomEffects(state, 1.0);
+    chargeAndDump(state);
 
     expect(brute.currentHp).toBe(55);
     expect(isKindled(brute, state)).toBe(false);
     expect(state.player.mana).toBe(manaBefore);
+    expect(state.flameTurretRuntime.r0.chargeRate).toBe(0);
   });
 });
 

@@ -1,8 +1,8 @@
-# Pipes, boilers & steam
+# Pipes, boilers, steam & fire
 
-Developer spec for the **fluid logistics** slice: ground water, boilers, mana springs, steam turrets, and typed pipe networks. Complements [`INFRASTRUCTURE.md`](INFRASTRUCTURE.md) (layers, workers, stairs) and [`HOUSING.md`](HOUSING.md) (magi staffing springs).
+Developer spec for the **fluid logistics** slice: ground water, boilers, mana springs, steam turrets, forges, flame turrets, and typed pipe networks. Complements [`INFRASTRUCTURE.md`](INFRASTRUCTURE.md) (layers, workers, stairs) and [`HOUSING.md`](HOUSING.md) (magi staffing springs).
 
-**Status:** Shipped (P0–P7). Fluids lock at wave start and **re-lock mid-wave** when rooms/framing are destroyed (demolishers, fliers, Earthquake cascade).
+**Status:** Shipped (P0–P7 + fire network). Fluids lock at wave start and **re-lock mid-wave** when rooms/framing are destroyed (demolishers, fliers, Earthquake cascade).
 
 ---
 
@@ -24,12 +24,20 @@ flowchart TB
     ST[Steam turret]
     BO --> SP --> ST
   end
+  subgraph fireNet [Fire network]
+    FG[Forge]
+    FP[Fire pipes - red preview]
+    FT[Flame turret]
+    FG --> FP --> FT
+  end
   subgraph mana [Mana economy]
     Pool[Shared mana pool max 20]
     MS -->|water + stationed magi| Pool
     Boiler[Boiler 1x2] -->|mana/sec| Pool
     MT[Magic turret 1 mana/shot]
+    FT2[Flame turret 1 mana/blast]
     Pool --> MT
+    Pool --> FT2
   end
   BI --- Boiler
   Boiler --- BO
@@ -39,6 +47,7 @@ flowchart TB
 |--------------|----------|----------|
 | **Soldier slots** | Gold + logistics | Guardrooms, stairs |
 | **Steam turrets** | Steam charge | Boiler water + mana |
+| **Flame turrets** | Fire pipe + mana/blast | Forge fire network + mana pool |
 | **Magic turret** | Mana per shot | Mana springs (water + magi) + pool |
 
 Spells spend mana but are **not** part of this logistics slice.
@@ -47,12 +56,12 @@ Spells spend mana but are **not** part of this logistics slice.
 
 ## Design goals
 
-1. **One fluid per pipe cell** — no mixing water and steam in the same cell.
+1. **One fluid per pipe cell** — no mixing water, steam, or fire in the same cell.
 2. **Generic pipe tool** — fluid type from **network seeds** + live **preview**; **locks at wave start**.
-3. **Factorio-style merge reject** — cannot place a pipe that would connect water and steam networks.
-4. **Parallel runs** — water and steam in **adjacent columns** around boilers (no crossover building).
+3. **Factorio-style merge reject** — cannot place a pipe that would connect two different assigned fluids.
+4. **Parallel runs** — water / steam / fire in **adjacent columns** (no crossover building).
 5. **Instant hydraulic transfer** — connectivity is binary; steam charge rate uses **throughput split**, not fluid simulation.
-6. **Shared mana** — boilers and magic turrets compete for the same pool.
+6. **Shared mana** — boilers, magic turrets, and flame turrets compete for the same pool.
 
 ---
 
@@ -72,22 +81,26 @@ Spells spend mana but are **not** part of this logistics slice.
 | Unassigned | Gray | Not connected to a seed |
 | Water | **Blue** | Component touches **row 0** pipe cell |
 | Steam | **Orange** | Component touches a **steam turret** (adjacent pipe cell) |
+| Fire | **Red** | Component touches a **Forge** (adjacent pipe cell) |
 
-**Seeds:**
+**Seeds (priority: water → steam → fire):**
 
 - **Water:** any pipe cell on **row 0** (ground). Any number of ground connections; no separate `waterSpring` structure.
 - **Steam:** flood from cells **4-adjacent to any steam turret** (consumer pulls steam type through the pipe graph).
+- **Fire:** flood from cells **4-adjacent to any Forge** (producer pushes fire type through the pipe graph).
+
+Row-0 pipes are always water, so fire and steam runs must be **elevated** (off the ground row).
 
 Re-preview **immediately** on pipe/room edits during build.
 
-**Wave start:** resolve all components → write `InfraCell.fluid` → **lock** for attack rendering. Attack-phase boilers / springs / turrets re-read live topology; with static networks this matches the lock.
+**Wave start:** resolve all components → write `InfraCell.fluid` → **lock** for attack rendering. Attack-phase boilers / springs / turrets / forges re-read live topology; with static networks this matches the lock.
 
 ### Merge rule
 
-If placing a pipe would **4-connect** water and steam neighborhoods:
+If placing a pipe would connect two different assigned fluids (water / steam / fire):
 
 - **Block placement**
-- Message: *"Would mix water and steam."*
+- Message: *"Would mix pipe fluids."*
 - **Drag-paint:** invalid cells are skipped (message shown); the stroke does **not** abort — the player can continue over later valid cells
 
 **Allowed:** T-junctions and crosses **within one fluid** only.
@@ -103,7 +116,7 @@ If placing a pipe would **4-connect** water and steam neighborhoods:
 Pipes draw through the **cell center** to **edge midpoints** toward each orthogonal joint:
 
 - Neighbor **pipe** cells
-- Adjacent **fluid-port rooms** (boiler, mana spring, steam turret, hydrant)
+- Adjacent **fluid-port rooms** (boiler, mana spring, steam turret, hydrant, forge, flame turret)
 - **Ground** stub on row-0 pipes (south into the ground line)
 
 That yields continuous L / T / + shapes instead of a side riser.
@@ -149,6 +162,33 @@ Many boilers may share water and steam networks.
 | Passable | **false** |
 | Cost / HP | **14 / 20** |
 
+### Forge (`forgeRoom`)
+
+| Property | Value |
+|----------|--------|
+| Size | **1×1** |
+| Role | **Fire seed** — adjacent unassigned pipes become **fire** and flood the fire network |
+| Outlet | Needs at least one adjacent **fire** pipe (build warning otherwise) |
+| Passable | **false** |
+| Cost / HP | **14 metal / 22** |
+
+Forges do **not** consume water. They only seed fire into pipes.
+
+### Flame turret (`flameTurretRoom`)
+
+| Property | Value |
+|----------|--------|
+| Size | **1×1** |
+| Input | Adjacent **fire** pipe that shares a component with a Forge |
+| Charge | **3s** at chargeRate **1** while forge-connected; **keeps partial / full charge** if forge drops |
+| Fire | **Full dump** when charged + enemy in blast + mana available (holds at full if dry or no targets) |
+| Damage | **2** chip + **Kindled** on each successful hit |
+| Blast | Same shape as steam: open **left/right** faces; **3** wide × depth **3** (`exteriorSideBlastCells`) |
+| Targeting | **All** enemies in blast cells |
+| Mana | **1** per blast dump |
+| Passable | **false** |
+| Cost / HP | **12 souls / 18** |
+
 ### Mana spring (`manaSpringRoom`)
 
 | Property | Value |
@@ -174,8 +214,9 @@ Existing room; **1 mana per shot**. Cooldown still ticks when dry; the shot is s
 |------|--------|
 | Pool | **Shared**; **max 20** (`MAX_MANA`) |
 | Wave start | **Full** (20) |
-| Passive regen | **0** without water-connected, mage-staffed springs |
+| Base regen | **0** without water-connected, mage-staffed springs |
 | Magic turret | **1 mana** per shot |
+| Flame turret | **1 mana** per blast dump |
 | Boiler | Drains mana while producing steam |
 | UI | Mana label rounded to the **nearest tenth** |
 
@@ -191,11 +232,14 @@ Intent: mana springs + turret shots compete with boiler fire — the player cann
 1. Tick mana springs (+mana/sec if water-connected and staffed by magi)
 2. Tick boilers (−mana/sec if water + steam port + mana; mark steamAvailable)
 3. Tick steam turret charge (throughput split) and fire when charged + targets
+4. Tick flame turret charge (forge-connected → rate 1) and blast when charged + targets + mana
 ```
+
+Continuous room ticks run via `tickRoomBehaviors` (`steamTurret` / `flameTurret` `tick` hooks).
 
 ### Network breaks
 
-When rooms or framing are destroyed mid-wave, call `lockPipeFluids` again (with current `maxWaterReachRow`) so attack-phase `InfraCell.fluid` matches live topology. Boilers, springs, and steam turrets re-query connectivity and go dark when seeds/paths break.
+When rooms or framing are destroyed mid-wave, call `lockPipeFluids` again (with current `maxWaterReachRow`) so attack-phase `InfraCell.fluid` matches live topology. Boilers, springs, steam turrets, and flame turrets re-query connectivity and go dark when seeds/paths break.
 
 ---
 
@@ -210,6 +254,8 @@ Build-phase only. Warnings are **per-room** (red outline + hover/inspect), same 
 | Boiler without steam outlet | Warn: *"Needs a steam pipe outlet"* |
 | Steam turret without steam pipe | Warn: *"Needs a steam pipe"* |
 | Steam turret steam net with no boiler | Warn: *"No steam from a boiler"* |
+| Forge without fire outlet | Warn: *"Needs a fire pipe outlet"* |
+| Flame turret without fire-connected forge | Warn: *"Needs a fire-connected forge"* |
 | Mana spring without water | Warn: *"Needs water from ground pipes"* |
 | Would-merge (build) | **Reject** placement |
 
@@ -218,10 +264,10 @@ Build-phase only. Warnings are **per-room** (red outline + hover/inspect), same 
 ## Data model
 
 ```ts
-type Fluid = 'water' | 'steam' | 'unassigned';
+type Fluid = 'water' | 'steam' | 'fire' | 'unassigned';
 
 interface InfraCell {
-  kind: 'stair' | 'pipe';
+  kind: 'stair' | 'pipe' | 'elevator';
   fluid?: Fluid; // written at wave start for pipes
 }
 
@@ -233,6 +279,7 @@ interface Player {
 // GameState attack-phase runtime
 boilerRuntime: Record<roomId, { producing: boolean; steamAvailable: boolean }>;
 steamTurretRuntime: Record<roomId, { charge: number; chargeRate: number }>;
+flameTurretRuntime: Record<roomId, { charge: number; chargeRate: number }>;
 ```
 
 **Pipe networks:** flood-fill orthogonal pipe cells; type from seeds; merge reject on build.
@@ -245,7 +292,7 @@ steamTurretRuntime: Record<roomId, { charge: number; chargeRate: number }>;
 
 | Surface | Behavior |
 |---------|----------|
-| Pipe preview | Gray → blue (water) / orange (steam) on touch seed |
+| Pipe preview | Gray → blue (water) / orange (steam) / red (fire) on touch seed |
 | Pipe joints | Center hub + orthogonal stubs (pipes, port rooms, ground) |
 | Illegal merge | Red ghost / blocked placement |
 | Layers | Infra layer shows pipe colors when on |
@@ -268,6 +315,7 @@ steamTurretRuntime: Record<roomId, { charge: number; chargeRate: number }>;
 | **P6** | Magic turret 1 mana/shot |
 | **P7** | Balance pass (costs, HP, passable flags) |
 | **Post** | Magi staffing gate + spring passable (see [`HOUSING.md`](HOUSING.md)) |
+| **Fire** | Forge fire seed + flame turret charge/blast + three-fluid merge |
 
 ---
 
@@ -290,7 +338,8 @@ steamTurretRuntime: Record<roomId, { charge: number; chargeRate: number }>;
 | Area | Location |
 |------|----------|
 | Pipe graph / fluids | `src/model/pipes/` |
-| Boiler / spring / steam turret / hydrant behavior | `src/model/rooms/` |
+| Boiler / spring / steam / flame / hydrant behavior | `src/model/rooms/` |
+| Shared side-blast geometry | `src/model/rooms/sideBlast.ts` |
 | Attack tick order | `src/model/tick.ts` |
 | Knobs | `src/config/infra.ts`, `src/config/combat.ts` |
 
@@ -304,6 +353,9 @@ MAX_MANA = 20;
 STEAM_TURRET_CHARGE_SEC = 3;
 STEAM_TURRET_DAMAGE = 10;
 STEAM_TURRET_BLAST_DEPTH = 3;
+FLAME_TURRET_CHARGE_SEC = 3;
+FLAME_TURRET_DAMAGE = 2;
+FLAME_TURRET_BLAST_DEPTH = 3;
 MAGIC_TURRET_MANA_COST = 1;
 BOILER_THROUGHPUT = [3, 4, 5];
 ```
@@ -312,6 +364,8 @@ BOILER_THROUGHPUT = [3, 4, 5];
 |------|------|----|----------|
 | Boiler | 16 | 22 | false |
 | Steam turret | 14 | 20 | false |
+| Forge | 14 metal | 22 | false |
+| Flame turret | 12 souls | 18 | false |
 | Mana spring | 28 | 30 | true (magi station inside) |
 | Magic turret | 10 | 18 | (existing) |
 
