@@ -4,6 +4,8 @@ import type { Cell, Fluid, Tower } from '@/model/types';
 /** Live or locked pipe fluid label. */
 export type PipeFluid = Fluid;
 
+export type AssignedPipeFluid = 'water' | 'steam' | 'fire';
+
 const ORTHO: readonly (readonly [number, number])[] = [
   [1, 0],
   [-1, 0],
@@ -25,6 +27,14 @@ export function isManaSpringRoom(room: { blueprintId: string }): boolean {
 
 export function isHydrantRoom(room: { blueprintId: string }): boolean {
   return room.blueprintId === 'hydrantRoom';
+}
+
+export function isForgeRoom(room: { blueprintId: string }): boolean {
+  return room.blueprintId === 'forgeRoom';
+}
+
+export function isFlameTurretRoom(room: { blueprintId: string }): boolean {
+  return room.blueprintId === 'flameTurretRoom';
 }
 
 function pipeCells(tower: Tower): Cell[] {
@@ -58,6 +68,15 @@ function steamTurretFootprintCells(tower: Tower): Cell[] {
   return cells;
 }
 
+function forgeFootprintCells(tower: Tower): Cell[] {
+  const cells: Cell[] = [];
+  for (const room of tower.rooms) {
+    if (!isForgeRoom(room)) continue;
+    cells.push(...roomCells(room.origin, room.size));
+  }
+  return cells;
+}
+
 export function isBoilerFootprintCell(tower: Tower, col: number, row: number): boolean {
   return boilerFootprintCells(tower).some((c) => c.col === col && c.row === row);
 }
@@ -66,7 +85,7 @@ function flood(
   tower: Tower,
   seeds: Cell[],
   assign: Record<string, PipeFluid>,
-  label: 'water' | 'steam',
+  label: AssignedPipeFluid,
   maxRow = Infinity,
 ): void {
   const queue = [...seeds];
@@ -82,15 +101,36 @@ function flood(
       const key = cellKey(n.col, n.row);
       if (seen.has(key) || !hasPipe(tower, n.col, n.row)) continue;
       if (label === 'water' && n.row > maxRow) continue;
+      // Do not overwrite a fluid already assigned by an earlier seed pass.
+      if (assign[key] !== 'unassigned') continue;
       seen.add(key);
       queue.push(n);
     }
   }
 }
 
+function seedsAdjacentToFootprints(
+  tower: Tower,
+  footprints: Cell[],
+  assign: Record<string, PipeFluid>,
+): Cell[] {
+  const seeds: Cell[] = [];
+  for (const foot of footprints) {
+    for (const [dc, dr] of ORTHO) {
+      const n = { col: foot.col + dc, row: foot.row + dr };
+      const key = cellKey(n.col, n.row);
+      if (!hasPipe(tower, n.col, n.row)) continue;
+      if (assign[key] !== 'unassigned') continue;
+      seeds.push(n);
+    }
+  }
+  return seeds;
+}
+
 /**
  * Water: flood from row-0 pipes up to `maxWaterRow`.
- * Steam: flood from pipes adjacent to steam turrets that are not water.
+ * Steam: flood from pipes adjacent to steam turrets (not already assigned).
+ * Fire: flood from pipes adjacent to forges (not already assigned).
  */
 export function selectPipeFluids(
   tower: Tower,
@@ -105,17 +145,11 @@ export function selectPipeFluids(
   const waterSeeds = pipes.filter((c) => c.row === 0);
   flood(tower, waterSeeds, result, 'water', maxWaterRow);
 
-  const steamSeeds: Cell[] = [];
-  for (const foot of steamTurretFootprintCells(tower)) {
-    for (const [dc, dr] of ORTHO) {
-      const n = { col: foot.col + dc, row: foot.row + dr };
-      const key = cellKey(n.col, n.row);
-      if (!hasPipe(tower, n.col, n.row)) continue;
-      if (result[key] === 'water') continue;
-      steamSeeds.push(n);
-    }
-  }
+  const steamSeeds = seedsAdjacentToFootprints(tower, steamTurretFootprintCells(tower), result);
   flood(tower, steamSeeds, result, 'steam');
+
+  const fireSeeds = seedsAdjacentToFootprints(tower, forgeFootprintCells(tower), result);
+  flood(tower, fireSeeds, result, 'fire');
 
   return result;
 }
@@ -156,24 +190,55 @@ export function previewPipeFluidAt(tower: Tower, cell: Cell): PipeFluid {
   return selectPipeFluids(probe)[cellKey(cell.col, cell.row)] ?? 'unassigned';
 }
 
-/**
- * True if placing a pipe at `cell` would 4-connect water and steam neighborhoods.
- */
-export function wouldMixFluids(tower: Tower, cell: Cell): boolean {
-  if (hasPipe(tower, cell.col, cell.row)) return false;
-  const fluids = selectPipeFluids(tower);
-  let touchesWater = cell.row === 0;
-  let touchesSteam = false;
+function isAssignedFluid(fluid: PipeFluid | undefined): fluid is AssignedPipeFluid {
+  return fluid === 'water' || fluid === 'steam' || fluid === 'fire';
+}
+
+function roomAt(tower: Tower, col: number, row: number) {
+  const roomId = tower.occupancy[cellKey(col, row)];
+  if (!roomId) return undefined;
+  return tower.rooms.find((candidate) => candidate.id === roomId);
+}
+
+/** Fluids a new pipe at `cell` would touch via neighbors or direct seeds. */
+function fluidsTouchedByPlacement(tower: Tower, fluids: Record<string, PipeFluid>, cell: Cell): Set<AssignedPipeFluid> {
+  const touched = new Set<AssignedPipeFluid>();
+  if (cell.row === 0) touched.add('water');
 
   for (const [dc, dr] of ORTHO) {
     const n = { col: cell.col + dc, row: cell.row + dr };
-    if (!hasPipe(tower, n.col, n.row)) continue;
-    const f = fluids[cellKey(n.col, n.row)];
-    if (f === 'water') touchesWater = true;
-    if (f === 'steam') touchesSteam = true;
+    if (hasPipe(tower, n.col, n.row)) {
+      const f = fluids[cellKey(n.col, n.row)];
+      if (isAssignedFluid(f)) touched.add(f);
+    }
+    const room = roomAt(tower, n.col, n.row);
+    if (!room) continue;
+    if (isSteamTurretRoom(room)) touched.add('steam');
+    if (isForgeRoom(room)) touched.add('fire');
   }
+  return touched;
+}
 
-  return touchesWater && touchesSteam;
+/**
+ * True if placing a pipe at `cell` would connect two different assigned fluids
+ * (water / steam / fire).
+ */
+export function wouldMixFluids(tower: Tower, cell: Cell): boolean {
+  if (hasPipe(tower, cell.col, cell.row)) return false;
+  const before = selectPipeFluids(tower);
+  if (fluidsTouchedByPlacement(tower, before, cell).size > 1) return true;
+
+  const probe: Tower = {
+    ...tower,
+    infra: { ...tower.infra, [cellKey(cell.col, cell.row)]: { kind: 'pipe' } },
+  };
+  const after = selectPipeFluids(probe);
+  for (const [key, fluid] of Object.entries(before)) {
+    if (isAssignedFluid(fluid) && isAssignedFluid(after[key]) && after[key] !== fluid) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /** Write resolved fluids onto pipe cells (call at wave start). */
@@ -192,9 +257,10 @@ export function roomHasFluidPort(
   tower: Tower,
   roomOrigin: Cell,
   roomSize: { w: number; h: number },
-  fluid: 'water' | 'steam',
+  fluid: AssignedPipeFluid,
+  phase: 'build' | 'attack' = 'build',
 ): boolean {
-  const fluids = selectPipeFluids(tower);
+  const fluids = resolvePipeFluids(tower, phase);
   for (const c of roomCells(roomOrigin, roomSize)) {
     for (const [dc, dr] of ORTHO) {
       const n = { col: c.col + dc, row: c.row + dr };
@@ -220,11 +286,35 @@ export function boilerHasSteamPort(
   return roomHasFluidPort(tower, roomOrigin, roomSize, 'steam');
 }
 
-/** Keys of steam pipes reachable from `start` within the steam network. */
-export function steamComponentKeys(tower: Tower, start: Cell): Set<string> {
-  const fluids = selectPipeFluids(tower);
+/** True when a Forge has at least one adjacent fire pipe to carry heat out. */
+export function forgeHasFirePort(
+  tower: Tower,
+  roomOrigin: Cell,
+  roomSize: { w: number; h: number },
+  phase: 'build' | 'attack' = 'build',
+): boolean {
+  return roomHasFluidPort(tower, roomOrigin, roomSize, 'fire', phase);
+}
+
+/** @deprecated Use {@link forgeHasFirePort}. */
+export function forgeHasWaterPort(
+  tower: Tower,
+  roomOrigin: Cell,
+  roomSize: { w: number; h: number },
+  phase: 'build' | 'attack' = 'build',
+): boolean {
+  return forgeHasFirePort(tower, roomOrigin, roomSize, phase);
+}
+
+function componentKeysForFluid(
+  tower: Tower,
+  start: Cell,
+  fluid: AssignedPipeFluid,
+  phase: 'build' | 'attack' = 'build',
+): Set<string> {
+  const fluids = resolvePipeFluids(tower, phase);
   const startKey = cellKey(start.col, start.row);
-  if (fluids[startKey] !== 'steam') return new Set();
+  if (fluids[startKey] !== fluid) return new Set();
 
   const seen = new Set<string>([startKey]);
   const queue = [start];
@@ -233,7 +323,7 @@ export function steamComponentKeys(tower: Tower, start: Cell): Set<string> {
     for (const [dc, dr] of ORTHO) {
       const n = { col: cur.col + dc, row: cur.row + dr };
       const key = cellKey(n.col, n.row);
-      if (seen.has(key) || fluids[key] !== 'steam') continue;
+      if (seen.has(key) || fluids[key] !== fluid) continue;
       seen.add(key);
       queue.push(n);
     }
@@ -241,21 +331,87 @@ export function steamComponentKeys(tower: Tower, start: Cell): Set<string> {
   return seen;
 }
 
-export function adjacentSteamPipeKeys(
+function adjacentPipeKeysForFluid(
   tower: Tower,
   roomOrigin: Cell,
   roomSize: { w: number; h: number },
+  fluid: AssignedPipeFluid,
+  phase: 'build' | 'attack' = 'build',
 ): string[] {
-  const fluids = selectPipeFluids(tower);
+  const fluids = resolvePipeFluids(tower, phase);
   const keys: string[] = [];
   for (const c of roomCells(roomOrigin, roomSize)) {
     for (const [dc, dr] of ORTHO) {
       const n = { col: c.col + dc, row: c.row + dr };
       const key = cellKey(n.col, n.row);
-      if (fluids[key] === 'steam') keys.push(key);
+      if (fluids[key] === fluid) keys.push(key);
     }
   }
   return keys;
+}
+
+/** Keys of water pipes reachable from `start` within the water network. */
+export function waterComponentKeys(
+  tower: Tower,
+  start: Cell,
+  phase: 'build' | 'attack' = 'build',
+): Set<string> {
+  return componentKeysForFluid(tower, start, 'water', phase);
+}
+
+export function adjacentWaterPipeKeys(
+  tower: Tower,
+  roomOrigin: Cell,
+  roomSize: { w: number; h: number },
+  phase: 'build' | 'attack' = 'build',
+): string[] {
+  return adjacentPipeKeysForFluid(tower, roomOrigin, roomSize, 'water', phase);
+}
+
+export function fireComponentKeys(
+  tower: Tower,
+  start: Cell,
+  phase: 'build' | 'attack' = 'build',
+): Set<string> {
+  return componentKeysForFluid(tower, start, 'fire', phase);
+}
+
+export function adjacentFirePipeKeys(
+  tower: Tower,
+  roomOrigin: Cell,
+  roomSize: { w: number; h: number },
+  phase: 'build' | 'attack' = 'build',
+): string[] {
+  return adjacentPipeKeysForFluid(tower, roomOrigin, roomSize, 'fire', phase);
+}
+
+/** True when a Flame Turret shares a fire-pipe component with a Forge. */
+export function flameTurretHasForge(
+  tower: Tower,
+  turret: { origin: Cell; size: { w: number; h: number } },
+  phase: 'build' | 'attack' = 'build',
+): boolean {
+  const pipeKeys = adjacentFirePipeKeys(tower, turret.origin, turret.size, phase);
+  if (pipeKeys.length === 0) return false;
+  const component = fireComponentKeys(tower, parseKey(pipeKeys[0]), phase);
+  return tower.rooms.some(
+    (room) =>
+      isForgeRoom(room) &&
+      adjacentFirePipeKeys(tower, room.origin, room.size, phase).some((key) => component.has(key)),
+  );
+}
+
+/** Keys of steam pipes reachable from `start` within the steam network. */
+export function steamComponentKeys(tower: Tower, start: Cell): Set<string> {
+  return componentKeysForFluid(tower, start, 'steam', 'build');
+}
+
+export function adjacentSteamPipeKeys(
+  tower: Tower,
+  roomOrigin: Cell,
+  roomSize: { w: number; h: number },
+): string[] {
+  return adjacentPipeKeysForFluid(tower, roomOrigin, roomSize, 'steam', 'build');
 }
 
 function isFluidPortRoom(room: { blueprintId: string }): boolean {
@@ -263,13 +419,16 @@ function isFluidPortRoom(room: { blueprintId: string }): boolean {
     isBoilerRoom(room) ||
     isManaSpringRoom(room) ||
     isSteamTurretRoom(room) ||
-    isHydrantRoom(room)
+    isHydrantRoom(room) ||
+    isForgeRoom(room) ||
+    isFlameTurretRoom(room)
   );
 }
 
 /**
  * Orthogonal joints for pipe drawing: other pipes, fluid-port rooms
- * (boiler / mana spring / steam turret / hydrant), and ground under row-0 pipes.
+ * (boiler / mana spring / steam turret / hydrant / forge / flame turret),
+ * and ground under row-0 pipes.
  */
 export function pipeVisualLinks(
   tower: Tower,
@@ -282,9 +441,7 @@ export function pipeVisualLinks(
     const key = cellKey(c, r);
     if (extraPipeKeys?.has(key)) return true;
     if (hasPipe(tower, c, r)) return true;
-    const roomId = tower.occupancy[key];
-    if (!roomId) return false;
-    const room = tower.rooms.find((candidate) => candidate.id === roomId);
+    const room = roomAt(tower, c, r);
     return room != null && isFluidPortRoom(room);
   };
 

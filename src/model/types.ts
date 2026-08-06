@@ -19,7 +19,7 @@ export interface ShellCell {
   kind: FortificationId;
 }
 
-export type Fluid = 'water' | 'steam' | 'unassigned';
+export type Fluid = 'water' | 'steam' | 'fire' | 'unassigned';
 
 export type HousingKind = 'guardroom' | 'chamber' | 'quarters';
 export type StaffKind = 'soldier' | 'mage' | 'laborer';
@@ -456,6 +456,8 @@ export interface GameState {
   boilerRuntime: Record<string, BoilerRuntime>;
   /** Attack-phase steam turret charge state. */
   steamTurretRuntime: Record<string, SteamTurretRuntime>;
+  /** Attack-phase flame turret charge state. */
+  flameTurretRuntime: Record<string, FlameTurretRuntime>;
   /** Attack-phase elevator cars (one per shaft; cleared at wave end). */
   elevators: ElevatorCar[];
   /** Tower + gold at build-phase start; edits commit on wave start. */
@@ -468,6 +470,11 @@ export interface BoilerRuntime {
 }
 
 export interface SteamTurretRuntime {
+  charge: number;
+  chargeRate: number;
+}
+
+export interface FlameTurretRuntime {
   charge: number;
   chargeRate: number;
 }

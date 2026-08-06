@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { getBlueprint } from './blueprints';
 import { placeInfra } from './infra';
 import {
+  flameTurretHasForge,
   lockPipeFluids,
   pipeFluidAt,
   pipeVisualLinks,
@@ -55,6 +56,34 @@ describe('selectPipeFluids', () => {
     expect(pipeFluidAt(tower, 5, 2)).toBe('unassigned');
   });
 
+  it('seeds fire from pipes adjacent to a Forge', () => {
+    // Ground water (5,0) stays water; elevated pipe above the Forge becomes fire.
+    let tower = createTower();
+    tower = placeRoom(tower, createRoom('g5', getBlueprint('stem')!, { col: 5, row: 0 }));
+    tower = placeRoom(tower, createRoom('forge', getBlueprint('forgeRoom')!, { col: 5, row: 1 }));
+    tower = placeRoom(tower, createRoom('s5', getBlueprint('stem')!, { col: 5, row: 2 }));
+    tower = placeInfra(tower, { col: 5, row: 0 }, 'pipe');
+    tower = placeInfra(tower, { col: 5, row: 2 }, 'pipe');
+    expect(pipeFluidAt(tower, 5, 0)).toBe('water');
+    expect(pipeFluidAt(tower, 5, 2)).toBe('fire');
+  });
+
+  it('connects a Flame Turret to a Forge on a shared fire pipe', () => {
+    let tower = createTower();
+    tower = placeRoom(tower, createRoom('g5', getBlueprint('stem')!, { col: 5, row: 0 }));
+    tower = placeRoom(tower, createRoom('forge', getBlueprint('forgeRoom')!, { col: 5, row: 1 }));
+    tower = placeRoom(tower, createRoom('mid', getBlueprint('stem')!, { col: 5, row: 2 }));
+    tower = placeRoom(
+      tower,
+      createRoom('turret', getBlueprint('flameTurretRoom')!, { col: 5, row: 3 }),
+    );
+    tower = placeInfra(tower, { col: 5, row: 2 }, 'pipe');
+    expect(pipeFluidAt(tower, 5, 2)).toBe('fire');
+    expect(flameTurretHasForge(tower, { origin: { col: 5, row: 3 }, size: { w: 1, h: 1 } })).toBe(
+      true,
+    );
+  });
+
   it('seeds steam from pipes adjacent to a steam turret', () => {
     let tower = createTower();
     tower = placeRoom(tower, createRoom('g5', getBlueprint('stem')!, { col: 5, row: 0 }));
@@ -89,6 +118,26 @@ describe('selectPipeFluids', () => {
     expect(pipeFluidAt(tower, 2, 1)).toBe('water');
     expect(pipeFluidAt(tower, 4, 1)).toBe('steam');
     expect(wouldMixFluids(tower, { col: 3, row: 1 })).toBe(true);
+  });
+
+  it('rejects mixing fire and steam neighborhoods', () => {
+    // Fire (3,2) from forge (3,1), empty (3,3), steam (3,4) by turret (4,4).
+    let tower = createTower();
+    tower = placeRoom(tower, createRoom('g3', getBlueprint('stem')!, { col: 3, row: 0 }));
+    tower = placeRoom(tower, createRoom('forge', getBlueprint('forgeRoom')!, { col: 3, row: 1 }));
+    tower = placeRoom(tower, createRoom('mid', getBlueprint('stem')!, { col: 3, row: 2 }));
+    tower = placeRoom(tower, createRoom('gap', getBlueprint('stem')!, { col: 3, row: 3 }));
+    tower = placeRoom(tower, createRoom('s3', getBlueprint('stem')!, { col: 3, row: 4 }));
+    tower = placeRoom(tower, createRoom('g4', getBlueprint('stem')!, { col: 4, row: 0 }));
+    tower = placeRoom(tower, createRoom('s4', getBlueprint('stem')!, { col: 4, row: 1 }));
+    tower = placeRoom(tower, createRoom('s4b', getBlueprint('stem')!, { col: 4, row: 2 }));
+    tower = placeRoom(tower, createRoom('s4c', getBlueprint('stem')!, { col: 4, row: 3 }));
+    tower = placeRoom(tower, createRoom('t0', getBlueprint('steamTurretRoom')!, { col: 4, row: 4 }));
+    tower = placeInfra(tower, { col: 3, row: 2 }, 'pipe');
+    tower = placeInfra(tower, { col: 3, row: 4 }, 'pipe');
+    expect(pipeFluidAt(tower, 3, 2)).toBe('fire');
+    expect(pipeFluidAt(tower, 3, 4)).toBe('steam');
+    expect(wouldMixFluids(tower, { col: 3, row: 3 })).toBe(true);
   });
 
   it('locks fluids onto infra cells', () => {

@@ -142,7 +142,7 @@ Implement ONLY .cursor/plans/spell_school_water.plan.md
 
 ## Wet cells (environmental water)
 
-Separate from pipe logistics `Fluid = 'water' | 'steam'` — this is **combat wetness on the climb**.
+Separate from pipe logistics `Fluid = 'water' | 'steam' | 'fire'` — this is **combat wetness on the climb**.
 
 | Rule | Intent |
 | ---- | ------ |

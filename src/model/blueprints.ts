@@ -53,6 +53,31 @@ export const ROOM_BLUEPRINTS: Blueprint[] = [
     description: 'Auto-fires at nearby climbers during attack. Costs 1 mana per shot. Costs souls.',
   },
   {
+    id: 'flameTurretRoom',
+    name: 'Flame Turret',
+    glyph: 'F',
+    color: '#e53e3e',
+    size: { w: 1, h: 1 },
+    cost: { souls: 12 },
+    baseHp: 18,
+    category: 'room',
+    description:
+      'Charges, then blasts open sides to Kindle climbers for fire-spell bursts. Needs a fire pipe from a Forge. Costs 1 mana per blast and souls.',
+  },
+  {
+    id: 'forgeRoom',
+    name: 'Forge',
+    glyph: 'G',
+    color: '#c05621',
+    size: { w: 1, h: 1 },
+    cost: { metal: 14 },
+    baseHp: 22,
+    category: 'room',
+    passable: false,
+    description:
+      'Seeds fire into adjacent pipes. Supports Flame Turrets on the same fire-pipe network. Costs metal.',
+  },
+  {
     id: 'guardroomRoom',
     name: 'Guardroom',
     glyph: 'A',

@@ -19,6 +19,8 @@ view/
 1. Prefer a selector in `store/selectors/` for enable/disable / derived text.
 2. Dispatch a typed `Intent` — never mutate `snapshot.game`.
 3. Canvas FX for a new spell → `canvas/layers/spellFx.ts`.
+4. Per-enemy status chrome (Kindled / Soak / Immolate / Discombobulated) → `canvas/layers/enemies.ts` (+ colors in `theme.ts`).
+5. Pipe fluid colors (water / steam / fire / dry) → `theme.ts` + `canvas/layers/shared.ts` `pipeFluidColor`.
 
 ## Do not put here
 

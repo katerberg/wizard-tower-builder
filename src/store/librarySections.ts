@@ -33,6 +33,7 @@ export const BLUEPRINT_LIBRARY_SECTION: Record<string, LibrarySectionId> = {
 
   manaSpringRoom: 'generators',
   boilerRoom: 'generators',
+  forgeRoom: 'generators',
   pumpRoom: 'generators',
 
   staircase: 'infrastructure',
@@ -47,6 +48,7 @@ export const BLUEPRINT_LIBRARY_SECTION: Record<string, LibrarySectionId> = {
   barbican: 'fortifications',
 
   turretRoom: 'damagers',
+  flameTurretRoom: 'damagers',
   slotRoom: 'damagers',
   steamTurretRoom: 'damagers',
   hydrantRoom: 'damagers',
