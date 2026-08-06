@@ -17,6 +17,16 @@ export function createModal(root: HTMLElement, store: Store): () => void {
       store.dispatch({ type: 'sellRoom', roomId: target.dataset.room });
     } else if (action === 'sellStructure' && target?.dataset.structure) {
       store.dispatch({ type: 'sellStructure', structureId: target.dataset.structure });
+    } else if (
+      action === 'sellShell' &&
+      target?.dataset.col !== undefined &&
+      target?.dataset.row !== undefined
+    ) {
+      store.dispatch({
+        type: 'sellShell',
+        col: Number(target.dataset.col),
+        row: Number(target.dataset.row),
+      });
     } else if (action === 'addModification' && target?.dataset.room && target.dataset.mod) {
       store.dispatch({ type: 'addModification', roomId: target.dataset.room, modId: target.dataset.mod });
     } else if (action === 'upgradeModification' && target?.dataset.room && target.dataset.mod) {
@@ -108,11 +118,23 @@ function staffTitle(kind: NonNullable<RoomInspector['housingStaffKind']>): strin
 }
 
 function structureBody(inspector: NonNullable<ReturnType<typeof selectStructureInspector>>): string {
-  const { structure, blueprint, maxHp, isBuildPhase, canRemove, buildAlert } = inspector;
+  const { structure, blueprint, maxHp, isBuildPhase, canRemove, buildAlert, shellEntries } = inspector;
   const remove = canRemove
     ? `<button class="danger" data-action="sellStructure" data-structure="${structure.id}">Remove framing</button>`
     : '';
   const alertHtml = buildAlert ? `<p class="warning">${buildAlert}</p>` : '';
+  const shellHtml =
+    shellEntries.length > 0
+      ? `<div class="mod-list"><h4>Shell fortifications</h4>${shellEntries
+          .map((s) => {
+            const btn =
+              isBuildPhase
+                ? `<button class="mod-btn danger" data-action="sellShell" data-col="${s.col}" data-row="${s.row}">Remove</button>`
+                : '';
+            return `<div class="mod-row"><span class="mod-glyph">${s.glyph}</span><span class="mod-info"><strong>${s.name}</strong> <span class="mod-level">(${s.col},${s.row})</span></span>${btn}</div>`;
+          })
+          .join('')}</div>`
+      : '';
   return `
     <h3>${blueprint.name}</h3>
     <p class="hint">Framing — holds the tower up. Rooms and infra sit on top.</p>
@@ -120,6 +142,7 @@ function structureBody(inspector: NonNullable<ReturnType<typeof selectStructureI
     <div class="stat"><span>Size</span><strong>${structure.size.w}x${structure.size.h}</strong></div>
     <div class="stat"><span>HP</span><strong>${structure.hp} / ${maxHp}</strong></div>
     <div class="stat"><span>Origin</span><strong>(${structure.origin.col}, ${structure.origin.row})</strong></div>
+    ${shellHtml}
     ${isBuildPhase ? remove : ''}`;
 }
 

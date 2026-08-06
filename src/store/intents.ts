@@ -14,6 +14,7 @@ export type Intent =
   | { type: 'upgradeModification'; roomId: string; modId: string }
   | { type: 'sellRoom'; roomId: string }
   | { type: 'sellStructure'; structureId: string }
+  | { type: 'sellShell'; col: number; row: number }
   | { type: 'recruitStaff'; housingRoomId: string }
   | { type: 'unrecruitStaff'; housingRoomId: string }
   | { type: 'setSlotAllocation'; slotRoomId: string; count: number }

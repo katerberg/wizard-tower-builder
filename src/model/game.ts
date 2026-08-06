@@ -5,6 +5,7 @@ import {
 } from '@/config/constants';
 import { cloneResources } from '@/calculations/resources';
 import { STARTING_BLUEPRINT_IDS } from './blueprints';
+import { FORTIFICATION_BLUEPRINTS } from './fortificationBlueprints';
 import { startRun, captureBuildBaseline } from './phases';
 import { seedFrom } from '../calculations/rng';
 import { createStarterTower } from './starterTower';
@@ -29,7 +30,10 @@ export function createInitialState(seed: string | number = 'wizard'): GameState 
     simSpeed: loadSimSpeed(),
     player: {
       resources: cloneResources({ ...STARTING_RESOURCES }),
-      unlockedBlueprints: [...STARTING_BLUEPRINT_IDS],
+      unlockedBlueprints: [
+        ...STARTING_BLUEPRINT_IDS,
+        ...FORTIFICATION_BLUEPRINTS.map((b) => b.id),
+      ],
       levelIndex: 0,
       wizard: { ...WIZARD_DEFAULTS, hp: WIZARD_DEFAULTS.maxHp, glyph: '@' },
       mana: MAX_MANA,

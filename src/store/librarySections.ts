@@ -4,6 +4,7 @@ export type LibrarySectionId =
   | 'housing'
   | 'generators'
   | 'infrastructure'
+  | 'fortifications'
   | 'damagers';
 
 export interface LibrarySectionDef {
@@ -16,6 +17,7 @@ export const LIBRARY_SECTIONS: LibrarySectionDef[] = [
   { id: 'housing', label: 'Housing' },
   { id: 'generators', label: 'Generators' },
   { id: 'infrastructure', label: 'Infrastructure' },
+  { id: 'fortifications', label: 'Fortifications' },
   { id: 'damagers', label: 'Damagers' },
 ];
 
@@ -37,6 +39,13 @@ export const BLUEPRINT_LIBRARY_SECTION: Record<string, LibrarySectionId> = {
   staircase: 'infrastructure',
   pipe: 'infrastructure',
   elevator: 'infrastructure',
+
+  moat: 'fortifications',
+  glacis: 'fortifications',
+  parapet: 'fortifications',
+  cornice: 'fortifications',
+  stakes: 'fortifications',
+  barbican: 'fortifications',
 
   turretRoom: 'damagers',
   flameTurretRoom: 'damagers',

@@ -1,5 +1,6 @@
 import { cellKey } from './grid';
 import { faceOf, isWalkable, neighbors } from './exteriorGraph';
+import { stepCost } from '@/model/fortifications/effects';
 import type { ExteriorNode, MovementProfile, Tower } from '../model/types';
 
 // Manhattan distance: enemies move one orthogonal step at a time along surfaces.
@@ -75,7 +76,7 @@ export function findPath(
 
     for (const n of nextNodes) {
       const nKey = nodeKey(n);
-      const tentative = currentG + 1;
+      const tentative = currentG + stepCost(tower, n, profile);
       if (tentative < (gScore.get(nKey) ?? Infinity)) {
         cameFrom.set(nKey, node);
         nodeByKey.set(nKey, n);

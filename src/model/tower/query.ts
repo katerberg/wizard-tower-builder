@@ -1,11 +1,12 @@
 import { infraEqual } from '../infra';
+import { shellEqual } from '../fortifications/shell';
 import { GRID_COLS, SUB_CELLS_PER_MACRO } from '@/config/constants';
 import { perchSubRow } from '../../calculations/subGrid';
 import { cellKey, parseKey } from '../../calculations/grid';
 import type { ExteriorNode, Room, Structure, Tower } from '../types';
 
 export function createTower(): Tower {
-  return { structures: [], structureOccupancy: {}, rooms: [], occupancy: {}, infra: {} };
+  return { structures: [], structureOccupancy: {}, rooms: [], occupancy: {}, infra: {}, shell: {} };
 }
 
 /** True when framing occupies the cell (physics / crawler mass). */
@@ -133,6 +134,7 @@ export function towersEqual(a: Tower, b: Tower): boolean {
   if ((a.structures ?? []).length !== (b.structures ?? []).length) return false;
   if (a.rooms.length !== b.rooms.length) return false;
   if (!infraEqual(a.infra, b.infra)) return false;
+  if (!shellEqual(a.shell, b.shell)) return false;
   const structById = new Map((a.structures ?? []).map((s) => [s.id, s]));
   for (const piece of b.structures ?? []) {
     const other = structById.get(piece.id);

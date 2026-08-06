@@ -2,9 +2,22 @@ export interface Cell { col: number; row: number }
 
 export interface Modifier { attack?: number; defense?: number; hp?: number }
 
-export type BlueprintCategory = 'structure' | 'room' | 'infra';
+export type BlueprintCategory = 'structure' | 'room' | 'infra' | 'fortification';
 
 export type InfraKind = 'stair' | 'pipe' | 'elevator';
+
+/** Exterior shell fortification kinds (framing-cell attachments). */
+export type FortificationId =
+  | 'moat'
+  | 'glacis'
+  | 'parapet'
+  | 'cornice'
+  | 'stakes'
+  | 'barbican';
+
+export interface ShellCell {
+  kind: FortificationId;
+}
 
 export type Fluid = 'water' | 'steam' | 'fire' | 'unassigned';
 
@@ -83,6 +96,8 @@ export interface Tower {
   occupancy: Record<string, string>;
   /** Per-cell infrastructure overlay (stair, pipe, or elevator — never two). */
   infra: Record<string, InfraCell>;
+  /** Per framing cell shell fortification (at most one kind). */
+  shell: Record<string, ShellCell>;
 }
 
 export type StaffStatus =
@@ -472,6 +487,9 @@ export type PlacementReason =
   | 'overhang_too_far'
   | 'disconnected'
   | 'fluid_mix'
-  | 'boiler_footprint';
+  | 'boiler_footprint'
+  | 'no_framing'
+  | 'not_exterior'
+  | 'wrong_face';
 
 export interface PlacementResult { ok: boolean; reason: PlacementReason }

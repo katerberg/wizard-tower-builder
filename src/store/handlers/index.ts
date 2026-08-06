@@ -3,6 +3,7 @@ import type { Intent } from '../intents';
 import { handleBuildIntent } from './build';
 import { handleCameraIntent } from './camera';
 import { handleDevIntent } from './dev';
+import { handleFortificationIntent } from './fortifications';
 import { handleInfraIntent } from './infra';
 import { handleInspectIntent } from './inspect';
 import { handleModificationsIntent } from './modifications';
@@ -28,6 +29,7 @@ export function applyIntent(ctx: HandlerContext, intent: Intent): void {
       break;
 
     case 'placeSelectedAt':
+      handleFortificationIntent(ctx, intent);
       handleInfraIntent(ctx, intent);
       handleBuildIntent(ctx, intent);
       break;
@@ -42,6 +44,10 @@ export function applyIntent(ctx: HandlerContext, intent: Intent): void {
     case 'undoBuild':
     case 'revertBuild':
       handleBuildIntent(ctx, intent);
+      break;
+
+    case 'sellShell':
+      handleFortificationIntent(ctx, intent);
       break;
 
     case 'recruitStaff':

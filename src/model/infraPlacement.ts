@@ -1,6 +1,7 @@
 import { getBlueprint } from './blueprints';
 import { canPlaceInfra, getInfraAt, placeInfra } from './infra';
 import { isBoilerFootprintCell, wouldMixFluids } from './pipes';
+import { reconcileShellAfterStructureEdit } from './fortifications/shell';
 import { canPlaceStructure, createStructure, hasStructure, placeStructure } from './tower';
 import type { Blueprint, Cell, PlacementReason, Tower } from './types';
 
@@ -77,6 +78,7 @@ export function applyInfraPlacement(
     const stem = getBlueprint('stem');
     if (!stem) return tower;
     next = placeStructure(next, createStructure(structureId, stem, cell));
+    next = reconcileShellAfterStructureEdit(next);
   }
   return placeInfra(next, cell, blueprint.infraKind);
 }

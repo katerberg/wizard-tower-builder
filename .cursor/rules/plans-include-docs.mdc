@@ -1,0 +1,33 @@
+---
+description: Every plan must include documentation updates as an explicit deliverable
+alwaysApply: true
+---
+
+# Plans include docs
+
+Any **plan** created or revised for this project (Plan mode, `.cursor/plans/*.plan.md`, or an implementation checklist) must treat documentation as in-scope work—not a follow-up.
+
+## Required in every plan
+
+1. **Docs section or todo** — Name the exact files to create or update (e.g. `docs/FOO.md`, `README.md` “Where do I…?”, folder READMEs under `src/`).
+2. **Same PR / same delivery** — Docs land with the feature or design they describe; do not defer to “docs later.”
+3. **Truthful status** — If behavior is locked, deferred, or shipped, say so in the doc the plan cites (match patterns in existing `docs/*.md`).
+
+## What to update
+
+| Change type | Typical docs |
+| ----------- | ------------ |
+| New system / major mechanic | New or existing file under `docs/` + link from README where relevant |
+| Contributor workflow / recipe | `docs/CONTRIBUTING.md` and/or the nearest `src/**/README.md` |
+| Entry-point discovery | README **“Where do I…?”** table |
+| Design-only / pre-implementation | Land the design doc first (see fortifications index pattern) |
+
+## Explicit “no docs” only when
+
+The change is purely internal (typo, test-only, refactor with no player- or contributor-facing behavior) **and** the plan states **Docs: none** with a one-line reason.
+
+## Anti-patterns
+
+- Plan todos for code/tests only, with docs omitted
+- “Update docs in a follow-up PR”
+- Leaving `docs/` status lines wrong after shipping (e.g. still “deferred” when implemented)

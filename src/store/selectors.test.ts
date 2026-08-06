@@ -64,7 +64,16 @@ describe('selectLibrarySections', () => {
       'housing',
       'generators',
       'infrastructure',
+      'fortifications',
       'damagers',
+    ]);
+    expect(sections.find((s) => s.id === 'fortifications')?.items.map((i) => i.id)).toEqual([
+      'moat',
+      'glacis',
+      'parapet',
+      'cornice',
+      'stakes',
+      'barbican',
     ]);
     expect(sections.find((s) => s.id === 'housing')?.items.map((i) => i.id)).toEqual([
       'guardroomRoom',
@@ -207,6 +216,24 @@ describe('selectUiTooltip', () => {
     expect(tip?.title).toBe('Turret Room');
     expect(tip?.stats.some((s) => s.label === 'Cost')).toBe(true);
     expect(tip?.stats.some((s) => s.label === 'Effect' && s.value.includes('5 damage'))).toBe(true);
+  });
+
+  it('describes fortification place rules and effect', () => {
+    const store = new Store('tipFort');
+    const parapet = selectUiTooltip(store.getSnapshot(), { kind: 'blueprint', id: 'parapet' });
+    expect(parapet?.title).toBe('Parapet');
+    expect(parapet?.description.toLowerCase()).toContain('battlement');
+    expect(parapet?.stats.some((s) => s.label === 'Cost')).toBe(true);
+    expect(parapet?.stats.some((s) => s.label === 'Place' && s.value.includes('exposed top'))).toBe(
+      true,
+    );
+    expect(parapet?.stats.some((s) => s.label === 'Effect' && s.value.includes('onTop'))).toBe(true);
+    expect(parapet?.stats.some((s) => s.label === 'HP')).toBe(false);
+
+    const moat = selectUiTooltip(store.getSnapshot(), { kind: 'blueprint', id: 'moat' });
+    expect(moat?.title).toBe('Moat');
+    expect(moat?.stats.some((s) => s.label === 'Place' && s.value.includes('Ground-row'))).toBe(true);
+    expect(moat?.stats.some((s) => s.label === 'Effect' && s.value.includes('slow'))).toBe(true);
   });
 
   it('describes the select tool', () => {

@@ -54,7 +54,7 @@ Document this in UI copy / help when the feature ships: the fantasy is **climb w
 
 If the tower loses height between waves, the next wave should feel like the world is **giving you a breather**: unlocks remain, but overall weight drops toward the new height. Players should want to keep going after a bad hit.
 
-**Enemy damage to framing** is implemented for **demolishers** (room then framing on overhang paths, with immediate unsupported cascade). Mid-wave height drop still does not retune the spawn queue; dropping below 100 voids that wave’s win.
+**Enemy damage to framing** is implemented for **demolishers** (room then framing on overhang preferred paths) and for **any ground climber** when the exterior path to the wizard is empty (closest room then framing, same cascade). Mid-wave height drop still does not retune the spawn queue; dropping below 100 voids that wave’s win.
 
 ---
 
@@ -156,7 +156,7 @@ Enough to playtest the fantasy:
 
 | Topic | Notes |
 |-------|--------|
-| Enemy framing damage / wing collapse from foes | Demolisher ladder + cascade (see enemies / demolisherCombat) |
+| Enemy framing damage / wing collapse from foes | Demolisher overhang smash + stuck-climber smash when path empty (see enemies / demolisherCombat) |
 | New enemy types / full roster retune | Demolishers added; further roster changes later |
 | Complex resource harvesting economy | Later; don’t paint into a grind corner meanwhile |
 | Mid-wave difficulty retuning | Locked at Start Wave |
@@ -169,7 +169,7 @@ Enough to playtest the fantasy:
 
 1. **Below-home heavy count** — “a few” is the intent; exact slot caps TBD in playtest.
 2. **Exact plateau breakpoints and ~5 minute endgame pacing** — needs playtest instrumentation (wave duration, height histogram).
-3. **Framing-break fantasy** — demolishers ship v1; tune cascade vs breather feel in playtest.
+3. **Framing-break fantasy** — demolisher overhang smash + stuck-climber smash ship; tune cascade vs breather feel in playtest.
 
 ---
 
