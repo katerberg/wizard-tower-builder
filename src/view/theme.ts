@@ -27,6 +27,11 @@ export const colors = {
   wetSheet: 'rgba(66, 153, 225, 0.4)',
   wetPuddle: 'rgba(49, 130, 206, 0.55)',
   geyserColumn: 'rgba(99, 179, 237, 0.45)',
+  /** Enemy status chrome (rings / badges). */
+  statusKindled: '#ecc94b',
+  statusSoak: '#63b3ed',
+  statusImmolate: '#ed8936',
+  statusDiscombobulated: '#b794f4',
   mana: '#63b3ed',
   wizard: '#f6e05e',
   enemy: '#fc8181',
@@ -37,9 +42,10 @@ export const colors = {
   infraStair: '#a0aec0',
   infraElevator: '#ecc94b',
   infraPipe: '#4299e1',
-  /** Pipe not yet connected to a water (or steam) seed. */
+  /** Pipe not yet connected to a water, steam, or fire seed. */
   infraPipeDry: '#718096',
   infraPipeSteam: '#ed8936',
+  infraPipeFire: '#e53e3e',
   soldier: '#68d391',
   mage: '#b794f4',
   laborer: '#f6ad55',

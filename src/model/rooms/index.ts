@@ -1,6 +1,7 @@
 export * from './types';
 export * from './registry';
 export * from './boiler';
+export * from './flameTurret';
 export * from './manaSpring';
 export * from './steamTurret';
 export * from './hydrant';

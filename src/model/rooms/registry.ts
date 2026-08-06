@@ -1,5 +1,6 @@
 import type { GameState } from '../types';
 import { boilerRoom } from './boiler';
+import { flameTurretRoom } from './flameTurret';
 import { hydrantRoom } from './hydrant';
 import { manaSpringRoom } from './manaSpring';
 import { slotRoom } from './slot';
@@ -9,6 +10,7 @@ import type { RoomBehaviorDef, RoomRole } from './types';
 
 const ROOM_BEHAVIORS: RoomBehaviorDef[] = [
   turretRoom,
+  flameTurretRoom,
   slotRoom,
   boilerRoom,
   manaSpringRoom,

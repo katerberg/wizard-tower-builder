@@ -106,6 +106,7 @@ export function endWave(state: GameState): void {
   clearElevators(state);
   state.boilerRuntime = {};
   state.steamTurretRuntime = {};
+  state.flameTurretRuntime = {};
   captureBuildBaseline(state);
   addMessage(state, `Height ${endHeight} / ${WIN_HEIGHT} — climb when ready.`, 'info');
 }

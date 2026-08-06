@@ -5,5 +5,10 @@ export const STEAM_TURRET_CHARGE_SEC = 3;
 export const STEAM_TURRET_DAMAGE = 10;
 /** Exterior blast depth (cells outward); perpendicular width is 3. */
 export const STEAM_TURRET_BLAST_DEPTH = 3;
+/** Flame turret full-charge time when forge-connected (chargeRate 1). */
+export const FLAME_TURRET_CHARGE_SEC = 3;
+export const FLAME_TURRET_DAMAGE = 2;
+/** Same side-blast shape as steam turrets. */
+export const FLAME_TURRET_BLAST_DEPTH = 3;
 /** Throughput units by boilerExpansion level (0 = base, 1–2 = upgrades). */
 export const BOILER_THROUGHPUT = [3, 4, 5] as const;

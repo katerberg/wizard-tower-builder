@@ -64,6 +64,7 @@ export function createInitialState(seed: string | number = 'wizard'): GameState 
     activeSpellSchool: 'fire',
     boilerRuntime: {},
     steamTurretRuntime: {},
+    flameTurretRuntime: {},
     elevators: [],
     buildBaseline: null,
   };

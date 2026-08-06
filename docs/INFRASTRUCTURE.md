@@ -2,7 +2,7 @@
 
 Developer-facing architecture for the tower’s **infrastructure layer** — the core of an economy/logistics tower-defense game. Mundane structures (housing, slots, stairs, pipes) are the primary defense scaling path; auto-turrets and the wizard are supplementary.
 
-**Shipped:** Guardroom → slot soldier staffing over stairs; full housing for soldiers / magi / laborers — see [`HOUSING.md`](HOUSING.md). Pipes, boilers, mana springs, steam — see [`PIPES.md`](PIPES.md).
+**Shipped:** Guardroom → slot soldier staffing over stairs; full housing for soldiers / magi / laborers — see [`HOUSING.md`](HOUSING.md). Pipes, boilers, mana springs, steam, forge fire — see [`PIPES.md`](PIPES.md).
 
 ---
 
@@ -107,19 +107,20 @@ Baseline: one soldier at 100% ≈ one magic turret shot (turrets cost **1 mana**
 | Throughput | **One staffer per cell** en route (shafts can hold a queue down the column) |
 | Speed | **0.2×** horizontal (`STAFF_STAIR_SPEED` / `STAFF_HORIZONTAL_SPEED` = 0.4 / 2) |
 
-### Pipe (`pipe`) — water & steam logistics
+### Pipe (`pipe`) — water, steam & fire logistics
 
 **Full design:** [`PIPES.md`](PIPES.md)
 
 | Property | Value |
 |----------|--------|
-| Tool | Generic pipe; **fluid preview** (gray → blue water / orange steam) |
+| Tool | Generic pipe; **fluid preview** (gray → blue water / orange steam / red fire) |
 | Water seed | Any pipe on **row 0** |
 | Steam seed | Pipes touching **steam turret** |
-| Merge | **Reject** placement that would mix water + steam |
+| Fire seed | Pipes touching **Forge** |
+| Merge | **Reject** placement that would mix two assigned fluids |
 | Lock | Fluid type frozen at **wave start** |
 
-**Status:** Typed pipes, boilers, steam turrets, mana springs, and magic-turret mana are shipped.
+**Status:** Typed pipes, boilers, steam turrets, forges, flame turrets, mana springs, and magic-turret mana are shipped.
 
 ### Elevator (`elevator`)
 
@@ -146,7 +147,7 @@ Baseline: one soldier at 100% ≈ one magic turret shot (turrets cost **1 mana**
 
 ### Passability flag
 
-Blueprints may define `passable: boolean` (default **true**). Boilers and steam turrets are `passable: false`. Mana springs are `passable: true` so magi can station inside.
+Blueprints may define `passable: boolean` (default **true**). Boilers, steam turrets, forges, and flame turrets are `passable: false`. Mana springs are `passable: true` so magi can station inside.
 
 ---
 
@@ -247,7 +248,7 @@ Relevant order inside `game.step(dt)` (attack only):
 4. tickLaborerRepairs — repair + retarget
 5. runRoomEffects — slots, turrets, mods
 6. tickManaSprings — water + stationed magi
-7. tickBoilers → tickSteamTurrets
+7. tickBoilers → tickSteamTurrets → tickFlameTurrets (via `tickRoomBehaviors`)
 8. Reap enemies, wave clear
 ```
 
@@ -263,7 +264,7 @@ Relevant order inside `game.step(dt)` (attack only):
 | Wave start upkeep | Per rostered occupant by kind; failure deserts |
 | Stair / pipe / elevator placement | Infra blueprint cost |
 
-**Mana** — shared pool; magic turret **1**/shot; springs staffed by magi; boilers drain while producing. See [`PIPES.md`](PIPES.md).
+**Mana** — shared pool; magic turret **1**/shot; flame turret **1**/blast; springs staffed by magi; boilers drain while producing. See [`PIPES.md`](PIPES.md).
 
 ---
 
@@ -340,7 +341,7 @@ interface GameState {
 | Infra mutual exclusion, stairs, interior path | Shipped |
 | Guardroom → slot staffing | Shipped |
 | Housing (three types), workers layer, logistics | Shipped — [`HOUSING.md`](HOUSING.md) |
-| Pipes, boilers, steam, mana springs | Shipped — [`PIPES.md`](PIPES.md) |
+| Pipes, boilers, steam, fire, mana springs | Shipped — [`PIPES.md`](PIPES.md) |
 | Elevators | Shipped |
 | Mid-wave pipe/room network breaks | Deferred |
 | Soldier death / targeting | Deferred |
@@ -374,6 +375,6 @@ Combat, capacity, recruit/upkeep, and speed numbers live under `src/config/` (se
 ## Related docs
 
 - [`HOUSING.md`](HOUSING.md) — housing & staff workplaces
-- [`PIPES.md`](PIPES.md) — pipes, boilers, mana springs, steam
+- [`PIPES.md`](PIPES.md) — pipes, boilers, mana springs, steam, forge fire
 - [`README.md`](../README.md) — architecture overview
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — task recipes
