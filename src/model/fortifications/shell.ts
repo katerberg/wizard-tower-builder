@@ -5,7 +5,6 @@ import { hasStructure } from '@/model/tower/query';
 import type {
   Cell,
   FortificationId,
-  PlacementReason,
   PlacementResult,
   Resources,
   ShellCell,
@@ -88,25 +87,6 @@ export function canPlaceFortification(
   }
 }
 
-export interface FortificationPlan {
-  ok: boolean;
-  reason: PlacementReason;
-  isToggleOff: boolean;
-}
-
-export function planFortificationPlacement(
-  tower: Tower,
-  kind: FortificationId,
-  cell: Cell,
-): FortificationPlan {
-  const existing = shellKindAt(tower, cell.col, cell.row);
-  if (existing === kind) {
-    return { ok: true, reason: 'ok', isToggleOff: true };
-  }
-  const place = canPlaceFortification(tower, kind, cell);
-  return { ok: place.ok, reason: place.reason, isToggleOff: false };
-}
-
 export function placeShell(tower: Tower, cell: Cell, kind: FortificationId): Tower {
   const key = cellKey(cell.col, cell.row);
   return {
@@ -138,7 +118,7 @@ export function clearShellInCells(tower: Tower, cells: Cell[]): Tower {
 }
 
 /**
- * Drop fortifications on cells that lost framing or exterior exposure.
+ * Drop fortifications that would fail place-time rules (framing, exterior, face family).
  * Refunds are implicit via towerBuildCost vs baseline (stripped cells leave the cost map).
  */
 export function stripEnclosedFortifications(tower: Tower): Tower {
@@ -148,8 +128,9 @@ export function stripEnclosedFortifications(tower: Tower): Tower {
 
   let nextShell: Record<string, ShellCell> | null = null;
   for (const key of keys) {
-    const { col, row } = parseKey(key);
-    if (hasStructure(tower, col, row) && isExteriorFramingCell(tower, col, row)) {
+    const cell = parseKey(key);
+    const kind = shell[key]?.kind;
+    if (kind && isFortificationId(kind) && canPlaceFortification(tower, kind, cell).ok) {
       continue;
     }
     nextShell ??= { ...shell };
@@ -158,7 +139,7 @@ export function stripEnclosedFortifications(tower: Tower): Tower {
   return nextShell ? { ...tower, shell: nextShell } : tower;
 }
 
-/** After any structure-occupancy edit: clear orphan shell keys on removed cells, then strip. */
+/** After any structure-occupancy edit: clear orphan shell keys, then strip place-invalid entries. */
 export function reconcileShellAfterStructureEdit(tower: Tower): Tower {
   const shell = tower.shell ?? {};
   let next: Tower = tower;

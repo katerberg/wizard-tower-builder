@@ -3,6 +3,11 @@ import {
   formatResourceCost,
 } from '@/calculations/resources';
 import { getBlueprint } from '@/model/blueprints';
+import {
+  getFortificationBlueprint,
+  getFortificationMechanics,
+  getFortificationPlacementHint,
+} from '@/model/fortificationBlueprints';
 import { getInfraBlueprint } from '@/model/infraBlueprints';
 import { getRoomBehavior } from '@/model/rooms';
 import { getSpell, listHotbarSpells, spellCooldownRemaining } from '@/model/spells';
@@ -86,20 +91,32 @@ function selectSpellTooltip(snapshot: Snapshot, spellId: string): UiTooltipConte
 }
 
 function selectBlueprintTooltip(snapshot: Snapshot, blueprintId: string): UiTooltipContent | null {
-  const blueprint = getBlueprint(blueprintId) ?? getInfraBlueprint(blueprintId);
+  const blueprint =
+    getBlueprint(blueprintId) ?? getInfraBlueprint(blueprintId) ?? getFortificationBlueprint(blueprintId);
   if (!blueprint) return null;
 
   const { remaining } = selectBuildEconomy(snapshot);
   const affordable = canAffordResources(remaining, blueprint.cost);
+  const isFort = blueprint.category === 'fortification';
   const behavior = getRoomBehavior(blueprintId);
+  const fortPlace = isFort ? getFortificationPlacementHint(blueprintId) : undefined;
+  const fortEffect = isFort ? getFortificationMechanics(blueprintId) : undefined;
+
   const stats: UiTooltipStat[] = [
     { label: 'Cost', value: formatResourceCost(blueprint.cost), accent: true },
-    { label: 'HP', value: String(blueprint.baseHp) },
-    { label: 'Size', value: `${blueprint.size.w}×${blueprint.size.h}` },
-    { label: 'Affordable', value: affordable ? 'Yes' : 'No' },
   ];
+  if (!isFort) {
+    stats.push({ label: 'HP', value: String(blueprint.baseHp) });
+    stats.push({ label: 'Size', value: `${blueprint.size.w}×${blueprint.size.h}` });
+  }
+  if (fortPlace) {
+    stats.push({ label: 'Place', value: fortPlace });
+  }
+  stats.push({ label: 'Affordable', value: affordable ? 'Yes' : 'No' });
   if (behavior) {
     stats.push({ label: 'Effect', value: behavior.mechanics, accent: true });
+  } else if (fortEffect) {
+    stats.push({ label: 'Effect', value: fortEffect, accent: true });
   }
 
   return {

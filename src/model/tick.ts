@@ -13,11 +13,14 @@ import { stepElevators } from './elevators';
 import { tickRoomBehaviors } from './rooms';
 import { faceOf, flySpawnBandForCrown, isWalkable, spawnAirNode, spawnNode } from '../calculations/exteriorGraph';
 import { getEnemyTemplate, PLANNING_UNDER_OVERHANG } from './enemies';
-import { attackOverhangBlocking } from './enemies/demolisherCombat';
+import {
+  attackOverhangBlocking,
+  handleStuckClimberSmash,
+} from './enemies/demolisherCombat';
 import { attackBlockingRoom, attackWizard, closestRoomToEnemy, enemyTouchesRoom, greedyStepTowardRoom } from './enemies/flierCombat';
 import { addMessage } from './messages';
 import { findPath } from '../calculations/pathfinding';
-import { stakesSlowMultiplier } from './fortifications/effects';
+import { fortificationSlowMultiplier } from './fortifications/effects';
 import { runEnemyStepEffects, runRoomEffects } from './modifications/effects';
 import {
   buildSpellContext, blizzardSlowMultiplier, getEffectiveWizardPosition,
@@ -114,8 +117,12 @@ function macroManhattan(a: ExteriorNode, b: ExteriorNode): number {
 }
 function moveSlowMultiplier(state: GameState, enemy: Enemy): number {
   const template = getEnemyTemplate(enemy.templateId);
-  const stakes = stakesSlowMultiplier(state.tower, enemy.pos, template?.movement.canFly === true);
-  return blizzardSlowMultiplier(state, enemy) * soakSlowMultiplier(state, enemy) * stakes;
+  const forts = fortificationSlowMultiplier(
+    state.tower,
+    enemy.pos,
+    template?.movement.canFly === true,
+  );
+  return blizzardSlowMultiplier(state, enemy) * soakSlowMultiplier(state, enemy) * forts;
 }
 function trackMacroMovement(enemy: Enemy, state: GameState, canFly: boolean): void {
   const m = macroCellOfNode(enemy.pos); const key = `${m.col},${m.row}`;
@@ -178,8 +185,19 @@ export function step(state: GameState, dt: number): void {
       }
       continue;
     }
-    // Demolisher with no preferred path and nothing to smash: idle.
-    if (template.movement.canAttackOverhang && enemy.path.length === 0) continue;
+    // Climbers with no path to the wizard: smash closest room/framing (demolishers included).
+    if (!template.movement.canFly && enemy.path.length === 0) {
+      handleStuckClimberSmash(
+        state,
+        enemy,
+        template,
+        dt,
+        (col, row) => isWalkable(state.tower, col, row, template.movement),
+        () => trackMacroMovement(enemy, state, false),
+        () => (1 / template.speed) * moveSlowMultiplier(state, enemy),
+      );
+      continue;
+    }
     enemy.moveCooldown -= dt;
     if (enemy.moveCooldown <= 0 && enemy.pathIndex < enemy.path.length - 1) {
       const nextPos = enemy.path[enemy.pathIndex + 1]; const nextMacro = macroCellOfNode(nextPos);

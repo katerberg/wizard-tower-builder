@@ -13,7 +13,7 @@ import {
   getFortificationBlueprint,
   isFortificationBlueprint,
 } from '@/model/fortificationBlueprints';
-import { planFortificationPlacement } from '@/model/fortifications/shell';
+import { planFortificationPlacement } from '@/model/fortificationPlacement';
 import { planInfraPlacement } from '@/model/infraPlacement';
 import { selectPipeConnectivityReport } from '@/model/pipes';
 import { selectLogisticsReport } from '@/model/staff/connectivity';
@@ -145,6 +145,8 @@ export function selectGhostPlacement(snapshot: Snapshot): GhostPlacement | null 
       cells: [view.hoveredCell],
       valid: plan.ok || plan.isToggleOff,
       reason: plan.isToggleOff ? 'ok' : plan.reason,
+      needsStem: plan.needsStem,
+      stemCells: plan.needsStem ? [view.hoveredCell] : [],
     };
   }
 

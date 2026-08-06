@@ -5,7 +5,11 @@ import {
   isFortificationBlueprint,
   isFortificationId,
 } from '@/model/fortificationBlueprints';
-import { planFortificationPlacement, placeShell, removeShellAt } from '@/model/fortifications/shell';
+import { removeShellAt } from '@/model/fortifications/shell';
+import {
+  applyFortificationPlacement,
+  planFortificationPlacement,
+} from '@/model/fortificationPlacement';
 import { addMessage } from '@/model/messages';
 import type { HandlerContext } from '../context';
 import type { Intent } from '../intents';
@@ -43,7 +47,13 @@ function placeFortificationSelected(ctx: HandlerContext, cell: { col: number; ro
     return;
   }
 
-  const nextTower = placeShell(game.tower, cell, id);
+  const nextTower = applyFortificationPlacement(
+    game.tower,
+    id,
+    cell,
+    ctx.nextRoomId(),
+    plan,
+  );
   if (!canAffordBuild(game.buildBaseline, nextTower, {}, game.buildRecruitSpend)) {
     addMessage(
       game,
@@ -58,7 +68,11 @@ function placeFortificationSelected(ctx: HandlerContext, cell: { col: number; ro
   if (view.modal?.kind === 'room' || view.modal?.kind === 'structure') {
     view.modal = null;
   }
-  addMessage(game, `Placed ${blueprint.name}.`, 'info');
+  if (plan.needsStem) {
+    addMessage(game, `Placed Spire Block and ${blueprint.name}.`, 'info');
+  } else {
+    addMessage(game, `Placed ${blueprint.name}.`, 'info');
+  }
 }
 
 function sellShellAt(ctx: HandlerContext, col: number, row: number): void {

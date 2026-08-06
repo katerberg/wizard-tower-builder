@@ -11,8 +11,7 @@ export const FORTIFICATION_BLUEPRINTS: Blueprint[] = [
     cost: { stone: 6 },
     baseHp: 0,
     category: 'fortification',
-    description:
-      'Ground-edge ditch. Blocks crawler walk on adjacent empty ground — forces side climbs. Costs stone.',
+    description: 'A ground-edge ditch that shoves climbers onto the walls.',
   },
   {
     id: 'glacis',
@@ -23,8 +22,7 @@ export const FORTIFICATION_BLUEPRINTS: Blueprint[] = [
     cost: { stone: 4 },
     baseHp: 0,
     category: 'fortification',
-    description:
-      'Sloped approach. Adjacent empty ground stays walkable but costs more to path through. Costs stone.',
+    description: 'A sloped approach that taxes the easy ground path without sealing it.',
   },
   {
     id: 'parapet',
@@ -35,8 +33,7 @@ export const FORTIFICATION_BLUEPRINTS: Blueprint[] = [
     cost: { stone: 5 },
     baseHp: 0,
     category: 'fortification',
-    description:
-      'Battlement edge. Blocks crawling across this cell’s top face — forces side routes. Costs stone.',
+    description: 'A battlement lip that taxes roof-running across the crown.',
   },
   {
     id: 'cornice',
@@ -47,8 +44,7 @@ export const FORTIFICATION_BLUEPRINTS: Blueprint[] = [
     cost: { stone: 5 },
     baseHp: 0,
     category: 'fortification',
-    description:
-      'Projecting ledge band. Denies under-overhang crawl beneath this cell. Costs stone.',
+    description: 'A projecting band that taxes under-overhang shortcuts.',
   },
   {
     id: 'stakes',
@@ -59,8 +55,7 @@ export const FORTIFICATION_BLUEPRINTS: Blueprint[] = [
     cost: { stone: 4, metal: 2 },
     baseHp: 0,
     category: 'fortification',
-    description:
-      'Approach stakes. Adjacent empty ground is slower and slightly costlier to path. Costs stone and metal.',
+    description: 'Approach stakes that slow and tax the ground approach.',
   },
   {
     id: 'barbican',
@@ -71,10 +66,27 @@ export const FORTIFICATION_BLUEPRINTS: Blueprint[] = [
     cost: { stone: 8, metal: 2 },
     baseHp: 0,
     category: 'fortification',
-    description:
-      'Gatehouse funnel. Nearby wall climbs cost more; this cell’s exposed face stays cheap. Costs stone and metal.',
+    description: 'A gatehouse funnel that steers climbers onto one exposed face.',
   },
 ];
+
+const FORTIFICATION_PLACE: Record<FortificationId, string> = {
+  moat: 'Ground-row exterior framing',
+  glacis: 'Ground-row exterior framing',
+  parapet: 'Exterior framing with exposed top',
+  cornice: 'Exterior framing with empty cell below',
+  stakes: 'Ground-row exterior framing',
+  barbican: 'Exterior framing with exposed left or right wall',
+};
+
+const FORTIFICATION_MECHANICS: Record<FortificationId, string> = {
+  moat: 'Adjacent empty ground high path cost + strong slow (never seals)',
+  glacis: 'Adjacent empty ground high path cost',
+  parapet: 'Taxes onTop crawl across this cell’s top face',
+  cornice: 'Taxes under-overhang crawl beneath this cell',
+  stakes: 'Adjacent empty ground slower and mildly costlier',
+  barbican: 'Nearby wall climbs costly; this cell’s exposed face stays cheap',
+};
 
 export function getFortificationBlueprint(id: string): Blueprint | undefined {
   return FORTIFICATION_BLUEPRINTS.find((b) => b.id === id);
@@ -86,4 +98,12 @@ export function isFortificationBlueprint(id: string): boolean {
 
 export function isFortificationId(id: string): id is FortificationId {
   return FORTIFICATION_BLUEPRINTS.some((b) => b.id === id);
+}
+
+export function getFortificationPlacementHint(id: string): string | undefined {
+  return isFortificationId(id) ? FORTIFICATION_PLACE[id] : undefined;
+}
+
+export function getFortificationMechanics(id: string): string | undefined {
+  return isFortificationId(id) ? FORTIFICATION_MECHANICS[id] : undefined;
 }

@@ -3,7 +3,15 @@ import { cellKey } from '@/calculations/grid';
 import { exteriorSubAt, macroCenterSubCell } from '@/calculations/subGrid';
 import { findPath } from '@/calculations/pathfinding';
 import { isWalkable, spawnNode } from '@/calculations/exteriorGraph';
-import { GLACIS_STEP_COST, STAKES_SLOW_MULT } from '@/config/fortifications';
+import {
+  FORT_SLOW_CAP_MULT,
+  GLACIS_STEP_COST,
+  MOAT_SLOW_MULT,
+  MOAT_STEP_COST,
+  PARAPET_SLOW_MULT,
+  PARAPET_STEP_COST,
+  STAKES_SLOW_MULT,
+} from '@/config/fortifications';
 import { getBlueprint } from '@/model/blueprints';
 import { ENEMY_TEMPLATES } from '@/model/enemies';
 import {
@@ -14,11 +22,13 @@ import {
   stripEnclosedFortifications,
 } from '@/model/fortifications';
 import {
+  fortificationSlowMultiplier,
   groundAuraStepCost,
-  isMoatBlockedGround,
+  isOnMoatAura,
+  isOnParapetTop,
+  isOnCorniceUnder,
   isOnStakesAura,
   stepCost,
-  stakesSlowMultiplier,
 } from '@/model/fortifications/effects';
 import {
   createStructure,
@@ -90,6 +100,36 @@ describe('stripEnclosedFortifications', () => {
     tower = removeStructure(tower, 'a');
     expect(tower.shell[cellKey(5, 0)]).toBeUndefined();
   });
+
+  it('strips parapet when framing covers its top face while host stays exterior', () => {
+    let tower = pillar();
+    tower = placeShell(tower, { col: 5, row: 1 }, 'parapet');
+    tower = placeStructure(tower, createStructure('U', getBlueprint('stem')!, { col: 5, row: 2 }));
+    tower = reconcileShellAfterStructureEdit(tower);
+    expect(isExteriorFramingCell(tower, 5, 1)).toBe(true);
+    expect(canPlaceFortification(tower, 'parapet', { col: 5, row: 1 }).reason).toBe('wrong_face');
+    expect(tower.shell[cellKey(5, 1)]).toBeUndefined();
+  });
+
+  it('strips cornice when underhang is filled', () => {
+    let tower = tShape();
+    tower = placeShell(tower, { col: 4, row: 2 }, 'cornice');
+    tower = placeStructure(tower, createStructure('fill', getBlueprint('stem')!, { col: 4, row: 1 }));
+    tower = reconcileShellAfterStructureEdit(tower);
+    expect(canPlaceFortification(tower, 'cornice', { col: 4, row: 2 }).reason).toBe('wrong_face');
+    expect(tower.shell[cellKey(4, 2)]).toBeUndefined();
+  });
+
+  it('strips barbican when both wall faces are sealed', () => {
+    let tower = pillar();
+    tower = placeShell(tower, { col: 5, row: 1 }, 'barbican');
+    tower = placeStructure(tower, createStructure('L', getBlueprint('stem')!, { col: 4, row: 1 }));
+    tower = placeStructure(tower, createStructure('R', getBlueprint('stem')!, { col: 6, row: 1 }));
+    tower = reconcileShellAfterStructureEdit(tower);
+    expect(isExteriorFramingCell(tower, 5, 1)).toBe(true);
+    expect(canPlaceFortification(tower, 'barbican', { col: 5, row: 1 }).reason).toBe('wrong_face');
+    expect(tower.shell[cellKey(5, 1)]).toBeUndefined();
+  });
 });
 
 describe('placement rules', () => {
@@ -118,18 +158,21 @@ describe('placement rules', () => {
 });
 
 describe('moat / glacis / stakes ground auras', () => {
-  it('moat hard-blocks adjacent empty ground; glacis raises step cost', () => {
+  it('moat taxes adjacent empty ground; glacis raises step cost; neither seals walkability', () => {
     let tower = pillar();
     tower = placeShell(tower, { col: 5, row: 0 }, 'moat');
     const leftGround = exteriorSubAt(4, 0, 'left');
-    // Ground subcells in empty macro (4,0)
     const groundSub = macroCenterSubCell(4, 0);
     groundSub.row = 0;
-    expect(isMoatBlockedGround(tower, groundSub.col, 0)).toBe(true);
-    expect(isWalkable(tower, groundSub.col, 0, underOverhang)).toBe(false);
+    expect(isOnMoatAura(tower, groundSub.col, 0)).toBe(true);
+    expect(isWalkable(tower, groundSub.col, 0, underOverhang)).toBe(true);
+    expect(groundAuraStepCost(tower, groundSub.col, 0)).toBe(MOAT_STEP_COST);
+    expect(
+      fortificationSlowMultiplier(tower, { ...groundSub, face: 'air' }, false),
+    ).toBe(MOAT_SLOW_MULT);
 
     tower = placeShell(tower, { col: 5, row: 0 }, 'glacis');
-    expect(isMoatBlockedGround(tower, groundSub.col, 0)).toBe(false);
+    expect(isOnMoatAura(tower, groundSub.col, 0)).toBe(false);
     expect(groundAuraStepCost(tower, groundSub.col, 0)).toBe(GLACIS_STEP_COST);
     expect(stepCost(tower, { ...groundSub, face: 'air' }, underOverhang)).toBe(GLACIS_STEP_COST);
     expect(stepCost(tower, { ...groundSub, face: 'air' }, fly)).toBe(1);
@@ -142,31 +185,48 @@ describe('moat / glacis / stakes ground auras', () => {
     const groundSub = macroCenterSubCell(4, 0);
     expect(isOnStakesAura(tower, groundSub.col, 0)).toBe(true);
     expect(
-      stakesSlowMultiplier(tower, { col: groundSub.col, row: 0, face: 'air' }, false),
+      fortificationSlowMultiplier(tower, { col: groundSub.col, row: 0, face: 'air' }, false),
     ).toBe(STAKES_SLOW_MULT);
     expect(
-      stakesSlowMultiplier(tower, { col: groundSub.col, row: 0, face: 'air' }, true),
+      fortificationSlowMultiplier(tower, { col: groundSub.col, row: 0, face: 'air' }, true),
     ).toBe(1);
   });
 });
 
-describe('parapet and cornice denies', () => {
-  it('parapet blocks onTop crawl above the host', () => {
+describe('parapet and cornice soft taxes', () => {
+  it('parapet taxes onTop crawl above the host without sealing it', () => {
     let tower = pillar();
     tower = placeShell(tower, { col: 5, row: 1 }, 'parapet');
     const top = getWizardPosition(tower);
-    // Wizard perch is onTop of crown — parapet on crown should block that onTop cell
-    expect(isWalkable(tower, top.col, top.row, underOverhang)).toBe(false);
+    expect(isWalkable(tower, top.col, top.row, underOverhang)).toBe(true);
+    expect(isOnParapetTop(tower, top.col, top.row)).toBe(true);
+    expect(stepCost(tower, { ...top, face: 'air' }, underOverhang)).toBe(PARAPET_STEP_COST);
+    expect(fortificationSlowMultiplier(tower, top, false)).toBe(PARAPET_SLOW_MULT);
   });
 
-  it('cornice blocks under_overhang crawl under the host', () => {
+  it('cornice taxes under_overhang crawl under the host without sealing it', () => {
     let tower = tShape();
     tower = placeShell(tower, { col: 4, row: 2 }, 'cornice');
     const under = exteriorSubAt(4, 1, 'top');
-    // Prefer a cell under the overhang with underCeiling
     const underSub = { col: 4 * 3 + 1, row: 2 * 3 - 1 };
-    expect(isWalkable(tower, underSub.col, underSub.row, underOverhang)).toBe(false);
+    expect(isWalkable(tower, underSub.col, underSub.row, underOverhang)).toBe(true);
+    expect(isOnCorniceUnder(tower, underSub.col, underSub.row)).toBe(true);
     void under;
+  });
+
+  it('caps stacked fort slows at 80%', () => {
+    let tower = pillar();
+    tower = placeShell(tower, { col: 5, row: 0 }, 'moat');
+    tower = placeShell(tower, { col: 5, row: 1 }, 'parapet');
+    const groundSub = macroCenterSubCell(4, 0);
+    groundSub.row = 0;
+    const top = getWizardPosition(tower);
+    // Moat alone is below the cap; max of applicable effects still respects the cap.
+    expect(fortificationSlowMultiplier(tower, { ...groundSub, face: 'air' }, false)).toBeLessThanOrEqual(
+      FORT_SLOW_CAP_MULT,
+    );
+    expect(fortificationSlowMultiplier(tower, top, false)).toBeLessThanOrEqual(FORT_SLOW_CAP_MULT);
+    expect(FORT_SLOW_CAP_MULT).toBe(5);
   });
 });
 

@@ -55,7 +55,13 @@ export function createLibrary(root: HTMLElement, store: Store): () => void {
             const selected = b.selected ? 'selected' : '';
             const poor = b.affordable ? '' : 'unaffordable';
             const tag =
-              b.category === 'infra' ? 'infra' : b.category === 'room' ? 'room' : 'structure';
+              b.category === 'infra'
+                ? 'infra'
+                : b.category === 'room'
+                  ? 'room'
+                  : b.category === 'fortification'
+                    ? 'fortification'
+                    : 'structure';
             const sizeLabel = `${b.sizeW}×${b.sizeH}`;
             return `
             <button class="blueprint ${selected} ${poor}" data-tool="blueprint" data-blueprint="${b.id}" data-category="${tag}" data-tip-kind="blueprint" data-tip-id="${b.id}">
