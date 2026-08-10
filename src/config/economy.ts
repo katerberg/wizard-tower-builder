@@ -17,7 +17,7 @@ export const WEAR_HP_SCALE = 10;
 /** Passive weathering HP/sec on each stone-built room or structure. */
 export const WEATHERING_HP_PER_SEC = 0.1;
 /** HP removed from stone-built framing/room when a climber abrades its cell. */
-export const ABRASION_HP_PER_STEP = 1.5;
+export const ABRASION_HP_PER_STEP = 0.75;
 
 /** Max water-pipe row reachable with at least one hand-pump laborer (no pump rooms). */
 export const HAND_PUMP_MAX_WATER_ROW = 3;
