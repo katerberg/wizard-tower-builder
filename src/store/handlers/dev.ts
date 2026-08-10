@@ -2,6 +2,7 @@ import { reward } from '@/calculations/economy';
 import { addResources } from '@/calculations/resources';
 import { addMessage } from '@/model/messages';
 import { framingHeight } from '@/model/phases';
+import { unlockAllResearch } from '@/model/research';
 import { setActiveSpellSchool } from '@/model/spells';
 import {
   heightProgression,
@@ -35,6 +36,12 @@ export function handleDevIntent(ctx: HandlerContext, intent: Intent): void {
         ctx.game.enemies = [];
         ctx.game.spawnQueue = [];
         addMessage(ctx.game, 'Dev: wave skipped.', 'info');
+      }
+      break;
+    case 'devUnlockAll':
+      if (ctx.game.devMode) {
+        unlockAllResearch(ctx.game);
+        addMessage(ctx.game, 'Dev: unlocked all research / blueprints / mods.', 'info');
       }
       break;
     case 'devSetSpellSchool':

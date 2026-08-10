@@ -194,11 +194,42 @@ export const ROOM_BLUEPRINTS: Blueprint[] = [
     description:
       'Extends how high pipe water can reach. Stack pumps (and keep a hand-pump laborer for the base band) to feed springs and boilers up the tower. Costs metal.',
   },
+  {
+    id: 'researchRoom',
+    name: 'Research Room',
+    glyph: 'R',
+    color: '#4a6fa5',
+    size: { w: 2, h: 1 },
+    cost: { souls: 8, stone: 6 },
+    baseHp: 25,
+    category: 'room',
+    passable: true,
+    description:
+      'Magi stationed here advance the active research project during attack. Costs souls and stone.',
+  },
 ];
 
 export const BLUEPRINTS: Blueprint[] = [...STRUCTURE_BLUEPRINTS, ...ROOM_BLUEPRINTS];
 
-export const STARTING_BLUEPRINT_IDS = BLUEPRINTS.map((b) => b.id);
+/**
+ * Blueprints available at run start (research unlocks the rest).
+ * Infra starters are listed in STARTING_INFRA_BLUEPRINT_IDS.
+ */
+export const STARTING_BLUEPRINT_IDS: string[] = [
+  'stem',
+  'buttress2',
+  'quartersRoom',
+  'guardroomRoom',
+  'chamberRoom',
+  'turretRoom',
+  'researchRoom',
+];
+
+/** Infra ids unlocked at run start (library filters these separately). */
+export const STARTING_INFRA_BLUEPRINT_IDS: string[] = ['staircase'];
+
+/** Room mods available without research. */
+export const STARTING_MODIFICATION_IDS: string[] = ['spikes'];
 
 /** Blueprint ids whose footprints take stone wear (weathering + abrasion). */
 export const STONE_BUILT_BLUEPRINT_IDS = new Set([

@@ -105,6 +105,7 @@ export function createHud(root: HTMLElement, store: Store): () => void {
       ? `<div class="dev-row">
            <button data-action="devAddCurrency">+50 all</button>
            <button data-action="devSkipWave">Skip wave</button>
+           <button data-action="devUnlockAll">Unlock all</button>
          </div>
          <div class="dev-row">
            <button data-action="toggleWaveBuilder">${waveBuilderOpen ? 'Wave builder: on' : 'Wave builder'}</button>

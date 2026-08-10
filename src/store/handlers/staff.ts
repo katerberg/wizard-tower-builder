@@ -2,11 +2,13 @@ import {
   LABORER_RECRUIT_COST,
   MAGE_RECRUIT_COST,
   MANA_SPRING_STAFF_CAPACITY,
+  RESEARCH_ROOM_STAFF_CAPACITY,
   SOLDIER_RECRUIT_COST,
 } from '@/config/constants';
 import { canAffordBuild } from '@/calculations/buildCost';
 import { addMessage } from '@/model/messages';
 import { isManaSpringRoom } from '@/model/pipes';
+import { isResearchRoom } from '@/model/research';
 import { getBlueprint } from '@/model/blueprints';
 import {
   HOUSING_MIN_RECRUITED,
@@ -57,6 +59,9 @@ export function handleStaffIntent(ctx: HandlerContext, intent: Intent): void {
       break;
     case 'setManaSpringAllocation':
       setManaSpringAllocation(ctx, intent.springRoomId, intent.count);
+      break;
+    case 'setResearchAllocation':
+      setResearchAllocation(ctx, intent.researchRoomId, intent.count);
       break;
   }
 }
@@ -141,4 +146,17 @@ function setManaSpringAllocation(ctx: HandlerContext, springRoomId: string, coun
   if ((game.manaSpringAllocations[springRoomId] ?? 0) === clamped) return;
   ctx.recordBuildStep();
   game.manaSpringAllocations[springRoomId] = clamped;
+}
+
+function setResearchAllocation(ctx: HandlerContext, researchRoomId: string, count: number): void {
+  const { game } = ctx;
+  if (game.phase !== 'build') return;
+
+  const room = game.tower.rooms.find((r) => r.id === researchRoomId);
+  if (!room || !isResearchRoom(room)) return;
+
+  const clamped = Math.max(0, Math.min(RESEARCH_ROOM_STAFF_CAPACITY, Math.floor(count)));
+  if ((game.researchRoomAllocations[researchRoomId] ?? 0) === clamped) return;
+  ctx.recordBuildStep();
+  game.researchRoomAllocations[researchRoomId] = clamped;
 }

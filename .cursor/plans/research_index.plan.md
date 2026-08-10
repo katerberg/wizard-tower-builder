@@ -18,11 +18,11 @@ Use this file to **orient**, not to **implement**. Each shot has (or will have) 
 | Goal | Read this | Do NOT read while coding |
 | ---- | --------- | ------------------------ |
 | **Understand the full design** | [`docs/RESEARCH.md`](../../docs/RESEARCH.md) | Implementation plans |
-| **Unlock state + static tree data** | `research_engine.plan.md` (create at shot start) | Rooms / UI / spell discovery |
-| **Research rooms + magi progress** | `research_rooms.plan.md` | Spell discovery / content authoring |
-| **Frontier UI** | `research_ui.plan.md` | Engine internals already shipped |
-| **School pick + height spell offers** | `spell_discovery.plan.md` | Blueprint tree content |
-| **Author edges + bonuses + tune** | `research_content.plan.md` | Procedural generator |
+| **Unlock state + static tree data** | Shipped with static v1 (`src/model/research/`) | Spell discovery |
+| **Research rooms + magi progress** | Shipped with static v1 | Spell discovery / content retunes |
+| **Frontier UI** | Shipped (`view/dom/research.ts`) | Full tree map |
+| **School pick + height spell offers** | `spell_discovery.plan.md` (create at shot start) | Blueprint tree content |
+| **Author edges + bonuses + tune** | Initial edges shipped; bonuses TBD | Procedural generator |
 | **Procedural run-start trees** | Later series — **not v1** | — |
 
 Shot plan files are created when that shot starts. Until then, follow [`docs/RESEARCH.md`](../../docs/RESEARCH.md) for locked behavior.

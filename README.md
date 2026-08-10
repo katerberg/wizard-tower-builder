@@ -15,7 +15,7 @@ The run alternates between two phases:
 
 ### Spells
 
-Mana powers the wizard’s hotbar (keys **1–4** to select, click to aim/cast during attack). Four elemental schools ship today — **fire**, **air**, **earth**, and **water** — swapped via the HUD school picker in **dev mode**. Wand Strike is always on and not part of any school kit. **Research / tech tree and spell discovery** are designed in [`docs/RESEARCH.md`](docs/RESEARCH.md) (not implemented yet): rooms carry the run; spells stay rare micro. Mana Well / spell shop remain deferred. School design notes live under `.cursor/plans/spell_school_*.plan.md`.
+Mana powers the wizard’s hotbar (keys **1–4** to select, click to aim/cast during attack). Four elemental schools ship today — **fire**, **air**, **earth**, and **water** — swapped via the HUD school picker in **dev mode**. Wand Strike is always on and not part of any school kit. **Research / tech tree** gates the BUILD library ([`docs/RESEARCH.md`](docs/RESEARCH.md)): start a frontier project, assign magi to Research Rooms, unlock blueprints over waves. Dev mode includes **Unlock all**. Spell discovery (rare height offers) and Mana Well / spell shop remain deferred. School design notes live under `.cursor/plans/spell_school_*.plan.md`.
 
 ### Tower placement rules
 
@@ -284,12 +284,12 @@ Still not done:
 
 - Dynamic pipe/network breaks on room destruction
 - Soldier death / targeting; pipe damage
-- Advanced mage tech (combat casting) — housing basics shipped in [`docs/HOUSING.md`](docs/HOUSING.md); research/tech tree **designed** in [`docs/RESEARCH.md`](docs/RESEARCH.md) (not implemented)
+- Advanced mage tech (combat casting) — housing basics shipped in [`docs/HOUSING.md`](docs/HOUSING.md); research/tech tree shipped ([`docs/RESEARCH.md`](docs/RESEARCH.md)); spell discovery still deferred
 - Multiple currencies beyond gold; roguelike map branching
 - Attack-overhang / face-transfer crawler modes (fliers shipped — [`docs/FLYING.md`](docs/FLYING.md))
 - Visual polish beyond ASCII-style glyphs on canvas
 - Training rooms (troops of certain types required to populate other rooms)
-- Research rooms + gated blueprints / spell discovery — design locked ([`docs/RESEARCH.md`](docs/RESEARCH.md)); implementation deferred
+- Spell discovery (height-clear offers) + spell bonuses on the tree — see [`docs/RESEARCH.md`](docs/RESEARCH.md)
 - Mana Well / spell shop
 - Shell fortifications (moats, glacis, parapets, cornices, stakes, barbican) — shipped; see [`docs/FORTIFICATIONS.md`](docs/FORTIFICATIONS.md). Spikes migration to shell still deferred.
 - Structures such as crenels / murderholes beyond existing turrets (populated shell — separate from fortifications)

@@ -8,6 +8,7 @@ import { handleInfraIntent } from './infra';
 import { handleInspectIntent } from './inspect';
 import { handleModificationsIntent } from './modifications';
 import { handleStaffIntent } from './staff';
+import { handleResearchIntent } from './research';
 import { handleSpeedIntent } from './speed';
 import { handleSpellIntent } from './spells';
 import { handleWaveIntent } from './wave';
@@ -54,7 +55,12 @@ export function applyIntent(ctx: HandlerContext, intent: Intent): void {
     case 'unrecruitStaff':
     case 'setSlotAllocation':
     case 'setManaSpringAllocation':
+    case 'setResearchAllocation':
       handleStaffIntent(ctx, intent);
+      break;
+
+    case 'startResearch':
+      handleResearchIntent(ctx, intent);
       break;
 
     case 'addModification':
@@ -65,6 +71,7 @@ export function applyIntent(ctx: HandlerContext, intent: Intent): void {
     case 'toggleDevMode':
     case 'devAddCurrency':
     case 'devSkipWave':
+    case 'devUnlockAll':
     case 'devSetSpellSchool':
     case 'toggleWaveBuilder':
     case 'devSetWaveCount':

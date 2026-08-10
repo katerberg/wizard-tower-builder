@@ -6,6 +6,7 @@ import {
   MANA_SPRING_STAFF_CAPACITY,
   QUARTERS_BASE_CAPACITY,
   QUARTERS_EXPANDED_CAPACITY,
+  RESEARCH_ROOM_STAFF_CAPACITY,
   SLOT_BASE_CAPACITY,
   SLOT_EXPANDED_CAPACITY,
 } from '@/config/constants';
@@ -74,6 +75,10 @@ export function slotCapacity(room: Room): number {
 
 export function manaSpringStaffCapacity(): number {
   return MANA_SPRING_STAFF_CAPACITY;
+}
+
+export function researchRoomStaffCapacity(): number {
+  return RESEARCH_ROOM_STAFF_CAPACITY;
 }
 
 export function canRecruitInHousing(room: Room, recruited: number): boolean {

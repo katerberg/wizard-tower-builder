@@ -19,6 +19,8 @@ export type Intent =
   | { type: 'unrecruitStaff'; housingRoomId: string }
   | { type: 'setSlotAllocation'; slotRoomId: string; count: number }
   | { type: 'setManaSpringAllocation'; springRoomId: string; count: number }
+  | { type: 'setResearchAllocation'; researchRoomId: string; count: number }
+  | { type: 'startResearch'; nodeId: string }
   | { type: 'toggleLayer'; layer: TowerLayer }
   | { type: 'closeModal' }
   | { type: 'startWave' }
@@ -26,6 +28,7 @@ export type Intent =
   | { type: 'toggleDevMode' }
   | { type: 'devAddCurrency' }
   | { type: 'devSkipWave' }
+  | { type: 'devUnlockAll' }
   | { type: 'devSetSpellSchool'; school: 'fire' | 'air' | 'earth' | 'water' }
   | { type: 'toggleWaveBuilder' }
   | { type: 'devSetWaveCount'; templateId: string; count: number }

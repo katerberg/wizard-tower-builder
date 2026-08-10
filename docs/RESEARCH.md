@@ -2,7 +2,7 @@
 
 Design for **gated progression**: a static tech tree researched through **research rooms + magi**, plus a separate **rare spell-discovery** path tied to height clears. Players start with basics; interconnection-heavy builds unlock over the run. Spells stay a skilled “micro” layer — rooms and staff should be enough to brute-force a run.
 
-**Status:** Design locked for static tech tree + research rooms + height spell offers (v1). Not implemented. Procedural run-start tree layouts remain deferred. Mana Well / spell shop remain deferred.
+**Status:** v1 static tech tree **implemented** (starter kit, research rooms + magi progress, frontier UI, expansion gating, dev Unlock all). Spell discovery / school pick / spell bonuses and procedural trees remain deferred.
 
 ---
 
@@ -295,12 +295,12 @@ When the static tree is fun enough:
 
 | Order | Plan (create when that shot starts) | Scope |
 |-------|-------------------------------------|-------|
-| 1 | Design doc (this file) + index | Docs only — **done when this ships** |
-| 2 | `research_engine.plan.md` | Unlock state, starter kit seeding, library filter proof, static tree data shape, start/progress/complete + tests — minimal UI |
-| 3 | `research_rooms.plan.md` | Research room blueprint, magi allocation, labor-cycle progress ticks |
-| 4 | `research_ui.plan.md` | Frontier list, start flow, inspector progress |
+| 1 | Design doc (this file) + index | Docs only — **done** |
+| 2 | `research_engine.plan.md` | Unlock state, starter kit, static tree — **shipped in static v1** |
+| 3 | `research_rooms.plan.md` | Research room + magi labor-cycles — **shipped in static v1** |
+| 4 | `research_ui.plan.md` | Frontier list + inspector — **shipped in static v1** |
 | 5 | `spell_discovery.plan.md` | School pick, unlocked spell hotbar, height-clear 1-of-3 offers |
-| 6 | `research_content.plan.md` | Author static edges for current roster; spell bonus nodes; tune pace |
+| 6 | `research_content.plan.md` | Author static edges — **initial roster shipped**; tune pace in playtest |
 | 7 | Later | Procedural layout generator |
 
 Orient-only index: [`.cursor/plans/research_index.plan.md`](../.cursor/plans/research_index.plan.md).

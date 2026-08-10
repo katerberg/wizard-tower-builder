@@ -1,4 +1,5 @@
 import { isManaSpringRoom } from '@/model/pipes';
+import { isResearchRoom } from '@/model/research';
 import { HOUSING_MIN_RECRUITED, housingKindOf, isHousingRoom, isSlotRoom, staffKindForHousing } from './capacity';
 import type { GameState, Room, StaffKind } from '@/model/types';
 
@@ -13,12 +14,15 @@ export function pruneOrphanStaffState(state: GameState): void {
   for (const id of Object.keys(state.manaSpringAllocations)) {
     if (!ids.has(id)) delete state.manaSpringAllocations[id];
   }
+  for (const id of Object.keys(state.researchRoomAllocations)) {
+    if (!ids.has(id)) delete state.researchRoomAllocations[id];
+  }
 }
 
 /** @deprecated Use pruneOrphanStaffState. */
 export const pruneOrphanSoldierState = pruneOrphanStaffState;
 
-/** New housing starts with 1 recruit; slots/springs seed allocation 1. */
+/** New housing starts with 1 recruit; slots/springs/research seed allocation 1. */
 export function seedSpecialtyRoomDefaults(state: GameState, room: Room): void {
   if (isHousingRoom(room)) {
     if ((state.housingRecruited[room.id] ?? 0) < HOUSING_MIN_RECRUITED) {
@@ -35,12 +39,18 @@ export function seedSpecialtyRoomDefaults(state: GameState, room: Room): void {
       state.manaSpringAllocations[room.id] = 1;
     }
   }
+  if (isResearchRoom(room)) {
+    if ((state.researchRoomAllocations[room.id] ?? 0) < 1) {
+      state.researchRoomAllocations[room.id] = 1;
+    }
+  }
 }
 
 export function pruneHousingState(state: GameState, removedRoomId: string): void {
   delete state.housingRecruited[removedRoomId];
   delete state.slotAllocations[removedRoomId];
   delete state.manaSpringAllocations[removedRoomId];
+  delete state.researchRoomAllocations[removedRoomId];
 }
 
 /** @deprecated Use pruneHousingState. */
@@ -67,7 +77,9 @@ export function totalAllocatedSoldiers(state: GameState): number {
 }
 
 export function totalAllocatedMagi(state: GameState): number {
-  return Object.values(state.manaSpringAllocations).reduce((sum, n) => sum + n, 0);
+  const springs = Object.values(state.manaSpringAllocations).reduce((sum, n) => sum + n, 0);
+  const research = Object.values(state.researchRoomAllocations).reduce((sum, n) => sum + n, 0);
+  return springs + research;
 }
 
 export {

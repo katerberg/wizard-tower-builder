@@ -29,6 +29,7 @@ export function captureBuildBaseline(state: GameState): void {
     housingRecruited: structuredClone(state.housingRecruited),
     slotAllocations: structuredClone(state.slotAllocations),
     manaSpringAllocations: structuredClone(state.manaSpringAllocations),
+    researchRoomAllocations: structuredClone(state.researchRoomAllocations),
   };
   state.buildRecruitSpend = 0;
 }

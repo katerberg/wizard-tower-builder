@@ -16,11 +16,13 @@ import {
   modificationCost,
 } from '@/model/modifications';
 import { isManaSpringRoom } from '@/model/pipes';
+import { isResearchRoom } from '@/model/research';
 import {
   housingCapacity,
   isHousingRoom,
   isSlotRoom,
   manaSpringStaffCapacity,
+  researchRoomStaffCapacity,
   slotCapacity,
   housingKindOf,
   staffKindForHousing,
@@ -126,6 +128,8 @@ export interface RoomInspector {
   slotConnected?: boolean;
   manaSpringAllocated?: number;
   manaSpringCapacity?: number;
+  researchAllocated?: number;
+  researchCapacity?: number;
   /** Contextual build warning shown on this room (missing stairs, support, …). */
   buildAlert?: string;
 }
@@ -153,82 +157,87 @@ export function selectRoomInspector(snapshot: Snapshot, roomId: string): RoomIns
   const { remaining } = selectBuildEconomy(snapshot);
   const stats = computeRoomStats(room, blueprint);
 
-  const modifications = listModifications().map((def) => {
-    const current = room.modifications.find((m) => m.id === def.id);
-    const level = current?.level ?? 0;
-    const levelText = level > 0 ? `Lv${level}/${def.maxLevel}` : 'not installed';
+  const modifications: RoomModificationOption[] = listModifications()
+    .filter((def) => {
+      const level = room.modifications.find((m) => m.id === def.id)?.level ?? 0;
+      return level > 0 || game.player.unlockedModifications.includes(def.id);
+    })
+    .map((def) => {
+      const current = room.modifications.find((m) => m.id === def.id);
+      const level = current?.level ?? 0;
+      const levelText = level > 0 ? `Lv${level}/${def.maxLevel}` : 'not installed';
 
-    if (!isBuildPhase) {
+      if (!isBuildPhase) {
+        return {
+          id: def.id,
+          name: def.name,
+          glyph: def.glyph,
+          color: def.color,
+          ...modOptionFields(def, level, 'none'),
+          level,
+          maxLevel: def.maxLevel,
+          levelText,
+          action: 'none' as const,
+          cost: {},
+          costLabel: '—',
+          enabled: false,
+        };
+      }
+
+      if (level === 0) {
+        const cost = modificationCost(def, 1);
+        const enabled =
+          canApplyModification(room, game.tower, def.id) && canAffordResources(remaining, cost);
+        return {
+          id: def.id,
+          name: def.name,
+          glyph: def.glyph,
+          color: def.color,
+          ...modOptionFields(def, level, 'add'),
+          level,
+          maxLevel: def.maxLevel,
+          levelText,
+          action: 'add' as const,
+          cost,
+          costLabel: formatResourceCost(cost),
+          enabled,
+        };
+      }
+
+      if (canUpgradeModification(room, def.id)) {
+        const cost = modificationCost(def, level + 1);
+        const enabled = canAffordResources(remaining, cost);
+        return {
+          id: def.id,
+          name: def.name,
+          glyph: def.glyph,
+          color: def.color,
+          ...modOptionFields(def, level, 'upgrade'),
+          level,
+          maxLevel: def.maxLevel,
+          levelText,
+          action: 'upgrade' as const,
+          cost,
+          costLabel: formatResourceCost(cost),
+          enabled,
+        };
+      }
+
       return {
         id: def.id,
         name: def.name,
         glyph: def.glyph,
         color: def.color,
-        ...modOptionFields(def, level, 'none'),
+        ...modOptionFields(def, level, 'max'),
         level,
         maxLevel: def.maxLevel,
         levelText,
-        action: 'none' as const,
+        action: 'max' as const,
         cost: {},
         costLabel: '—',
         enabled: false,
       };
-    }
-
-    if (level === 0) {
-      const cost = modificationCost(def, 1);
-      const enabled =
-        canApplyModification(room, game.tower, def.id) && canAffordResources(remaining, cost);
-      return {
-        id: def.id,
-        name: def.name,
-        glyph: def.glyph,
-        color: def.color,
-        ...modOptionFields(def, level, 'add'),
-        level,
-        maxLevel: def.maxLevel,
-        levelText,
-        action: 'add' as const,
-        cost,
-        costLabel: formatResourceCost(cost),
-        enabled,
-      };
-    }
-
-    if (canUpgradeModification(room, def.id)) {
-      const cost = modificationCost(def, level + 1);
-      const enabled = canAffordResources(remaining, cost);
-      return {
-        id: def.id,
-        name: def.name,
-        glyph: def.glyph,
-        color: def.color,
-        ...modOptionFields(def, level, 'upgrade'),
-        level,
-        maxLevel: def.maxLevel,
-        levelText,
-        action: 'upgrade' as const,
-        cost,
-        costLabel: formatResourceCost(cost),
-        enabled,
-      };
-    }
-
-    return {
-      id: def.id,
-      name: def.name,
-      glyph: def.glyph,
-      color: def.color,
-      ...modOptionFields(def, level, 'max'),
-      level,
-      maxLevel: def.maxLevel,
-      levelText,
-      action: 'max' as const,
-      cost: {},
-      costLabel: '—',
-      enabled: false,
-    };
-  });
+    });
 
   const housing = housingKindOf(room);
   const staffKind = housing ? staffKindForHousing(housing) : undefined;
@@ -266,6 +275,10 @@ export function selectRoomInspector(snapshot: Snapshot, roomId: string): RoomIns
       ? (game.manaSpringAllocations[room.id] ?? 0)
       : undefined,
     manaSpringCapacity: isManaSpringRoom(room) ? manaSpringStaffCapacity() : undefined,
+    researchAllocated: isResearchRoom(room)
+      ? (game.researchRoomAllocations[room.id] ?? 0)
+      : undefined,
+    researchCapacity: isResearchRoom(room) ? researchRoomStaffCapacity() : undefined,
     buildAlert: selectRoomBuildAlerts(snapshot).find((a) => a.roomId === room.id)?.message,
   };
 }

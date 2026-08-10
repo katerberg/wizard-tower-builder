@@ -91,6 +91,10 @@ export function stationedMagiInSpring(state: GameState, springId: string): Staff
   return stationedStaffInRoom(state, springId, 'mage');
 }
 
+export function stationedMagiInRoom(state: GameState, roomId: string): StaffUnit[] {
+  return stationedStaffInRoom(state, roomId, 'mage');
+}
+
 function roomMaxHp(room: Room): number {
   const bp = getBlueprint(room.blueprintId);
   return bp ? computeRoomStats(room, bp).maxHp : room.hp;
