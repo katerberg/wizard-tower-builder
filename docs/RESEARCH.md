@@ -2,7 +2,7 @@
 
 Design for **gated progression**: a static tech tree researched through **research rooms + magi**, plus a separate **rare spell-discovery** path tied to height clears. Players start with basics; interconnection-heavy builds unlock over the run. Spells stay a skilled “micro” layer — rooms and staff should be enough to brute-force a run.
 
-**Status:** v1 static tech tree **implemented** (starter kit, research rooms + magi progress, frontier UI, expansion gating, dev Unlock all). Spell discovery / school pick / spell bonuses and procedural trees remain deferred.
+**Status:** v1 static tech tree **implemented** (starter kit, research rooms + magi progress, frontier UI, expansion gating, dev Unlock all + per-node Unlock). Spell discovery / school pick / spell bonuses and procedural trees remain deferred.
 
 ---
 
@@ -229,6 +229,7 @@ Run identity comes from:
 ## UI (v1)
 
 - **Frontier list** (or compact cards): name, costs to start, progress if active, prereq hint one line.
+- **Dev mode:** each frontier row (and the active project) exposes **Unlock** to instantly complete that node with no cost; HUD also has **Unlock all**.
 - No full-tree viewer in v1 (deferred — helpful for planning, conflicts with “discover the build”).
 - Research room inspector: assigned magi, progress bar for active project.
 - Spell offer modal on eligible wave clear (pick 1 of 3).

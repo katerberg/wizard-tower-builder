@@ -123,6 +123,30 @@ export function addResearchProgress(state: GameState, amount: number): void {
   }
 }
 
+/** Dev / test: instantly complete one node (no cost, no labor). */
+export function instantUnlockResearch(
+  state: GameState,
+  nodeId: ResearchNodeId,
+): { ok: true } | { ok: false; reason: string } {
+  const node = getResearchNode(nodeId);
+  if (!node) return { ok: false, reason: 'Unknown research.' };
+  if (isNodeCompleted(state, nodeId)) {
+    return { ok: false, reason: 'Already researched.' };
+  }
+  if (!prereqsMet(state, node)) {
+    return { ok: false, reason: 'Prerequisites not met.' };
+  }
+  if (state.player.research.active?.nodeId === nodeId) {
+    state.player.research.active = null;
+  }
+  if (!state.player.research.completedNodeIds.includes(node.id)) {
+    state.player.research.completedNodeIds = [...state.player.research.completedNodeIds, node.id];
+  }
+  grantNodeUnlocks(state, node);
+  addMessage(state, `Dev: unlocked ${node.name}.`, 'info');
+  return { ok: true };
+}
+
 /** Dev / test: mark every node complete and grant all unlocks. */
 export function unlockAllResearch(state: GameState): void {
   for (const node of RESEARCH_NODES) {

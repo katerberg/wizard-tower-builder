@@ -3,6 +3,7 @@ import { createInitialState } from '@/model/game';
 import {
   addResearchProgress,
   getResearchNode,
+  instantUnlockResearch,
   listFrontierNodes,
   startResearch,
   unlockAllResearch,
@@ -70,5 +71,16 @@ describe('research tech tree', () => {
     expect(state.player.unlockedBlueprints).toContain('moat');
     expect(state.player.unlockedModifications).toContain('slotExpansion');
     expect(state.player.unlockedModifications).toContain('boilerExpansion');
+  });
+
+  it('instantUnlockResearch completes one node without spending', () => {
+    const state = createInitialState();
+    const beforeSouls = state.buildBaseline!.resources.souls;
+    const result = instantUnlockResearch(state, 'bp-pipe');
+    expect(result.ok).toBe(true);
+    expect(state.player.unlockedBlueprints).toContain('pipe');
+    expect(state.player.research.completedNodeIds).toContain('bp-pipe');
+    expect(state.buildBaseline!.resources.souls).toBe(beforeSouls);
+    expect(state.player.research.active).toBeNull();
   });
 });

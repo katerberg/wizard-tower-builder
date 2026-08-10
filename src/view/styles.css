@@ -449,6 +449,19 @@ button:disabled:hover {
   border-radius: 6px;
 }
 
+.research-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.research-active-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 .research-item p {
   margin: 4px 0 0;
   font-size: 12px;

@@ -21,6 +21,7 @@ export type Intent =
   | { type: 'setManaSpringAllocation'; springRoomId: string; count: number }
   | { type: 'setResearchAllocation'; researchRoomId: string; count: number }
   | { type: 'startResearch'; nodeId: string }
+  | { type: 'devUnlockResearch'; nodeId: string }
   | { type: 'toggleLayer'; layer: TowerLayer }
   | { type: 'closeModal' }
   | { type: 'startWave' }

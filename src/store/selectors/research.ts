@@ -21,6 +21,7 @@ export interface ResearchFrontierItem {
 
 export interface ResearchPanelView {
   visible: boolean;
+  devMode: boolean;
   frontier: ResearchFrontierItem[];
   active: null | {
     id: string;
@@ -58,6 +59,7 @@ export function selectResearchPanel(snapshot: Snapshot): ResearchPanelView {
 
   return {
     visible: inRun && (inBuild || Boolean(active)),
+    devMode: game.devMode,
     frontier,
     active:
       active && activeNode

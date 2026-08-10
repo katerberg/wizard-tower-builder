@@ -60,6 +60,7 @@ export function applyIntent(ctx: HandlerContext, intent: Intent): void {
       break;
 
     case 'startResearch':
+    case 'devUnlockResearch':
       handleResearchIntent(ctx, intent);
       break;
 

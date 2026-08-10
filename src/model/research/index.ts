@@ -3,6 +3,7 @@ export { getResearchNode, listResearchNodes, RESEARCH_NODES } from './tree';
 export {
   addResearchProgress,
   emptyResearchState,
+  instantUnlockResearch,
   isNodeCompleted,
   listFrontierNodes,
   prereqsMet,

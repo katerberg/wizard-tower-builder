@@ -6,11 +6,16 @@ export function createResearchPanel(root: HTMLElement, store: Store): () => void
     if (e.button !== 0) return;
     const target =
       e.target instanceof HTMLElement
-        ? e.target.closest<HTMLElement>('[data-action="startResearch"]')
+        ? e.target.closest<HTMLElement>('[data-action="startResearch"], [data-action="devUnlockResearch"]')
         : null;
     if (!target || (target instanceof HTMLButtonElement && target.disabled)) return;
     const nodeId = target.dataset.node;
     if (!nodeId) return;
+    const action = target.dataset.action;
+    if (action === 'devUnlockResearch') {
+      store.dispatch({ type: 'devUnlockResearch', nodeId });
+      return;
+    }
     store.dispatch({ type: 'startResearch', nodeId });
   });
 
@@ -23,9 +28,17 @@ export function createResearchPanel(root: HTMLElement, store: Store): () => void
     }
     root.hidden = false;
 
+    const unlockBtn = (nodeId: string) =>
+      panel.devMode
+        ? `<button data-action="devUnlockResearch" data-node="${nodeId}">Unlock</button>`
+        : '';
+
     const activeHtml = panel.active
       ? `<div class="research-active">
-           <strong>${panel.active.name}</strong>
+           <div class="research-active-row">
+             <strong>${panel.active.name}</strong>
+             ${unlockBtn(panel.active.id)}
+           </div>
            <div class="research-progress-track">
              <div class="research-progress-fill" style="width:${Math.round(panel.active.ratio * 100)}%"></div>
            </div>
@@ -42,9 +55,12 @@ export function createResearchPanel(root: HTMLElement, store: Store): () => void
           <span class="research-meta">${item.costLabel} · ${item.progressRequired} labor</span>
           <p>${item.description}</p>
         </div>
-        <button data-action="startResearch" data-node="${item.id}" ${
-          item.affordable ? '' : 'disabled'
-        }>Start</button>
+        <div class="research-actions">
+          <button data-action="startResearch" data-node="${item.id}" ${
+            item.affordable ? '' : 'disabled'
+          }>Start</button>
+          ${unlockBtn(item.id)}
+        </div>
       </li>`,
       )
       .join('');
