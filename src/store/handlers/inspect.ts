@@ -40,6 +40,7 @@ export function handleInspectIntent(ctx: HandlerContext, intent: Intent): void {
     }
     case 'closeModal':
       ctx.view.modal = null;
+      ctx.game.pendingWaveClear = null;
       ctx.view.connectivityFocusSlotId = null;
       break;
   }

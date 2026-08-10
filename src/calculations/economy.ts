@@ -17,6 +17,7 @@ export {
   emptyResources,
   formatResourceAmount,
   formatResourceCost,
+  formatWaveHaul,
   isZeroCost,
   resourcesEqual,
   scaleResources,

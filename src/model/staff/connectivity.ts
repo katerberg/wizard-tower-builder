@@ -9,6 +9,7 @@ import {
   isSlotRoom,
   staffKindForHousing,
 } from './capacity';
+import { quartersCanReachMine } from './harvest';
 import type { GameState, Room } from '@/model/types';
 
 export interface SlotConnectivity {
@@ -23,7 +24,7 @@ export interface SlotConnectivity {
 export interface WorkplaceConnectivity {
   roomId: string;
   roomName: string;
-  kind: 'slot' | 'manaSpring' | 'damage';
+  kind: 'slot' | 'manaSpring' | 'damage' | 'mine';
   allocated: number;
   connected: boolean;
   warning: string | null;
@@ -197,6 +198,23 @@ export function selectLogisticsReport(state: GameState): LogisticsReport {
 
   const quarters = state.tower.rooms.filter((r) => isQuarters(r));
   const laborerRecruited = recruitedOf(state, 'laborer');
+
+  for (const room of quarters) {
+    const recruited = state.housingRecruited[room.id] ?? 0;
+    if (recruited <= 0) continue;
+    if (quartersCanReachMine(state, room)) continue;
+    const warning = 'Needs stairs or elevator to ground (cannot mine)';
+    workplaces.push({
+      roomId: room.id,
+      roomName: 'Quarters',
+      kind: 'mine',
+      allocated: recruited,
+      connected: false,
+      warning,
+    });
+    warnings.push(warning);
+  }
+
   for (const room of state.tower.rooms) {
     const bp = getBlueprint(room.blueprintId);
     if (!bp) continue;

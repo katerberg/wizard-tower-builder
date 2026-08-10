@@ -3,7 +3,7 @@ import {
   STARTING_RESOURCES,
   WIZARD_DEFAULTS,
 } from '@/config/constants';
-import { cloneResources } from '@/calculations/resources';
+import { cloneResources, emptyResources } from '@/calculations/resources';
 import { STARTING_BLUEPRINT_IDS } from './blueprints';
 import { FORTIFICATION_BLUEPRINTS } from './fortificationBlueprints';
 import { startRun, captureBuildBaseline } from './phases';
@@ -72,6 +72,8 @@ export function createInitialState(seed: string | number = 'wizard'): GameState 
     flameTurretRuntime: {},
     elevators: [],
     mine: { entrance: { col: 0, row: -1 }, tunnels: {}, patches: [] },
+    waveHaul: emptyResources(),
+    pendingWaveClear: null,
     buildBaseline: null,
   };
   state.mine = generateShallowMine(state.tower);

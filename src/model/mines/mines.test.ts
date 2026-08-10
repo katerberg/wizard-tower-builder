@@ -16,10 +16,13 @@ import {
 } from '@/model/mines';
 import {
   assignSurplusLaborers,
+  quartersCanReachMine,
   stepStaff,
   tickLaborerHarvestAndPump,
   tickLaborerRepairs,
 } from '@/model/staff';
+import { selectLogisticsReport } from '@/model/staff/connectivity';
+import { endWave } from '@/model/phases';
 import { createRoom, createStructure, createTower, placeRoom, placeStructure } from '@/model/tower';
 
 describe('generateShallowMine', () => {
@@ -154,5 +157,58 @@ describe('mine stone harvest', () => {
     tickLaborerRepairs(state, 0.1);
     expect(state.staff[0].targetWorkplaceId).toBe(target);
     expect(state.staff[0].status).toBe('working');
+  });
+
+  it('tallies stone into waveHaul for the clear summary', () => {
+    const { state } = stateWithLaborerAtPatch();
+    expect(state.waveHaul.stone).toBe(0);
+    tickLaborerHarvestAndPump(state, 2);
+    expect(state.waveHaul.stone).toBe(2 * MINE_STONE_HARVEST_PER_SEC);
+  });
+
+  it('skips mine assignment when quarters cannot reach ground', () => {
+    const state = createInitialState('mine-disconnected');
+    state.tower = createTower();
+    const stem = getBlueprint('stem')!;
+    const quarters = getBlueprint('quartersRoom')!;
+    // Ground framing for mine entrance, but quarters floating above with no stairs.
+    state.tower = placeStructure(state.tower, createStructure('g0', stem, { col: 7, row: 0 }));
+    state.tower = placeStructure(state.tower, createStructure('g1', stem, { col: 7, row: 2 }));
+    state.tower = placeRoom(state.tower, createRoom('q1', quarters, { col: 7, row: 2 }));
+    state.mine = generateShallowMine(state.tower);
+    state.phase = 'attack';
+    state.housingRecruited.q1 = 1;
+    state.staff = [
+      {
+        id: 'L1',
+        kind: 'laborer',
+        homeHousingId: 'q1',
+        targetWorkplaceId: null,
+        pos: { col: 7, row: 2 },
+        path: [{ col: 7, row: 2 }],
+        pathIndex: 0,
+        moveCooldown: 0,
+        status: 'idle',
+      },
+    ];
+
+    expect(quartersCanReachMine(state, state.tower.rooms.find((r) => r.id === 'q1')!)).toBe(false);
+    assignSurplusLaborers(state);
+    expect(state.staff[0].targetWorkplaceId).toBeNull();
+    expect(state.staff[0].status).toBe('idle');
+
+    state.phase = 'build';
+    const report = selectLogisticsReport(state);
+    expect(report.warnings.some((w) => w.includes('cannot mine'))).toBe(true);
+  });
+
+  it('sets pendingWaveClear with haul totals on endWave', () => {
+    const { state } = stateWithLaborerAtPatch();
+    state.waveHaul.stone = 9;
+    state.waveStartHeight = 5;
+    endWave(state);
+    expect(state.pendingWaveClear?.haul.stone).toBe(9);
+    expect(state.pendingWaveClear?.gold).toBeGreaterThan(0);
+    expect(state.messages.some((m) => m.text.includes('Mine haul'))).toBe(true);
   });
 });

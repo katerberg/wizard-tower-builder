@@ -7,13 +7,13 @@ import {
 } from '@/config/constants';
 import { reward } from '@/calculations/economy';
 import { findInteriorPath } from '@/calculations/interiorPathfinding';
-import { cellDistance } from '@/calculations/interiorGraph';
+import { cellDistance, roomAnchorCell } from '@/calculations/interiorGraph';
 import {
   findMinePatchByTarget,
   isMinePatchTarget,
   minePatchTargetId,
 } from '@/model/mines';
-import type { Cell, GameState, MinePatch, Tower } from '@/model/types';
+import type { Cell, GameState, MinePatch, Room, StaffUnit, Tower } from '@/model/types';
 
 const PUMP_TARGET = 'pump:hand';
 
@@ -82,10 +82,30 @@ export function maxWaterReachRow(state: GameState): number {
   return HAND_PUMP_MAX_WATER_ROW + pumps * PUMP_WATER_ROW_EXTENSION;
 }
 
-/** Ground-row cell above the mine entrance (hand-pump station). */
+/** Ground-row cell above the mine entrance (hand-pump station / mine access). */
 export function groundPumpAnchor(state: GameState): Cell {
   const entrance = state.mine.entrance;
   return { col: entrance.col, row: 0 };
+}
+
+/**
+ * True when a cell can path to the ground mine entrance (stairs/elevators for vertical tower travel).
+ */
+export function canPathToMineEntrance(state: GameState, from: Cell): boolean {
+  const goal = groundPumpAnchor(state);
+  if (from.col === goal.col && from.row === goal.row) return true;
+  return findInteriorPath(state.tower, from, goal, state.mine).length > 0;
+}
+
+/** Quarters must reach ground framing at the mine entrance to send miners / pumpers. */
+export function quartersCanReachMine(state: GameState, quarters: Room): boolean {
+  const from = roomAnchorCell(state.tower, quarters.origin, quarters.size, state.mine);
+  if (!from) return false;
+  return canPathToMineEntrance(state, from);
+}
+
+function laborerCanReachMineJobs(state: GameState, unit: StaffUnit): boolean {
+  return canPathToMineEntrance(state, unit.pos);
 }
 
 function availableStonePatches(state: GameState): MinePatch[] {
@@ -106,6 +126,11 @@ export function assignSurplusLaborers(state: GameState): void {
   const patches = availableStonePatches(state);
 
   for (const unit of idle) {
+    if (!laborerCanReachMineJobs(state, unit)) {
+      // Stuck above without stairs/elevator — leave idle (repair may still claim them later).
+      continue;
+    }
+
     if (needPump > 0) {
       needPump -= 1;
       const path = findInteriorPath(state.tower, unit.pos, pumpAnchor, state.mine);
@@ -119,8 +144,6 @@ export function assignSurplusLaborers(state: GameState): void {
     }
 
     if (patches.length === 0) {
-      unit.targetWorkplaceId = null;
-      unit.status = 'idle';
       continue;
     }
 
@@ -132,8 +155,9 @@ export function assignSurplusLaborers(state: GameState): void {
     });
     const patch = patches[0];
     const path = findInteriorPath(state.tower, unit.pos, patch.cell, state.mine);
+    if (path.length === 0) continue;
     unit.targetWorkplaceId = minePatchTargetId(patch.id);
-    unit.path = path.length > 0 ? path : [unit.pos];
+    unit.path = path;
     unit.pathIndex = 0;
     const atPatch =
       unit.pos.col === patch.cell.col && unit.pos.row === patch.cell.row && path.length <= 1;
@@ -162,6 +186,7 @@ export function tickLaborerHarvestAndPump(state: GameState, dt: number): void {
     if (gained <= 0) continue;
     patch.remaining -= gained;
     reward(state, { stone: gained });
+    state.waveHaul.stone += gained;
 
     if (patch.remaining <= 0) {
       unit.targetWorkplaceId = null;

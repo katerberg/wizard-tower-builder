@@ -182,6 +182,14 @@ export class Store {
     if (this.lastPhase === 'attack' && phase === 'build') {
       this.clearBuildHistory();
       resetToSelectMode(this.refs.view);
+      const summary = this.refs.game.pendingWaveClear;
+      if (summary) {
+        this.refs.view.modal = {
+          kind: 'waveClear',
+          gold: summary.gold,
+          haul: summary.haul,
+        };
+      }
       this.dirty = true;
     } else if (this.lastPhase === 'build' && phase === 'attack') {
       resetToSelectMode(this.refs.view);

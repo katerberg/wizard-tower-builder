@@ -252,6 +252,7 @@ describe('build mode vs select mode', () => {
     expect(store.getSnapshot().game.phase).toBe('build');
     expect(view.selectedBlueprintId).toBeNull();
     expect(view.selectedSpellId).toBeNull();
-    expect(view.modal).toBeNull();
+    // Haul summary modal opens on clear; blueprints stay deselected.
+    expect(view.modal?.kind).toBe('waveClear');
   });
 });

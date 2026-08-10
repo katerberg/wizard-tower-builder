@@ -12,8 +12,10 @@ Complements [`HOUSING.md`](HOUSING.md) (laborer jobs), [`HEIGHT_PROGRESSION.md`]
 |-------|----------|
 | `GameState.mine` | Deterministic shallow shaft under ground framing (starter prefers col 7) |
 | Pathing | Interior graph treats mine tunnels as walkable; free vertical in/into mine |
-| Jobs | After repair + hand-pump reserve, surplus laborers path to stone patches |
-| Yield | **Stone only** at `MINE_STONE_HARVEST_PER_SEC`; patches deplete |
+| Ground access | Quarters must path to the mine entrance via **stairs/elevators** (vertical); disconnected quarters warn and cannot mine |
+| Jobs | After repair + hand-pump reserve, surplus laborers who can reach ground path to stone patches |
+| Yield | **Stone only** at `MINE_STONE_HARVEST_PER_SEC`; patches deplete; tallied in `waveHaul` |
+| Clear UX | Wave-clear **modal** + log line with gold + mine haul |
 | Stay put | Mine/pump workers are not cleared by the repair retarget loop |
 | Render | Staff with `row < 0` are not drawn (invisible mine) |
 
@@ -55,7 +57,7 @@ Wave clear surfaces a short **haul tally** (“+stone / +metal / +gold from gems
 | Passive finds | Digging raw bodies can surface iron at **low %**; **prospect allocation** is the main next-tier unlock |
 | Storage | **Storage rooms** (future slice in this track) hold stockpiles; they add mass/height pressure and discourage infinite hoarding |
 | Anti-dwell | **Wear** + repair labor tax, **finite veins**, **longer trips as shallow layers empty**, storage mass — not grind seals |
-| Clear UX | End-of-wave message includes harvest / prospect stats |
+| Clear UX | Wave-clear **modal** + log for haul (**shipped** for stone); prospect stats later |
 | Leylines | **Stub only** this pass; magi / substance / mana-spring removal land in the leyline plan |
 
 ---

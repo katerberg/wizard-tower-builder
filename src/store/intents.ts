@@ -1,4 +1,4 @@
-import type { Cell, SimSpeed } from '@/model/types';
+import type { Cell, Resources, SimSpeed } from '@/model/types';
 
 export type TowerLayer = 'rooms' | 'infra' | 'workers';
 
@@ -43,7 +43,8 @@ export type Intent =
 export type ModalData =
   | { kind: 'room'; roomId: string }
   | { kind: 'structure'; structureId: string }
-  | { kind: 'help' };
+  | { kind: 'help' }
+  | { kind: 'waveClear'; gold: number; haul: Resources };
 
 export interface WaveBuilderState {
   open: boolean;

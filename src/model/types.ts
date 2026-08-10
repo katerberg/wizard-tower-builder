@@ -465,8 +465,21 @@ export interface GameState {
    * Not part of tower mass / height; laborers path here during attack.
    */
   mine: MineState;
+  /** Resources harvested this attack (reset at wave start). */
+  waveHaul: Resources;
+  /**
+   * Set at wave clear for the haul summary modal; cleared when the modal closes.
+   * Null while attacking or after dismiss.
+   */
+  pendingWaveClear: WaveClearSummary | null;
   /** Tower + gold at build-phase start; edits commit on wave start. */
   buildBaseline: BuildBaseline | null;
+}
+
+/** Wave-clear economy beat shown in a modal (gold payroll + mine haul). */
+export interface WaveClearSummary {
+  gold: number;
+  haul: Resources;
 }
 
 /** Finite harvest patch inside the invisible mine grid. */

@@ -527,6 +527,16 @@ button:disabled:hover {
   color: var(--muted);
 }
 
+.haul-ok {
+  color: #68d391;
+  font-size: 15px;
+}
+
+.haul-empty {
+  color: var(--muted);
+  font-size: 15px;
+}
+
 #overlay-root {
   position: fixed;
   inset: 0;
