@@ -1,5 +1,6 @@
 import {
   LABORER_UPKEEP_COST, MAGE_UPKEEP_COST, MANA_SPRING_STAFF_CAPACITY,
+  RESEARCH_ROOM_STAFF_CAPACITY,
   SOLDIER_UPKEEP_COST, STAFF_HORIZONTAL_SPEED, STAFF_STAIR_SPEED,
 } from '@/config/constants';
 import { findInteriorPath } from '@/calculations/interiorPathfinding';
@@ -9,6 +10,7 @@ import { hasInfraKind } from '@/model/infra';
 import { findMinePatchByTarget, isMinePatchTarget } from '@/model/mines';
 import { addMessage } from '@/model/messages';
 import { isManaSpringRoom } from '@/model/pipes';
+import { isResearchRoom } from '@/model/research';
 import {
   housingCapacity,
   housingKindOf,
@@ -176,23 +178,28 @@ function deploySoldiers(state: GameState, staggerBase: number): number {
 
 function deployMagi(state: GameState, staggerBase: number): number {
   const pools = buildPools(state, 'mage');
-  const springs = state.tower.rooms.filter((r) => isManaSpringRoom(r));
+  const workplaces = state.tower.rooms.filter(
+    (r) => isManaSpringRoom(r) || isResearchRoom(r),
+  );
   let spawned = 0;
 
-  for (const spring of springs) {
-    const count = Math.min(
-      state.manaSpringAllocations[spring.id] ?? 0,
-      MANA_SPRING_STAFF_CAPACITY,
-    );
+  for (const workplace of workplaces) {
+    const cap = isResearchRoom(workplace)
+      ? RESEARCH_ROOM_STAFF_CAPACITY
+      : MANA_SPRING_STAFF_CAPACITY;
+    const allocated = isResearchRoom(workplace)
+      ? (state.researchRoomAllocations[workplace.id] ?? 0)
+      : (state.manaSpringAllocations[workplace.id] ?? 0);
+    const count = Math.min(allocated, cap);
     if (count <= 0) continue;
-    const anchor = workplaceAnchor(state, spring);
+    const anchor = workplaceAnchor(state, workplace);
     if (!anchor) continue;
 
     for (let i = 0; i < count; i++) {
       const pool = pickClosestPool(pools, anchor);
       if (!pool) break;
       pool.available -= 1;
-      spawnStaff(state, 'mage', pool.roomId, spring, pool.anchor, anchor, staggerBase + spawned);
+      spawnStaff(state, 'mage', pool.roomId, workplace, pool.anchor, anchor, staggerBase + spawned);
       spawned += 1;
     }
   }

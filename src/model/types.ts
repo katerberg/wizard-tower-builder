@@ -1,3 +1,5 @@
+import type { PlayerResearchState } from './research/types';
+
 export interface Cell { col: number; row: number }
 
 export interface Modifier { attack?: number; defense?: number; hp?: number }
@@ -164,6 +166,7 @@ export interface BuildBaseline {
   housingRecruited: Record<string, number>;
   slotAllocations: Record<string, number>;
   manaSpringAllocations: Record<string, number>;
+  researchRoomAllocations: Record<string, number>;
 }
 
 /** One undo frame for tower layout + draft staff economy. */
@@ -172,6 +175,7 @@ export interface BuildDraftSnapshot {
   housingRecruited: Record<string, number>;
   slotAllocations: Record<string, number>;
   manaSpringAllocations: Record<string, number>;
+  researchRoomAllocations: Record<string, number>;
   buildRecruitSpend: number;
 }
 
@@ -281,6 +285,9 @@ export interface GameMessage { text: string; kind: GameMessageKind }
 export interface Player {
   resources: Resources;
   unlockedBlueprints: string[];
+  /** Modification ids the player may apply (research-gated expansions). */
+  unlockedModifications: string[];
+  research: PlayerResearchState;
   levelIndex: number;
   wizard: Wizard;
   mana: number;
@@ -419,6 +426,8 @@ export interface GameState {
   slotAllocations: Record<string, number>;
   /** Desired magi headcount per mana spring (0..MANA_SPRING_STAFF_CAPACITY). */
   manaSpringAllocations: Record<string, number>;
+  /** Desired magi headcount per research room. */
+  researchRoomAllocations: Record<string, number>;
   /** Gold spent recruiting staff this build phase (commits on wave start). */
   buildRecruitSpend: number;
   /** Seconds remaining before each spell can be cast again. */

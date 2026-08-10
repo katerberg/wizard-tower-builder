@@ -143,6 +143,7 @@ export class Store {
       housingRecruited: structuredClone(game.housingRecruited),
       slotAllocations: structuredClone(game.slotAllocations),
       manaSpringAllocations: structuredClone(game.manaSpringAllocations),
+      researchRoomAllocations: structuredClone(game.researchRoomAllocations),
       buildRecruitSpend: game.buildRecruitSpend,
     });
   }

@@ -5,4 +5,5 @@ export * from './combat';
 export * from './staff';
 export * from './fortifications';
 export * from './infra';
+export * from './research';
 export * from './mines';

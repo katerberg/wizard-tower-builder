@@ -117,7 +117,7 @@ A mana spring regenerates only if it is **water-connected** *and* has **at least
 - Cap **5** magi per spring (`manaSpringAllocations`; new springs seed **1**).
 - Regen: `MANA_SPRING_PER_SEC` (0.5) × sum of efficiencies by stationed index: **`[1, 0.8, 0.6, 0.4, 0.2]`**.
 - Auto-assign from closest chamber (same closest-pool spirit as guardroom→slot).
-- Magi do **not** cast, research, or buff the wizard in v1.
+- Magi do **not** cast or buff the wizard in v1. Magi can be allocated to **research rooms** to advance tech-tree projects ([`RESEARCH.md`](RESEARCH.md)).
 - Springs are **2×2** and **passable** so magi can station inside the footprint.
 
 ### Laborers → room repair
@@ -229,7 +229,7 @@ Attack tick order (staff-related) in `src/model/tick.ts`: `stepStaff` → `tickL
 
 ## Out of scope
 
-- Advanced mage tech (unlocks, research, attack casting)
+- Magi **combat casting** / replacing the player wizard (research jobs: see [`RESEARCH.md`](RESEARCH.md))
 - Steam-powered workplace analogue
 - Repair of pipes/stairs/mods; building during attack
 - Cross-housing synergies and roguelike mutually exclusive housing rewards

@@ -4,8 +4,12 @@ import {
   WIZARD_DEFAULTS,
 } from '@/config/constants';
 import { cloneResources, emptyResources } from '@/calculations/resources';
-import { STARTING_BLUEPRINT_IDS } from './blueprints';
-import { FORTIFICATION_BLUEPRINTS } from './fortificationBlueprints';
+import {
+  STARTING_BLUEPRINT_IDS,
+  STARTING_INFRA_BLUEPRINT_IDS,
+  STARTING_MODIFICATION_IDS,
+} from './blueprints';
+import { emptyResearchState } from './research';
 import { startRun, captureBuildBaseline } from './phases';
 import { seedFrom } from '../calculations/rng';
 import { generateShallowMine } from './mines';
@@ -31,10 +35,9 @@ export function createInitialState(seed: string | number = 'wizard'): GameState 
     simSpeed: loadSimSpeed(),
     player: {
       resources: cloneResources({ ...STARTING_RESOURCES }),
-      unlockedBlueprints: [
-        ...STARTING_BLUEPRINT_IDS,
-        ...FORTIFICATION_BLUEPRINTS.map((b) => b.id),
-      ],
+      unlockedBlueprints: [...STARTING_BLUEPRINT_IDS, ...STARTING_INFRA_BLUEPRINT_IDS],
+      unlockedModifications: [...STARTING_MODIFICATION_IDS],
+      research: emptyResearchState(),
       levelIndex: 0,
       wizard: { ...WIZARD_DEFAULTS, hp: WIZARD_DEFAULTS.maxHp, glyph: '@' },
       mana: MAX_MANA,
@@ -50,6 +53,7 @@ export function createInitialState(seed: string | number = 'wizard'): GameState 
     housingRecruited: {},
     slotAllocations: {},
     manaSpringAllocations: {},
+    researchRoomAllocations: {},
     buildRecruitSpend: 0,
     spellCooldowns: {},
     kindlingPatches: [],

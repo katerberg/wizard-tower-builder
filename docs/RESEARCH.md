@@ -1,0 +1,336 @@
+# Research, tech tree & spell discovery
+
+Design for **gated progression**: a static tech tree researched through **research rooms + magi**, plus a separate **rare spell-discovery** path tied to height clears. Players start with basics; interconnection-heavy builds unlock over the run. Spells stay a skilled “micro” layer — rooms and staff should be enough to brute-force a run.
+
+**Status:** v1 static tech tree **implemented** (starter kit, research rooms + magi progress, frontier UI, expansion gating, dev Unlock all + per-node Unlock). Spell discovery / school pick / spell bonuses and procedural trees remain deferred.
+
+---
+
+## Goals
+
+1. **Different towers, shared arc** — branch choice and school identity make runs feel different; tree depth and hard gates keep “later = more interconnected / stronger,” without height seal-gates on blueprints.
+2. **Start simple** — starter kit covers construct + a macro defense path; pipes, forges, elevators, advanced forts, and workplace chains come through research.
+3. **Research is labor** — pick a frontier node, pay costs to **start** it, then allocate magi to research rooms until it completes (time / labor-cycles + souls and other resources).
+4. **Spells are micro** — rooms/staff carry the run; spells cover gaps and reward skill (StarCraft-micro analogy). The spellbook stays small; new spells are rare and **not** tech-tree nodes.
+5. **Slow pace** — players can bank capacity and start research when ready; completions typically land on a ~every-few-waves cadence, not every wave.
+6. **Frontier-only UI** — show what can be started next, not the full fogged tree (v1).
+
+---
+
+## Two systems (do not merge)
+
+| System | What it unlocks | How |
+|--------|-----------------|-----|
+| **Tech tree (research)** | Blueprints, room expansion/mod subtrees, **spell bonuses** (CD / cost / power) | Start research → magi in research rooms progress it |
+| **Spell discovery** | Individual spells (hotbar entries) | Rare offers after clearing a wave at certain heights; pick **1 of 3** |
+
+Spell *identity* (fireball, wall of flame, …) comes from discovery. Spell *mastery* (raw damage, shorter CD, cheaper mana) can sit on the tech tree so a fire mage can invest in their craft without unlocking every fire spell from research.
+
+---
+
+## Locked decisions
+
+| Decision | Choice |
+|----------|--------|
+| Claim fantasy | Commission research: pick node → pay to start → allocate researchers |
+| Researchers | **Magi** stationed in **research rooms** (new room; Chamber still houses them) |
+| Progress currency | Labor-cycles over waves/build time + **souls** (and other resources as node costs require) |
+| “Higher = better” | **Tree depth / hard gates** for blueprints; **soft** correlation via longer runs having more research cycles — **not** height seal-gates on build unlocks |
+| Early combat | **Rooms/staff carry**; spells are optional power for skilled play |
+| School pick | Run-start pick grants that school’s **base** spell; Wand Strike always on |
+| Cross-school spells | **Allowed** via discovery — not abnormal, but often weaker synergy with the tower you built |
+| Spells on tech tree? | **No** — only spell **bonuses** |
+| Spell discovery volume | About **3–5** spells unlocked per tower climb (tunable) |
+| Spell offer shape | On eligible height clear: choose **1 of 3** offered spells |
+| Tree contents | Blueprints (+ optional bundled starter mods); each room blueprint opens a **small expansion/mod subtree** |
+| Staff hard gate | Any workplace that needs a staff kind requires that housing unlocked first (e.g. **Chamber before Mana Spring**) |
+| Pace | Can bank and start when ready; research then runs via allocation (not instant unlock on spend) |
+| Tree visibility (v1) | **Frontier only** (available-to-start nodes) |
+| v1 tree shape | **Static** authored DAG |
+| Procedural trees | Deferred — hard gates below stay sacred for a later generator |
+
+---
+
+## Design principles
+
+### Macro first, micro second
+
+The fantasy is **tower builder**. A player who never casts should still clear with housing, slots, turrets, pipes, and logistics. Spells help cover bad shapes, plug leaks, and spike threats — a large power bump for players who micro well, not a required DPS channel.
+
+### Research is a tower job
+
+Unlocking is not a free “level up” button. It competes with:
+
+- Magi also wanted on **mana springs**
+- Souls (and other costs) also wanted for construction / recruitment pressure
+- Floor space for research rooms vs defenses
+
+That scarcity is the pace knob.
+
+### Soft height correlation, no blueprint seals
+
+[`HEIGHT_PROGRESSION.md`](HEIGHT_PROGRESSION.md) rejects grind seals for **enemy** pressure. Blueprint research must not reintroduce “must farm height N before the next room type.” Longer climbs naturally yield more research labor; better stuff sits **deeper on the tree**, not behind a height lock.
+
+Spell **discovery** *does* key off clearing at height bands — that is intentional rarity, separate from build unlocks, and must stay sparse (3–5 per run) so it does not become a height checklist.
+
+### Hard gates teach interconnection
+
+Prerequisites encode “you must understand pipes before steam.” Sacred edges survive into any future procedural layout: node **order** may shuffle; **prereqs** must not.
+
+---
+
+## Research loop
+
+```mermaid
+flowchart LR
+  frontier[See frontier nodes]
+  pick[Pick next research]
+  pay[Pay souls and other costs]
+  allocate[Allocate magi to research rooms]
+  progress[Accumulate labor cycles]
+  complete[Node completes]
+  unlock[Blueprint or bonus unlocks]
+  frontier --> pick --> pay --> allocate --> progress --> complete --> unlock
+  unlock --> frontier
+```
+
+### Start research
+
+1. Build phase: UI lists **frontier** nodes (prereqs owned, not completed, not in progress).
+2. Player selects one eligible node and confirms **start** if they can pay its cost.
+3. At most **one** active research project per run in v1 (soft; raise later if playtest wants parallel tracks).
+4. Paying costs **starts** the project — it does not complete it.
+
+### Research rooms & allocation
+
+- New blueprint: **Research room** (exact size/cost in an implementation shot). Starter kit or very early unlock so the loop can begin.
+- Magi path from **Chamber** to research rooms (same interior logistics spirit as springs).
+- During attack (and/or build — exact tick rule in engine shot): stationed magi generate **research progress** toward the active node.
+- Progress needed scales with node depth/power; numbers flexible for playtest.
+- Cancelling an in-progress node: default **partial refund of resource costs, progress lost** (soft until playtest).
+
+### Completion
+
+- When progress fills, the node’s unlock applies immediately (blueprint appears in BUILD library; bonus applies; expansion subtree frontier updates).
+- No extra “claim” click after completion.
+
+---
+
+## Tech tree contents
+
+### Node kinds
+
+| Kind | Unlocks | Notes |
+|------|---------|-------|
+| `blueprint` | One library blueprint id | May **bundle** a basic mod or two as “comes with the room” |
+| `expansion` | Room modification / capacity tech | Lives on a **small subtree** rooted at that room’s blueprint node |
+| `spellBonus` | CD / cost / effectiveness (scoped to school or spell) | Never grants a new hotbar spell |
+
+One node → one primary unlock. Shared prerequisites are edges, not duplicate nodes.
+
+### Starter kit (illustrative; exact ids tunable in content shot)
+
+Always available at run start (no research):
+
+| Category | Intent |
+|----------|--------|
+| Framing | Spire Block; buttresses may be starter or early frontier |
+| Infra | Stairs |
+| Housing | Enough to staff a macro path (e.g. Quarters and/or Guardroom) |
+| Defense | One simple damager path (Turret **or** Slot line — not the full Damagers section) |
+| Research | Research room (or unlockable on wave 1 frontier with trivial cost) |
+| Forts | None or one basic routing fort |
+| Spells | School pick → that school’s **base** spell only; Wand Strike always on |
+
+Everything else — pipes cluster, forge/flame, elevators, remaining forts, other housing, advanced damagers — sits on the tree behind hard gates.
+
+### Sacred hard gates (v1)
+
+Must never break (static tree now; procedural generator later):
+
+| Prerequisite | Before |
+|--------------|--------|
+| Pipe | Boiler, Water Pump, Mana Spring, Hydrant, Steam Turret |
+| Pipe + Boiler | Steam Turret |
+| Forge | Flame Turret |
+| Guardroom | Slot (and soldier workplaces) |
+| Chamber | Mana Spring (and any mage workplace) |
+| Quarters | Laborer-gated economy rooms if any are gated |
+| Stairs | Elevator |
+| Room blueprint | That room’s expansion/mod subtree |
+| School base spell | That school’s spell **bonuses** (bonuses still do not grant new spells) |
+
+Strike/add in content pass; this table is the invariant set.
+
+### Room → expansion subtree
+
+Unlocking a room blueprint reveals a short frontier of expansions (e.g. Slot → slotExpansion; Boiler → boilerExpansion levels). Expansions are researched like any other node (start + magi progress), not free on place — unless a blueprint node explicitly **bundles** a starter mod.
+
+### Spell bonuses on the tree
+
+Examples (not a final roster):
+
+- School-wide: −mana cost, −cooldown, +damage / potency
+- Narrower: bonuses that only apply to the **base** spell or to discovered spells the player already owns
+
+A fire mage can invest heavily in raw damage without ever discovering Wall of Flame.
+
+---
+
+## Spell discovery (separate track)
+
+### School pick
+
+- Once per run at start (UI in a later shot).
+- Sets `activeSpellSchool` and grants that school’s designated **base** spell.
+- Hotbar starts tiny (base + empty slots as discoveries arrive). Wand Strike remains auto and off-hotbar.
+
+### Height-clear offers
+
+- After clearing a wave whose Start Wave height crossed an offer band (exact bands tunable; align spirit with [`HEIGHT_PROGRESSION.md`](HEIGHT_PROGRESSION.md) plateaus, not per-row spam).
+- Offer: **3** candidate spells → player picks **1**.
+- Target yield: **~3–5** discoveries over a full climb to height 100.
+- Candidates may include **other schools**; cross-school is normal but often less synergistic with the researched tower (e.g. water tools in a forge/flame build).
+- Pool rules (soft): prefer unowned spells; weight toward active school without excluding others; never re-offer owned ids.
+
+### Hotbar
+
+- Only **discovered** (and starter) spells appear.
+- Today’s full 4-spell school kits become the **pool** for discovery, not the starting loadout.
+- Dev school swap may remain for testing; production runs use pick + discovery.
+
+### Explicit non-goals for spells (this design)
+
+- Spell shop / gold-for-spell purchases
+- Mana Well as unlock gated here (room may exist later on the **blueprint** tree)
+- Tech-tree nodes that grant new spell ids
+- Requiring spell casts to win
+
+---
+
+## Pace & run identity
+
+| Lever | Intent |
+|-------|--------|
+| Node progress cost | Deeper / stronger nodes take more magi-cycles |
+| Magi split | Springs vs research vs (later) other mage jobs |
+| Resource start cost | Souls (etc.) gate *starting* ambitious nodes |
+| Banking | Player may delay starting research to save souls or finish a build |
+
+Expected feel: not an unlock every wave; often a project spanning **~2–3 waves** of allocation, with room to bank and dump into a long project.
+
+Run identity comes from:
+
+1. School pick + which discoveries appeared
+2. Which frontier branches were prioritized (pipes rush vs soldier line vs forts vs spell mastery)
+
+---
+
+## UI (v1)
+
+- **Frontier list** (or compact cards): name, costs to start, progress if active, prereq hint one line.
+- **Dev mode:** each frontier row (and the active project) exposes **Unlock** to instantly complete that node with no cost; HUD also has **Unlock all**.
+- No full-tree viewer in v1 (deferred — helpful for planning, conflicts with “discover the build”).
+- Research room inspector: assigned magi, progress bar for active project.
+- Spell offer modal on eligible wave clear (pick 1 of 3).
+
+---
+
+## Data model (design-level)
+
+Exact TypeScript lands in the engine plan. Shape for implementers:
+
+```ts
+// Tech tree (static authored data)
+type ResearchNodeId = string;
+type ResearchNode = {
+  id: ResearchNodeId;
+  kind: 'blueprint' | 'expansion' | 'spellBonus';
+  unlocks: { blueprintId?: string; modificationId?: string; spellBonusId?: string };
+  requires: ResearchNodeId[];
+  startCost: { souls?: number; stone?: number; metal?: number; gold?: number };
+  progressRequired: number; // labor-cycles
+};
+
+// Per-run state (sketch)
+// player.unlockedBlueprints — already exists; seed starter only
+// player.unlockedSpells: string[]
+// player.spellBonuses: ...
+// player.research: {
+//   completedNodeIds: ResearchNodeId[];
+//   active?: { nodeId: ResearchNodeId; progress: number };
+// }
+```
+
+Library filtering already respects `unlockedBlueprints` ([`src/store/selectors/build.ts`](../src/store/selectors/build.ts)); stop seeding all ids in [`src/model/game.ts`](../src/model/game.ts) / `STARTING_BLUEPRINT_IDS`.
+
+Hotbar must filter by `unlockedSpells` instead of the full school kit ([`src/model/spells/registry.ts`](../src/model/spells/registry.ts)).
+
+---
+
+## Future: procedural tree layout (deferred)
+
+When the static tree is fun enough:
+
+- At run start, generate a DAG that **preserves sacred hard gates** but varies depth/order of non-critical nodes (e.g. steam turret immediately after pipes in one run, or behind another mid-tier room in another).
+- Claim loop stays research-room based; frontier UI still only shows what’s available.
+- Optional later: draft-style research offers — **not** required for procedural value.
+
+---
+
+## Explicit non-goals (v1)
+
+- Procedural / per-run tree generation
+- Full static tree map UI
+- Instant unlock on pay (no magi progress)
+- Spells as tech-tree blueprint-style nodes
+- Height-gated **blueprint** unlocks
+- Mana Well / spell shop economy
+- Magi combat casting / replacing the wizard
+- Parallel multi-project research (unless playtest demands it after single-project ships)
+- Training rooms / troop-type gates beyond housing→workplace hard gates above
+
+---
+
+## Implementation roadmap
+
+| Order | Plan (create when that shot starts) | Scope |
+|-------|-------------------------------------|-------|
+| 1 | Design doc (this file) + index | Docs only — **done** |
+| 2 | `research_engine.plan.md` | Unlock state, starter kit, static tree — **shipped in static v1** |
+| 3 | `research_rooms.plan.md` | Research room + magi labor-cycles — **shipped in static v1** |
+| 4 | `research_ui.plan.md` | Frontier list + inspector — **shipped in static v1** |
+| 5 | `spell_discovery.plan.md` | School pick, unlocked spell hotbar, height-clear 1-of-3 offers |
+| 6 | `research_content.plan.md` | Author static edges — **initial roster shipped**; tune pace in playtest |
+| 7 | Later | Procedural layout generator |
+
+Orient-only index: [`.cursor/plans/research_index.plan.md`](../.cursor/plans/research_index.plan.md).
+
+**Rule for agents:** implement from **one** shot plan at a time; do not pull spell discovery into the research-engine PR unless that shot’s plan says so.
+
+---
+
+## Decision log
+
+| # | Topic | Decision |
+|---|-------|----------|
+| 1 | Claim loop | Research rooms + magi; pay to start; progress over labor-cycles |
+| 2 | Higher = better | Tree depth + soft wave/labor correlation; no blueprint height seals |
+| 3 | Early combat | Rooms/staff macro; spells micro |
+| 4 | Cross-school spells | Available via discovery; synergy not guaranteed |
+| 5 | Tree vs spells | Blueprints + expansions + spell bonuses on tree; spell ids via discovery |
+| 6 | Spell rarity | ~3–5 per tower; 1-of-3 offers on height clears |
+| 7 | Staff gates | Housing before workplaces that need that staff |
+| 8 | Pace | Bankable start; progress via allocation |
+| 9 | Visibility | Frontier only (v1) |
+| 10 | v1 tree | Static DAG; procedural deferred |
+
+---
+
+## Related docs
+
+- [`HOUSING.md`](HOUSING.md) — Chamber / magi; research rooms extend mage jobs beyond springs
+- [`HEIGHT_PROGRESSION.md`](HEIGHT_PROGRESSION.md) — enemy unlocks & anti-grind; spell discovery may share height bands but must not seal blueprints
+- [`PIPES.md`](PIPES.md) / [`INFRASTRUCTURE.md`](INFRASTRUCTURE.md) — interconnection targets for hard gates
+- [`FORTIFICATIONS.md`](FORTIFICATIONS.md) — forts as gated blueprints
+- Spell school plans under `.cursor/plans/spell_school_*.plan.md` — spell pools for discovery

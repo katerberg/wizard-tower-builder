@@ -73,6 +73,24 @@ export function createModal(root: HTMLElement, store: Store): () => void {
           count: inspector.manaSpringAllocated + 1,
         });
       }
+    } else if (action === 'researchMinus' && target?.dataset.room) {
+      const inspector = selectRoomInspector(store.getSnapshot(), target.dataset.room);
+      if (inspector?.researchAllocated !== undefined) {
+        store.dispatch({
+          type: 'setResearchAllocation',
+          researchRoomId: target.dataset.room,
+          count: inspector.researchAllocated - 1,
+        });
+      }
+    } else if (action === 'researchPlus' && target?.dataset.room) {
+      const inspector = selectRoomInspector(store.getSnapshot(), target.dataset.room);
+      if (inspector?.researchAllocated !== undefined) {
+        store.dispatch({
+          type: 'setResearchAllocation',
+          researchRoomId: target.dataset.room,
+          count: inspector.researchAllocated + 1,
+        });
+      }
     }
   });
 
@@ -224,6 +242,21 @@ function roomBody(inspector: RoomInspector): string {
                <button class="stepper-btn" data-action="springMinus" data-room="${room.id}">−</button>
                <span>${inspector.manaSpringAllocated}</span>
                <button class="stepper-btn" data-action="springPlus" data-room="${room.id}">+</button>
+             </div>`
+          : ''
+      }`;
+  }
+
+  if (inspector.researchCapacity !== undefined && inspector.researchAllocated !== undefined) {
+    specialty += `
+      <h4>Research staffing</h4>
+      <div class="stat"><span>Magi allocated</span><strong>${inspector.researchAllocated} / ${inspector.researchCapacity}</strong></div>
+      ${
+        isBuildPhase
+          ? `<div class="slot-stepper">
+               <button class="stepper-btn" data-action="researchMinus" data-room="${room.id}">−</button>
+               <span>${inspector.researchAllocated}</span>
+               <button class="stepper-btn" data-action="researchPlus" data-room="${room.id}">+</button>
              </div>`
           : ''
       }`;

@@ -12,7 +12,14 @@ export interface RoomEffectContext {
   log: (text: string, kind?: GameMessageKind) => void;
 }
 
-export type RoomRole = 'boiler' | 'steamTurret' | 'manaSpring' | 'hydrant' | 'slot' | 'turret';
+export type RoomRole =
+  | 'boiler'
+  | 'steamTurret'
+  | 'manaSpring'
+  | 'hydrant'
+  | 'slot'
+  | 'turret'
+  | 'research';
 
 export interface RoomBehaviorDef {
   blueprintId: string;
