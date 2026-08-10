@@ -3,9 +3,10 @@ import {
   SOLDIER_UPKEEP_COST, STAFF_HORIZONTAL_SPEED, STAFF_STAIR_SPEED,
 } from '@/config/constants';
 import { findInteriorPath } from '@/calculations/interiorPathfinding';
-import { roomAnchorCell } from '@/calculations/interiorGraph';
+import { canSoldierTraverse, roomAnchorCell } from '@/calculations/interiorGraph';
 import { planElevatorRide, isElevatorVerticalStep } from '@/model/elevators';
 import { hasInfraKind } from '@/model/infra';
+import { findMinePatchByTarget, isMinePatchTarget } from '@/model/mines';
 import { addMessage } from '@/model/messages';
 import { isManaSpringRoom } from '@/model/pipes';
 import {
@@ -17,6 +18,7 @@ import {
   staffKindForHousing,
 } from './capacity';
 import { isInFootprint, isInRoomFootprint, repathIdleLaborers } from './combat';
+import { groundPumpAnchor, isPumpTarget } from './harvest';
 import type { Cell, GameState, Room, StaffKind, StaffUnit } from '@/model/types';
 
 let staffCounter = 0;
@@ -135,7 +137,7 @@ function spawnStaff(
   staggerIndex: number,
   statusOnArrive: 'stationed' | 'working' = 'stationed',
 ): void {
-  const path = findInteriorPath(state.tower, from, to);
+  const path = findInteriorPath(state.tower, from, to, state.mine);
   const unit: StaffUnit = {
     id: `staff-${staffCounter++}`,
     kind,
@@ -301,23 +303,45 @@ export function stepStaff(state: GameState, dt: number): void {
       continue;
     }
 
-    const workplaceRoom = unit.targetWorkplaceId
-      ? state.tower.rooms.find((r) => r.id === unit.targetWorkplaceId)
+    const targetId = unit.targetWorkplaceId;
+    const workplaceRoom = targetId
+      ? state.tower.rooms.find((r) => r.id === targetId)
       : undefined;
     const workplaceStructure =
-      !workplaceRoom && unit.targetWorkplaceId
-        ? (state.tower.structures ?? []).find((s) => s.id === unit.targetWorkplaceId)
+      !workplaceRoom && targetId
+        ? (state.tower.structures ?? []).find((s) => s.id === targetId)
         : undefined;
+    const pumpJob = isPumpTarget(targetId);
+    const minePatch = targetId && isMinePatchTarget(targetId)
+      ? findMinePatchByTarget(state.mine, targetId)
+      : undefined;
 
-    if (!workplaceRoom && !workplaceStructure) {
+    if (!workplaceRoom && !workplaceStructure && !pumpJob && !minePatch) {
       unit.status = 'idle';
       unit.targetWorkplaceId = null;
       continue;
     }
 
+    const goal: Cell = workplaceRoom
+      ? (roomAnchorCell(state.tower, workplaceRoom.origin, workplaceRoom.size, state.mine) ??
+        workplaceRoom.origin)
+      : workplaceStructure
+        ? (roomAnchorCell(
+            state.tower,
+            workplaceStructure.origin,
+            workplaceStructure.size,
+            state.mine,
+          ) ?? workplaceStructure.origin)
+        : pumpJob
+          ? groundPumpAnchor(state)
+          : minePatch!.cell;
+
     const inFootprint = workplaceRoom
       ? isInRoomFootprint(workplaceRoom, unit.pos)
-      : isInFootprint(workplaceStructure!.origin, workplaceStructure!.size, unit.pos);
+      : workplaceStructure
+        ? isInFootprint(workplaceStructure.origin, workplaceStructure.size, unit.pos)
+        : unit.pos.col === goal.col && unit.pos.row === goal.row;
+
     if (inFootprint) {
       unit.status = arriveStatus(unit.kind);
       continue;
@@ -331,7 +355,9 @@ export function stepStaff(state: GameState, dt: number): void {
     const vertical = isVerticalStep(unit.pos, next);
     const enteringWorkplace = workplaceRoom
       ? isInRoomFootprint(workplaceRoom, next)
-      : isInFootprint(workplaceStructure!.origin, workplaceStructure!.size, next);
+      : workplaceStructure
+        ? isInFootprint(workplaceStructure.origin, workplaceStructure.size, next)
+        : next.col === goal.col && next.row === goal.row;
 
     // Vertical elevator progress requires riding the car — never free-step.
     if (vertical && isElevatorVerticalStep(state.tower, unit.pos, next)) {
@@ -344,9 +370,8 @@ export function stepStaff(state: GameState, dt: number): void {
       continue;
     }
 
-    if (vertical) {
-      const lowerRow = Math.min(unit.pos.row, next.row);
-      if (!hasInfraKind(state.tower, next.col, lowerRow, 'stair')) continue;
+    if (!canSoldierTraverse(state.tower, unit.pos, next, state.mine)) {
+      continue;
     }
 
     unit.pathIndex += 1;
@@ -357,7 +382,9 @@ export function stepStaff(state: GameState, dt: number): void {
 
     const arrived = workplaceRoom
       ? isInRoomFootprint(workplaceRoom, unit.pos)
-      : isInFootprint(workplaceStructure!.origin, workplaceStructure!.size, unit.pos);
+      : workplaceStructure
+        ? isInFootprint(workplaceStructure.origin, workplaceStructure.size, unit.pos)
+        : unit.pos.col === goal.col && unit.pos.row === goal.row;
     if (arrived) {
       unit.status = arriveStatus(unit.kind);
     }

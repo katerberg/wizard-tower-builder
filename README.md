@@ -9,7 +9,7 @@ Stack: **TypeScript**, **Vite**, **HTML5 Canvas** (board), **DOM** (UI chrome). 
 The run alternates between two phases:
 
 1. **Build** — Spend **stone**, **metal**, and **souls** to place **framing** (spires / buttresses), **rooms**, and **infra**. Framing holds the tower up; rooms and infra sit on it (and auto-add Spire Blocks when needed). Paint **stairs** and **pipes**; recruit staff into housing (**gold** payroll); allocate slot/spring headcounts. Use the **Select** tool to inspect rooms (and bare framing). Right-click sells the room first (framing stays); click again to sell framing. When the tower is stable, start the wave.
-2. **Attack** — Enemies spawn at the base and pathfind toward the wizard. Staff path on the **interior** (horizontal through framing / passable rooms; **stairs/elevators** to change floors) to slots, mana springs, and repair jobs. Surplus laborers **hand-pump** water and **harvest** stone/metal underground. Defenses: wizard **Wand Strike** (auto) plus a four-spell hotbar; **Turret** / **Steam Turret** / **Flame Turret** (+ **Forge** fire pipes) rooms; soldier **Slots**; **spikes** (modification). Stone-built mass weathers and takes climber abrasion. Survive the wave to earn **gold** (clear) and **souls** (kills) and return to build. Lose if the wizard’s HP reaches zero.
+2. **Attack** — Enemies spawn at the base and pathfind toward the wizard. Staff path on the **interior** (horizontal through framing / passable rooms; **stairs/elevators** to change floors) to slots, mana springs, and repair jobs. Surplus laborers **hand-pump** water and path into an **underground mine** for **stone**. Defenses: wizard **Wand Strike** (auto) plus a four-spell hotbar; **Turret** / **Steam Turret** / **Flame Turret** (+ **Forge** fire pipes) rooms; soldier **Slots**; **spikes** (modification). Stone-built mass weathers and takes climber abrasion. Survive the wave to earn **gold** (clear) and **souls** (kills) and return to build. Lose if the wizard’s HP reaches zero.
 
 **Win** by clearing a wave while framing height is still **≥ 100**. Difficulty scales with tower height at Start Wave (plateaus + permanent enemy unlocks); see [`docs/HEIGHT_PROGRESSION.md`](docs/HEIGHT_PROGRESSION.md).
 
@@ -295,7 +295,7 @@ Still not done:
 - Additional turret / economy room types beyond Boiler, Mana Spring, Turret, Steam Turret, Forge, Flame Turret, and Water Pump
 - Infra/mod repair and mid-wave building (laborers repair room HP only today)
 - Exact harvest/wear balance curves; weather events on the weathering channel
-- Mine grid harvest / prospecting / storage rooms — design locked in [`docs/MINES.md`](docs/MINES.md); not shipped (still abstract surplus harvest)
+- Mine grid harvest / prospecting / storage rooms — design in [`docs/MINES.md`](docs/MINES.md); **engine slice shipped** (shallow stone workplaces); prospect / iron-gems / storage still open
 - Leyline / substance harvest + mana-spring removal — stub only ([`.cursor/plans/leyline_harvest_stub.plan.md`](.cursor/plans/leyline_harvest_stub.plan.md))
 
 ## License

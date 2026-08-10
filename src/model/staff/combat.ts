@@ -4,8 +4,9 @@ import { roomAnchorCell } from '@/calculations/interiorGraph';
 import { roomCells } from '@/calculations/grid';
 import { computeRoomStats, computeStructureStats } from '@/calculations/combat';
 import { getBlueprint } from '@/model/blueprints';
+import { isMinePatchTarget } from '@/model/mines';
 import { roomAt } from '@/model/tower';
-import { assignSurplusLaborers } from './harvest';
+import { assignSurplusLaborers, isPumpTarget } from './harvest';
 import type { Cell, GameState, Room, StaffKind, StaffUnit, Structure } from '@/model/types';
 
 function workplaceAnchor(state: GameState, room: Room): Cell | null {
@@ -154,6 +155,10 @@ export function tickLaborerRepairs(state: GameState, dt: number): void {
     ) {
       continue;
     }
+    // Pump / mine jobs stay put (do not peel for repair).
+    if (isPumpTarget(unit.targetWorkplaceId) || isMinePatchTarget(unit.targetWorkplaceId)) {
+      continue;
+    }
     const target = unit.targetWorkplaceId ? findRepairTarget(state, unit.targetWorkplaceId) : null;
     const stillDamaged =
       target &&
@@ -236,7 +241,7 @@ export function repathIdleLaborers(state: GameState): void {
     });
     const target = candidates[0];
     if (!target) break;
-    const path = findInteriorPath(state.tower, unit.pos, target.anchor);
+    const path = findInteriorPath(state.tower, unit.pos, target.anchor, state.mine);
     unit.targetWorkplaceId = repairTargetId(target);
     unit.path = path.length > 0 ? path : [unit.pos];
     unit.pathIndex = 0;

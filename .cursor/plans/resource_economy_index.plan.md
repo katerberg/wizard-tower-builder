@@ -26,7 +26,7 @@ Use this file to **orient and sequence work**. Each slice should get its **own p
 | Water | Logistics **height band** only (pipes placeable anywhere; flow needs hand-pump / pumps) |
 | Gold Mine | **Remove** (harvest replaces it) |
 | Laborer reserve | Hand-pump first; then repair; then harvest |
-| Harvest split | **Today:** surplus laborers → **25% metal / 75% stone** abstract underground. **Target:** replace with mine patches ([`docs/MINES.md`](../../docs/MINES.md)) |
+| Harvest split | **Shipped (engine):** surplus laborers → **mine stone patches** ([`docs/MINES.md`](../../docs/MINES.md)). Metal/gem veins later. |
 | Repair | **Laborer time only** — no stone (or other) materials fee |
 | Wear model | **Hybrid (W3):** baseline weathering + exterior climber abrasion (weather events can plug into the same channel later) |
 | Wear targets v1 | **Stone-built only** (spire, stairs, quarters, guardroom, slot footprints) |

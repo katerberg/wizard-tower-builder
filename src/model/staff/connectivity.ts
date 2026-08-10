@@ -64,9 +64,9 @@ function pathFromAnyHousing(
   const hasStaffed = housing.some((b) => (state.housingRecruited[b.id] ?? 0) > 0);
   for (const b of housing) {
     if ((state.housingRecruited[b.id] ?? 0) <= 0) continue;
-    const from = roomAnchorCell(state.tower, b.origin, b.size);
+    const from = roomAnchorCell(state.tower, b.origin, b.size, state.mine);
     if (!from) continue;
-    const path = findInteriorPath(state.tower, from, to);
+    const path = findInteriorPath(state.tower, from, to, state.mine);
     if (path.length > 0) {
       connected = true;
       bestPath = bestPath === 0 ? path.length : Math.min(bestPath, path.length);

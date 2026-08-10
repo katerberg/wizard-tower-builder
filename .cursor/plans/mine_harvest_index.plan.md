@@ -51,7 +51,7 @@ Full table: [`docs/MINES.md`](../../docs/MINES.md).
 | # | Slice | Suggested plan file | Notes |
 |---|-------|---------------------|-------|
 | 0 | Design + cost matrix + this index + leyline stub | (this PR) | Concept locked |
-| 1 | Mine grid engine + entrance + shallow stone; remove abstract harvest | `mine_harvest_engine.plan.md` | Needs pathing into underground cells |
+| 1 | Mine grid engine + entrance + shallow stone; remove abstract harvest | `mine_harvest_engine.plan.md` | **Shipped** |
 | 2 | Finite veins + iron/gem yields + rare falloff | `mine_harvest_veins.plan.md` | Amends gold income |
 | 3 | Prospect allocation + tier reveal + clear tally UX | `mine_harvest_prospect.plan.md` | Build-phase allocate out of pool |
 | 4 | Storage rooms | `mine_harvest_storage.plan.md` | Anti-hoard mass |

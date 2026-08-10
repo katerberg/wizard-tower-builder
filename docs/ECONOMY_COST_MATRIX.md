@@ -99,7 +99,7 @@ Housing place cost is stone/souls (above); first occupant free; unrecruit floor 
 |--------|-------|-------------------|
 | Wave clear | Gold = `8 + floor(plateau.budget / 12)` | Unchanged primary payroll gold |
 | Kills | Souls per enemy template | Unchanged |
-| Surplus laborers | Abstract 1 unit/sec → 25% metal / 75% stone | **Replaced** by mine patches (stone / metal / gem→gold) |
+| Surplus laborers | Abstract 1 unit/sec → 25% metal / 75% stone | **Engine:** mine stone patches (`MINE_STONE_HARVEST_PER_SEC`); metal/gems later |
 | Prospect | — | Next depth tier (quality varies) |
 | Leylines | — | Later: substance (stub) |
 

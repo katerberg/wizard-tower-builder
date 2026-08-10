@@ -3,7 +3,8 @@
 | Category | File |
 |----------|------|
 | Grid / viewport / sim timing | `grid.ts` |
-| Starting wallet, harvest, wear, water band | `economy.ts` |
+| Starting wallet, wear, water band | `economy.ts` |
+| Mine depth / stone patch stock / harvest rate | `mines.ts` |
 | Spawn intervals, fliers, slot DPS, wizard, mana cap | `combat.ts` |
 | Housing capacity, recruit/upkeep, staff speeds | `staff.ts` |
 | Boilers, mana springs, steam turrets | `infra.ts` |

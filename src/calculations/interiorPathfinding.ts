@@ -1,14 +1,22 @@
 import { cellKey } from './grid';
 import { cellDistance, isSoldierWalkable, soldierNeighbors } from './interiorGraph';
-import type { Cell, Tower } from '@/model/types';
+import type { Cell, MineState, Tower } from '@/model/types';
 
 function heuristic(a: Cell, b: Cell): number {
   return cellDistance(a, b);
 }
 
-/** A* on the interior/infra graph for soldier routing. */
-export function findInteriorPath(tower: Tower, start: Cell, goal: Cell): Cell[] {
-  if (!isSoldierWalkable(tower, start.col, start.row) || !isSoldierWalkable(tower, goal.col, goal.row)) {
+/** A* on the interior/infra graph for staff routing (optional mine tunnels). */
+export function findInteriorPath(
+  tower: Tower,
+  start: Cell,
+  goal: Cell,
+  mine?: MineState | null,
+): Cell[] {
+  if (
+    !isSoldierWalkable(tower, start.col, start.row, mine) ||
+    !isSoldierWalkable(tower, goal.col, goal.row, mine)
+  ) {
     return [];
   }
 
@@ -41,7 +49,7 @@ export function findInteriorPath(tower: Tower, start: Cell, goal: Cell): Cell[] 
     const current: Cell = { col, row };
     const currentG = gScore.get(currentKey) ?? Infinity;
 
-    for (const next of soldierNeighbors(tower, current)) {
+    for (const next of soldierNeighbors(tower, current, mine)) {
       const nKey = cellKey(next.col, next.row);
       const tentative = currentG + 1;
       if (tentative < (gScore.get(nKey) ?? Infinity)) {

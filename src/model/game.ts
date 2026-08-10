@@ -8,6 +8,7 @@ import { STARTING_BLUEPRINT_IDS } from './blueprints';
 import { FORTIFICATION_BLUEPRINTS } from './fortificationBlueprints';
 import { startRun, captureBuildBaseline } from './phases';
 import { seedFrom } from '../calculations/rng';
+import { generateShallowMine } from './mines';
 import { createStarterTower } from './starterTower';
 import { resetTickState } from './tick';
 import type { GameState, SimSpeed } from './types';
@@ -70,8 +71,10 @@ export function createInitialState(seed: string | number = 'wizard'): GameState 
     steamTurretRuntime: {},
     flameTurretRuntime: {},
     elevators: [],
+    mine: { entrance: { col: 0, row: -1 }, tunnels: {}, patches: [] },
     buildBaseline: null,
   };
+  state.mine = generateShallowMine(state.tower);
   captureBuildBaseline(state);
   return state;
 }

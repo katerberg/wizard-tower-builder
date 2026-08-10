@@ -1,8 +1,23 @@
 # Mines & laborer harvest
 
-**Status:** Concept locked (design). **Not shipped.** Replaces the abstract attack-phase `harvest:underground` surplus job. Leyline / magi harvest is a **follow-on** plan — see [`.cursor/plans/leyline_harvest_stub.plan.md`](../.cursor/plans/leyline_harvest_stub.plan.md).
+**Status:** Engine slice **shipped** (shallow stone grid + pathing; abstract `harvest:underground` removed). Prospect / iron·gem veins / storage / clear tally / leylines **not** shipped — see [`.cursor/plans/mine_harvest_index.plan.md`](../.cursor/plans/mine_harvest_index.plan.md).
 
 Complements [`HOUSING.md`](HOUSING.md) (laborer jobs), [`HEIGHT_PROGRESSION.md`](HEIGHT_PROGRESSION.md) (anti-grind), and the wallet rules in [`.cursor/plans/resource_economy_index.plan.md`](../.cursor/plans/resource_economy_index.plan.md). Live construction costs: [`ECONOMY_COST_MATRIX.md`](ECONOMY_COST_MATRIX.md).
+
+---
+
+## Shipped (engine)
+
+| Piece | Behavior |
+|-------|----------|
+| `GameState.mine` | Deterministic shallow shaft under ground framing (starter prefers col 7) |
+| Pathing | Interior graph treats mine tunnels as walkable; free vertical in/into mine |
+| Jobs | After repair + hand-pump reserve, surplus laborers path to stone patches |
+| Yield | **Stone only** at `MINE_STONE_HARVEST_PER_SEC`; patches deplete |
+| Stay put | Mine/pump workers are not cleared by the repair retarget loop |
+| Render | Staff with `row < 0` are not drawn (invisible mine) |
+
+Knobs: [`src/config/mines.ts`](../src/config/mines.ts). Generation: [`src/model/mines/`](../src/model/mines/).
 
 ---
 

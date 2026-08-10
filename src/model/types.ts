@@ -112,7 +112,7 @@ export interface StaffUnit {
   id: string;
   kind: StaffKind;
   homeHousingId: string;
-  /** Slot, mana spring, damaged room id, or damaged structure id. */
+  /** Slot, mana spring, damaged room/structure id, hand-pump, or mine patch id. */
   targetWorkplaceId: string | null;
   pos: Cell;
   path: Cell[];
@@ -460,8 +460,31 @@ export interface GameState {
   flameTurretRuntime: Record<string, FlameTurretRuntime>;
   /** Attack-phase elevator cars (one per shaft; cleared at wave end). */
   elevators: ElevatorCar[];
+  /**
+   * Deterministic underground mine for the run (tunnels + patches).
+   * Not part of tower mass / height; laborers path here during attack.
+   */
+  mine: MineState;
   /** Tower + gold at build-phase start; edits commit on wave start. */
   buildBaseline: BuildBaseline | null;
+}
+
+/** Finite harvest patch inside the invisible mine grid. */
+export interface MinePatch {
+  id: string;
+  cell: Cell;
+  /** Slice 1: stone only. Later veins add metal / gem→gold. */
+  resource: 'stone';
+  remaining: number;
+}
+
+/** Run-persistent underground geography (see docs/MINES.md). */
+export interface MineState {
+  /** First underground cell; ortho-adjacent to ground framing above. */
+  entrance: Cell;
+  /** Walkable tunnel cells (`cellKey` → true), including entrance and patches. */
+  tunnels: Record<string, true>;
+  patches: MinePatch[];
 }
 
 export interface BoilerRuntime {

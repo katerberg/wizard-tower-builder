@@ -9,12 +9,6 @@ export const STARTING_RESOURCES = {
   souls: 30,
 } as const;
 
-/** Per surplus harvest laborer: total resource units per second. */
-export const HARVEST_UNITS_PER_SEC = 1;
-/** Share of harvest output that becomes metal (rest is stone). */
-export const HARVEST_METAL_SHARE = 0.25;
-export const HARVEST_STONE_SHARE = 0.75;
-
 /**
  * Multiplier applied to stone-built blueprint base HP so wear is attrition.
  * Tune in playtest — not a literal 100× lock.
