@@ -15,7 +15,7 @@ The run alternates between two phases:
 
 ### Spells
 
-Mana powers the wizard’s hotbar (keys **1–4** to select, click to aim/cast during attack). Four elemental schools ship today — **fire**, **air**, **earth**, and **water** — swapped via the HUD school picker in **dev mode**. Wand Strike is always on and not part of any school kit. Spell shop / grimoire unlocks and Mana Well rooms remain deferred. School design notes live under `.cursor/plans/spell_school_*.plan.md`.
+Mana powers the wizard’s hotbar (keys **1–4** to select, click to aim/cast during attack). Four elemental schools ship today — **fire**, **air**, **earth**, and **water** — swapped via the HUD school picker in **dev mode**. Wand Strike is always on and not part of any school kit. **Research / tech tree and spell discovery** are designed in [`docs/RESEARCH.md`](docs/RESEARCH.md) (not implemented yet): rooms carry the run; spells stay rare micro. Mana Well / spell shop remain deferred. School design notes live under `.cursor/plans/spell_school_*.plan.md`.
 
 ### Tower placement rules
 
@@ -199,6 +199,7 @@ Mount points: `#board`, `#stage`, `#hud`, `#library`, `#message-log`, `#modal-ro
 | Add a room (passive or behavioral) | [`src/model/rooms/README.md`](src/model/rooms/README.md) + `blueprints.ts` |
 | Add a modification | `src/model/modifications/` (one file + registry line) |
 | Shell fortifications (design / roadmap) | [`docs/FORTIFICATIONS.md`](docs/FORTIFICATIONS.md) + [`.cursor/plans/fortifications_index.plan.md`](.cursor/plans/fortifications_index.plan.md) |
+| Research / tech tree / spell discovery (design) | [`docs/RESEARCH.md`](docs/RESEARCH.md) + [`.cursor/plans/research_index.plan.md`](.cursor/plans/research_index.plan.md) |
 | Tweak balance numbers | [`src/config/README.md`](src/config/README.md) |
 | Change the attack tick order | [`src/model/tick.ts`](src/model/tick.ts) |
 | Change build/attack phases | [`src/model/phases.ts`](src/model/phases.ts) |
@@ -229,6 +230,8 @@ src/
     dom/ theme.ts …
 docs/
   CONTRIBUTING.md      # Task recipes
+  RESEARCH.md          # Tech tree + spell discovery (design)
+  HEIGHT_PROGRESSION.md FORTIFICATIONS.md HOUSING.md …
 ```
 
 ### Infrastructure & logistics (core loop)
@@ -281,12 +284,13 @@ Still not done:
 
 - Dynamic pipe/network breaks on room destruction
 - Soldier death / targeting; pipe damage
-- Advanced mage tech (research / combat casting) — housing basics shipped in [`docs/HOUSING.md`](docs/HOUSING.md)
+- Advanced mage tech (combat casting) — housing basics shipped in [`docs/HOUSING.md`](docs/HOUSING.md); research/tech tree **designed** in [`docs/RESEARCH.md`](docs/RESEARCH.md) (not implemented)
 - Multiple currencies beyond gold; roguelike map branching
 - Attack-overhang / face-transfer crawler modes (fliers shipped — [`docs/FLYING.md`](docs/FLYING.md))
 - Visual polish beyond ASCII-style glyphs on canvas
 - Training rooms (troops of certain types required to populate other rooms)
-- Research rooms; Mana Well / spell shop / grimoire unlocks
+- Research rooms + gated blueprints / spell discovery — design locked ([`docs/RESEARCH.md`](docs/RESEARCH.md)); implementation deferred
+- Mana Well / spell shop
 - Shell fortifications (moats, glacis, parapets, cornices, stakes, barbican) — shipped; see [`docs/FORTIFICATIONS.md`](docs/FORTIFICATIONS.md). Spikes migration to shell still deferred.
 - Structures such as crenels / murderholes beyond existing turrets (populated shell — separate from fortifications)
 - Further non-elemental spell kits / spell shop
