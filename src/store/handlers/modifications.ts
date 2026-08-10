@@ -32,6 +32,10 @@ function addModificationTo(ctx: HandlerContext, roomId: string, modId: string): 
     addMessage(game, `Cannot add ${def.name} to this room.`, 'info');
     return;
   }
+  if (!game.player.unlockedModifications.includes(modId)) {
+    addMessage(game, `${def.name} is locked — research it first.`, 'info');
+    return;
+  }
   const cost = modificationCost(def, 1);
   if (!canAffordBuild(game.buildBaseline, game.tower, cost, game.buildRecruitSpend)) {
     addMessage(game, `Not enough resources for ${def.name} (${formatResourceCost(cost)}).`, 'economy');

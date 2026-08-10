@@ -3,6 +3,7 @@ import { roomAnchorCell } from '@/calculations/interiorGraph';
 import { getBlueprint } from '@/model/blueprints';
 import { computeRoomStats } from '@/calculations/combat';
 import { isManaSpringRoom } from '@/model/pipes';
+import { isResearchRoom } from '@/model/research';
 import {
   housingKindOf,
   isQuarters,
@@ -23,7 +24,7 @@ export interface SlotConnectivity {
 export interface WorkplaceConnectivity {
   roomId: string;
   roomName: string;
-  kind: 'slot' | 'manaSpring' | 'damage';
+  kind: 'slot' | 'manaSpring' | 'research' | 'damage';
   allocated: number;
   connected: boolean;
   warning: string | null;
@@ -91,7 +92,9 @@ export function selectLogisticsReport(state: GameState): LogisticsReport {
   }
 
   const mageRecruited = recruitedOf(state, 'mage');
-  const mageAllocated = Object.values(state.manaSpringAllocations).reduce((s, n) => s + n, 0);
+  const mageAllocated =
+    Object.values(state.manaSpringAllocations).reduce((s, n) => s + n, 0) +
+    Object.values(state.researchRoomAllocations).reduce((s, n) => s + n, 0);
   const overAllocatedMagi = mageAllocated > mageRecruited;
   if (overAllocatedMagi) {
     warnings.push(`Allocated ${mageAllocated} magi but only ${mageRecruited} recruited.`);
@@ -189,6 +192,44 @@ export function selectLogisticsReport(state: GameState): LogisticsReport {
       roomId: spring.id,
       roomName: 'Mana Spring',
       kind: 'manaSpring',
+      allocated: allocatedCount,
+      connected,
+      warning,
+    });
+  }
+
+  for (const room of state.tower.rooms.filter((r) => isResearchRoom(r))) {
+    const allocatedCount = state.researchRoomAllocations[room.id] ?? 0;
+    if (allocatedCount <= 0) continue;
+
+    const researchAnchor = roomAnchorCell(state.tower, room.origin, room.size);
+    if (!researchAnchor) {
+      const warning = 'Needs a walkable cell';
+      workplaces.push({
+        roomId: room.id,
+        roomName: 'Research Room',
+        kind: 'research',
+        allocated: allocatedCount,
+        connected: false,
+        warning,
+      });
+      warnings.push(warning);
+      continue;
+    }
+
+    const { connected, hasStaffed } = pathFromAnyHousing(state, chambers, researchAnchor);
+    let warning: string | null = null;
+    if (!connected) {
+      warning = hasStaffed
+        ? 'Needs stairs from a chamber'
+        : 'Needs recruited magi in a chamber';
+      warnings.push(warning);
+    }
+
+    workplaces.push({
+      roomId: room.id,
+      roomName: 'Research Room',
+      kind: 'research',
       allocated: allocatedCount,
       connected,
       warning,

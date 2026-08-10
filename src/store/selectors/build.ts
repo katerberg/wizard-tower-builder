@@ -91,6 +91,8 @@ export function selectBuildUndoState(snapshot: Snapshot): BuildUndoState {
     JSON.stringify(game.housingRecruited) !== JSON.stringify(baseline.housingRecruited) ||
     JSON.stringify(game.slotAllocations) !== JSON.stringify(baseline.slotAllocations) ||
     JSON.stringify(game.manaSpringAllocations) !== JSON.stringify(baseline.manaSpringAllocations) ||
+    JSON.stringify(game.researchRoomAllocations) !==
+      JSON.stringify(baseline.researchRoomAllocations) ||
     game.buildRecruitSpend !== 0;
   return {
     canUndo: snapshot.buildUndoDepth > 0,
@@ -230,9 +232,9 @@ export function selectLibraryBlueprints(snapshot: Snapshot): LibraryBlueprintIte
     .map((b) => toLibraryItem(b, remaining, view.selectedBlueprintId, 'room'))
     .filter((b): b is LibraryBlueprintItem => b !== null);
 
-  const infra = INFRA_BLUEPRINTS.map((b) =>
-    toLibraryItem(b, remaining, view.selectedBlueprintId, 'infra'),
-  ).filter((b): b is LibraryBlueprintItem => b !== null);
+  const infra = INFRA_BLUEPRINTS.filter((b) => unlocked.has(b.id))
+    .map((b) => toLibraryItem(b, remaining, view.selectedBlueprintId, 'infra'))
+    .filter((b): b is LibraryBlueprintItem => b !== null);
 
   const forts = FORTIFICATION_BLUEPRINTS.filter((b) => unlocked.has(b.id))
     .map((b) => toLibraryItem(b, remaining, view.selectedBlueprintId, 'fortification'))

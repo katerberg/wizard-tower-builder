@@ -162,6 +162,7 @@ Enough to playtest the fantasy:
 | Mid-wave difficulty retuning | Locked at Start Wave |
 | Endless mode after victory | Not for now |
 | Soft answer on “how few” heavies below home band | Default “a few”; tune in playtest |
+| Player blueprint / research unlocks | Separate track — [`RESEARCH.md`](RESEARCH.md); must not become height seal-gates |
 
 ---
 

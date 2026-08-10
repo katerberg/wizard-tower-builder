@@ -70,6 +70,17 @@ export function canApplyModification(room: Room, tower: Tower, id: string): bool
   return true;
 }
 
+/** Research-aware apply check (pass unlocked mod ids from the player). */
+export function canApplyUnlockedModification(
+  room: Room,
+  tower: Tower,
+  id: string,
+  unlockedModifications: readonly string[],
+): boolean {
+  if (!unlockedModifications.includes(id)) return false;
+  return canApplyModification(room, tower, id);
+}
+
 /** True when an existing modification can be upgraded another level. */
 export function canUpgradeModification(room: Room, id: string): boolean {
   const def = getModification(id);

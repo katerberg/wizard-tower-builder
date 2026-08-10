@@ -40,24 +40,24 @@ describe('selectLibraryBlueprints', () => {
     expect(items.find((b) => b.id === 'stem')?.selected).toBe(false);
   });
 
-  it('assigns library sections for structure and infra', () => {
+  it('assigns library sections for starter blueprints', () => {
     const store = new Store('lib-sections');
     const items = selectLibraryBlueprints(store.getSnapshot());
     expect(items.find((b) => b.id === 'stem')?.section).toBe('structure');
     expect(items.find((b) => b.id === 'guardroomRoom')?.section).toBe('housing');
-    expect(items.find((b) => b.id === 'manaSpringRoom')?.section).toBe('generators');
-    expect(items.find((b) => b.id === 'forgeRoom')?.section).toBe('generators');
+    expect(items.find((b) => b.id === 'researchRoom')?.section).toBe('generators');
     expect(items.find((b) => b.id === 'staircase')?.section).toBe('infrastructure');
-    expect(items.find((b) => b.id === 'elevator')?.section).toBe('infrastructure');
     expect(items.find((b) => b.id === 'turretRoom')?.section).toBe('damagers');
-    expect(items.find((b) => b.id === 'flameTurretRoom')?.section).toBe('damagers');
-    expect(items.find((b) => b.id === 'hydrantRoom')?.section).toBe('damagers');
+    expect(items.find((b) => b.id === 'pipe')).toBeUndefined();
+    expect(items.find((b) => b.id === 'manaSpringRoom')).toBeUndefined();
   });
 });
 
 describe('selectLibrarySections', () => {
-  it('groups blueprints under labeled sections in display order', () => {
+  it('groups unlocked blueprints under labeled sections in display order', () => {
     const store = new Store('lib-grouped');
+    store.dispatch({ type: 'toggleDevMode' });
+    store.dispatch({ type: 'devUnlockAll' });
     const sections = selectLibrarySections(store.getSnapshot());
     expect(sections.map((s) => s.id)).toEqual([
       'structure',

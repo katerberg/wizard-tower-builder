@@ -7,6 +7,7 @@ import { createLibrary } from './view/dom/library';
 import { createMessageLog } from './view/dom/messageLog';
 import { createModal } from './view/dom/modal';
 import { createOverlay } from './view/dom/overlay';
+import { createResearchPanel } from './view/dom/research';
 import { createSpeedBar } from './view/dom/speedBar';
 import { createSpellBar } from './view/dom/spellBar';
 import { createTooltip } from './view/dom/tooltip';
@@ -48,6 +49,7 @@ const domViews = [
   createHud(requireEl('hud'), store),
   createWaveBuilder(requireEl('wave-builder'), store),
   createSpellBar(requireEl('spell-bar'), store),
+  createResearchPanel(requireEl('research'), store),
   createLibrary(requireEl('library'), store),
   createLayersPanel(requireEl('layers'), store),
   createMessageLog(requireEl('message-log'), store),
