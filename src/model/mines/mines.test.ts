@@ -199,7 +199,7 @@ describe('mine stone harvest', () => {
 
     state.phase = 'build';
     const report = selectLogisticsReport(state);
-    expect(report.warnings.some((w) => w.includes('cannot mine'))).toBe(true);
+    expect(report.warnings.some((w) => w.includes('for mining'))).toBe(true);
   });
 
   it('sets pendingWaveClear with haul totals on endWave', () => {
