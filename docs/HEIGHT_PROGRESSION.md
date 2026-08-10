@@ -158,7 +158,7 @@ Enough to playtest the fantasy:
 |-------|--------|
 | Enemy framing damage / wing collapse from foes | Demolisher overhang smash + stuck-climber smash when path empty (see enemies / demolisherCombat) |
 | New enemy types / full roster retune | Demolishers added; further roster changes later |
-| Complex resource harvesting economy | Later; don’t paint into a grind corner meanwhile |
+| Complex resource harvesting economy | Design: [`MINES.md`](MINES.md) (attack-time sites, finite veins, wear + storage anti-hoard). Not shipped yet. |
 | Mid-wave difficulty retuning | Locked at Start Wave |
 | Endless mode after victory | Not for now |
 | Soft answer on “how few” heavies below home band | Default “a few”; tune in playtest |

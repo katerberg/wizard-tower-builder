@@ -199,6 +199,8 @@ Mount points: `#board`, `#stage`, `#hud`, `#library`, `#message-log`, `#modal-ro
 | Add a room (passive or behavioral) | [`src/model/rooms/README.md`](src/model/rooms/README.md) + `blueprints.ts` |
 | Add a modification | `src/model/modifications/` (one file + registry line) |
 | Shell fortifications (design / roadmap) | [`docs/FORTIFICATIONS.md`](docs/FORTIFICATIONS.md) + [`.cursor/plans/fortifications_index.plan.md`](.cursor/plans/fortifications_index.plan.md) |
+| Mine harvest / prospecting (design) | [`docs/MINES.md`](docs/MINES.md) + [`.cursor/plans/mine_harvest_index.plan.md`](.cursor/plans/mine_harvest_index.plan.md) |
+| Current build costs by resource | [`docs/ECONOMY_COST_MATRIX.md`](docs/ECONOMY_COST_MATRIX.md) |
 | Tweak balance numbers | [`src/config/README.md`](src/config/README.md) |
 | Change the attack tick order | [`src/model/tick.ts`](src/model/tick.ts) |
 | Change build/attack phases | [`src/model/phases.ts`](src/model/phases.ts) |
@@ -293,6 +295,8 @@ Still not done:
 - Additional turret / economy room types beyond Boiler, Mana Spring, Turret, Steam Turret, Forge, Flame Turret, and Water Pump
 - Infra/mod repair and mid-wave building (laborers repair room HP only today)
 - Exact harvest/wear balance curves; weather events on the weathering channel
+- Mine grid harvest / prospecting / storage rooms — design locked in [`docs/MINES.md`](docs/MINES.md); not shipped (still abstract surplus harvest)
+- Leyline / substance harvest + mana-spring removal — stub only ([`.cursor/plans/leyline_harvest_stub.plan.md`](.cursor/plans/leyline_harvest_stub.plan.md))
 
 ## License
 

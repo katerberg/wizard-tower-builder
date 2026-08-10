@@ -8,7 +8,7 @@ isProject: false
 
 Use this file to **orient and sequence work**. Each slice should get its **own plan file** before implementation (same pattern as [`spell_system_index.plan.md`](./spell_system_index.plan.md)).
 
-**Status:** Rounds 1–3 **concept locked**. Numbers/balance deferred.
+**Status:** Rounds 1–3 **concept locked** (wallet / wear / abstract harvest). Numbers/balance deferred. **Amendment:** site-based mine harvest + gem→gold — see [`docs/MINES.md`](../../docs/MINES.md) and [`mine_harvest_index.plan.md`](./mine_harvest_index.plan.md). Abstract 25/75 surplus harvest remains until that track ships.
 
 ---
 
@@ -21,12 +21,12 @@ Use this file to **orient and sequence work**. Each slice should get its **own p
 | Wallet | **metal · stone · souls · gold** (no water stockpile) |
 | Souls income | **Kills only** |
 | Souls spend | Magical track: turrets, mana springs, chambers; elevators also take souls; future magic tech. Not housing. |
-| Gold income | **Wave clear only** (height-scaled payout, same role as today’s clear gold) |
+| Gold income | **Wave clear** (height-scaled payroll) **+** future mine **gem→gold** ([`docs/MINES.md`](../../docs/MINES.md)); clear remains primary |
 | Gold spend | **Recruit + upkeep (payroll) only** — not construction |
 | Water | Logistics **height band** only (pipes placeable anywhere; flow needs hand-pump / pumps) |
 | Gold Mine | **Remove** (harvest replaces it) |
 | Laborer reserve | Hand-pump first; then repair; then harvest |
-| Harvest split | Each surplus harvest laborer yields **25% metal / 75% stone** (of that laborer’s harvest output) |
+| Harvest split | **Today:** surplus laborers → **25% metal / 75% stone** abstract underground. **Target:** replace with mine patches ([`docs/MINES.md`](../../docs/MINES.md)) |
 | Repair | **Laborer time only** — no stone (or other) materials fee |
 | Wear model | **Hybrid (W3):** baseline weathering + exterior climber abrasion (weather events can plug into the same channel later) |
 | Wear targets v1 | **Stone-built only** (spire, stairs, quarters, guardroom, slot footprints) |
