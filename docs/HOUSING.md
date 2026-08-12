@@ -14,7 +14,7 @@ Numbers below match `src/config/staff.ts` / `src/config/economy.ts` (see `src/co
 |---------|-----------|-------|-----------------|-----------|
 | **Guardroom** | `guardroomRoom` | Soldiers | **3 → 6** (`guardroomExpansion`) | Slots |
 | **Chamber** | `chamberRoom` | Magi | **1 → 2** (`chamberExpansion`) | Mana springs |
-| **Quarters** | `quartersRoom` | Laborers | **6 → 12** (`quartersExpansion`) | Damaged rooms (repair HP); surplus harvest / hand-pump |
+| **Quarters** | `quartersRoom` | Laborers | **6 → 12** (`quartersExpansion`) | Damaged rooms (repair HP); surplus hand-pump + **mine stone** when stairs/elevators reach ground ([`MINES.md`](MINES.md)) |
 
 Shared rules:
 

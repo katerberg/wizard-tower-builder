@@ -6,7 +6,12 @@ import { resetRoomBehaviors } from './rooms';
 import { clearStaffAfterWave, deployStaffForWave } from './staff';
 import { assignSurplusLaborers, maxWaterReachRow } from './staff/harvest';
 import { rewardGold } from '../calculations/economy';
-import { cloneResources } from '../calculations/resources';
+import {
+  cloneResources,
+  emptyResources,
+  formatWaveHaul,
+  totalResourceUnits,
+} from '../calculations/resources';
 import { runWaveClearedEffects } from './modifications/effects';
 import {
   refillMana,
@@ -67,6 +72,8 @@ export function beginWave(state: GameState, override?: WaveDef): void {
   state.spawnTimer = 0;
   state.waveTimer = 0;
   state.roomEffectTimers = {};
+  state.waveHaul = emptyResources();
+  state.pendingWaveClear = null;
   resetRoomBehaviors(state);
   deployStaffForWave(state);
   assignSurplusLaborers(state);
@@ -91,6 +98,16 @@ export function endWave(state: GameState): void {
   const amount = heightProgression.rewardFor(rewardHeight);
   rewardGold(state, amount);
   addMessage(state, `Wave ${state.levelIndex + 1} cleared! +${amount} gold.`, 'economy');
+
+  const haul = cloneResources(state.waveHaul);
+  state.pendingWaveClear = { gold: amount, haul };
+  const haulLabel = formatWaveHaul(haul);
+  addMessage(
+    state,
+    totalResourceUnits(haul) > 0 ? `Mine haul: ${haulLabel}.` : 'Mine haul: nothing this wave.',
+    'economy',
+  );
+
   runWaveClearedEffects(state);
   resetEarthState(state);
 

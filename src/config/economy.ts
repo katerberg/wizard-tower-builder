@@ -9,21 +9,15 @@ export const STARTING_RESOURCES = {
   souls: 30,
 } as const;
 
-/** Per surplus harvest laborer: total resource units per second. */
-export const HARVEST_UNITS_PER_SEC = 1;
-/** Share of harvest output that becomes metal (rest is stone). */
-export const HARVEST_METAL_SHARE = 0.25;
-export const HARVEST_STONE_SHARE = 0.75;
-
 /**
  * Multiplier applied to stone-built blueprint base HP so wear is attrition.
  * Tune in playtest — not a literal 100× lock.
  */
 export const WEAR_HP_SCALE = 10;
 /** Passive weathering HP/sec on each stone-built room or structure. */
-export const WEATHERING_HP_PER_SEC = 0.4;
+export const WEATHERING_HP_PER_SEC = 0.1;
 /** HP removed from stone-built framing/room when a climber abrades its cell. */
-export const ABRASION_HP_PER_STEP = 1.5;
+export const ABRASION_HP_PER_STEP = 0.75;
 
 /** Max water-pipe row reachable with at least one hand-pump laborer (no pump rooms). */
 export const HAND_PUMP_MAX_WATER_ROW = 3;

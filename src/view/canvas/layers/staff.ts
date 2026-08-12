@@ -6,6 +6,8 @@ import { cellCenter } from '../camera';
 export function drawStaff(ctx: CanvasRenderingContext2D, snapshot: Snapshot, scrollY: number, viewportHeight: number): void {
   const byCell = new Map<string, typeof snapshot.game.staff>();
   for (const unit of snapshot.game.staff) {
+    // Invisible mine: do not draw laborers underground.
+    if (unit.pos.row < 0) continue;
     const key = `${unit.pos.col},${unit.pos.row}`;
     const group = byCell.get(key);
     if (group) group.push(unit);

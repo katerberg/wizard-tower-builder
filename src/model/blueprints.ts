@@ -115,7 +115,7 @@ export const ROOM_BLUEPRINTS: Blueprint[] = [
     passable: true,
     housing: 'quarters',
     description:
-      'House laborers. They path to damaged rooms and framing during attack, hand-pump water, and harvest stone/metal. Costs stone.',
+      'House laborers. They path to damaged rooms and framing during attack, hand-pump water, and harvest stone in the underground mine. Costs stone.',
   },
   {
     id: 'slotRoom',

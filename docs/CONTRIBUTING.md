@@ -91,6 +91,8 @@ See [`src/store/README.md`](../src/store/README.md).
 
 Index: [`src/config/README.md`](../src/config/README.md). Playability gate: [`src/store/playability.test.ts`](../src/store/playability.test.ts) + `npm run test:playability`.
 
+Cost snapshot by resource: [`docs/ECONOMY_COST_MATRIX.md`](ECONOMY_COST_MATRIX.md). Mine harvest design (not shipped): [`docs/MINES.md`](MINES.md).
+
 ## Conventions
 
 - Colocate tests as `*.test.ts` next to source.

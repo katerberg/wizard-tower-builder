@@ -2,24 +2,28 @@ import {
   GROUND_WATER_MAX_ROW,
   HAND_PUMP_LABORER_RESERVE,
   HAND_PUMP_MAX_WATER_ROW,
-  HARVEST_METAL_SHARE,
-  HARVEST_STONE_SHARE,
-  HARVEST_UNITS_PER_SEC,
+  MINE_STONE_HARVEST_PER_SEC,
   PUMP_WATER_ROW_EXTENSION,
 } from '@/config/constants';
 import { reward } from '@/calculations/economy';
 import { findInteriorPath } from '@/calculations/interiorPathfinding';
-import type { Cell, GameState, Tower } from '@/model/types';
+import { cellDistance, roomAnchorCell } from '@/calculations/interiorGraph';
+import {
+  findMinePatchByTarget,
+  isMinePatchTarget,
+  minePatchTargetId,
+} from '@/model/mines';
+import type { Cell, GameState, MinePatch, Room, StaffUnit, Tower } from '@/model/types';
 
-const HARVEST_TARGET = 'harvest:underground';
 const PUMP_TARGET = 'pump:hand';
-
-export function isHarvestTarget(id: string | null | undefined): boolean {
-  return id === HARVEST_TARGET;
-}
 
 export function isPumpTarget(id: string | null | undefined): boolean {
   return id === PUMP_TARGET;
+}
+
+/** @deprecated Use isMinePatchTarget — abstract underground harvest removed. */
+export function isHarvestTarget(id: string | null | undefined): boolean {
+  return isMinePatchTarget(id);
 }
 
 export function countPumpRooms(tower: Tower): number {
@@ -78,18 +82,37 @@ export function maxWaterReachRow(state: GameState): number {
   return HAND_PUMP_MAX_WATER_ROW + pumps * PUMP_WATER_ROW_EXTENSION;
 }
 
-function groundHarvestAnchor(state: GameState): Cell {
-  let best: Cell | null = null;
-  for (const room of state.tower.rooms) {
-    if (room.blueprintId !== 'quartersRoom') continue;
-    const cell = { col: room.origin.col, row: room.origin.row };
-    if (!best || cell.row < best.row) best = cell;
-  }
-  if (best) return best;
-  return { col: 8, row: 0 };
+/** Ground-row cell above the mine entrance (hand-pump station / mine access). */
+export function groundPumpAnchor(state: GameState): Cell {
+  const entrance = state.mine.entrance;
+  return { col: entrance.col, row: 0 };
 }
 
-/** Assign idle laborers to pump (reserve) then harvest. Call after repair assignment. */
+/**
+ * True when a cell can path to the ground mine entrance (stairs/elevators for vertical tower travel).
+ */
+export function canPathToMineEntrance(state: GameState, from: Cell): boolean {
+  const goal = groundPumpAnchor(state);
+  if (from.col === goal.col && from.row === goal.row) return true;
+  return findInteriorPath(state.tower, from, goal, state.mine).length > 0;
+}
+
+/** Quarters must reach ground framing at the mine entrance to send miners / pumpers. */
+export function quartersCanReachMine(state: GameState, quarters: Room): boolean {
+  const from = roomAnchorCell(state.tower, quarters.origin, quarters.size, state.mine);
+  if (!from) return false;
+  return canPathToMineEntrance(state, from);
+}
+
+function laborerCanReachMineJobs(state: GameState, unit: StaffUnit): boolean {
+  return canPathToMineEntrance(state, unit.pos);
+}
+
+function availableStonePatches(state: GameState): MinePatch[] {
+  return state.mine.patches.filter((p) => p.resource === 'stone' && p.remaining > 0);
+}
+
+/** Assign idle laborers to pump (reserve) then shallow mine stone patches. Call after repair. */
 export function assignSurplusLaborers(state: GameState): void {
   const idle = state.staff.filter((s) => s.kind === 'laborer' && s.status === 'idle');
   if (idle.length === 0) return;
@@ -99,33 +122,77 @@ export function assignSurplusLaborers(state: GameState): void {
     (s) => s.kind === 'laborer' && isPumpTarget(s.targetWorkplaceId),
   ).length;
   let needPump = Math.max(0, reserve - currentPumpers);
-  const anchor = groundHarvestAnchor(state);
+  const pumpAnchor = groundPumpAnchor(state);
+  const patches = availableStonePatches(state);
 
   for (const unit of idle) {
-    const targetId = needPump > 0 ? PUMP_TARGET : HARVEST_TARGET;
-    if (needPump > 0) needPump -= 1;
-    const path = findInteriorPath(state.tower, unit.pos, anchor);
-    unit.targetWorkplaceId = targetId;
-    unit.path = path.length > 0 ? path : [unit.pos];
+    if (!laborerCanReachMineJobs(state, unit)) {
+      // Stuck above without stairs/elevator — leave idle (repair may still claim them later).
+      continue;
+    }
+
+    if (needPump > 0) {
+      needPump -= 1;
+      const path = findInteriorPath(state.tower, unit.pos, pumpAnchor, state.mine);
+      unit.targetWorkplaceId = PUMP_TARGET;
+      unit.path = path.length > 0 ? path : [unit.pos];
+      unit.pathIndex = 0;
+      const atAnchor =
+        unit.pos.col === pumpAnchor.col && unit.pos.row === pumpAnchor.row && path.length <= 1;
+      unit.status = atAnchor ? 'working' : 'moving';
+      continue;
+    }
+
+    if (patches.length === 0) {
+      continue;
+    }
+
+    patches.sort((a, b) => {
+      const da = cellDistance(unit.pos, a.cell);
+      const db = cellDistance(unit.pos, b.cell);
+      if (da !== db) return da - db;
+      return a.id.localeCompare(b.id);
+    });
+    const patch = patches[0];
+    const path = findInteriorPath(state.tower, unit.pos, patch.cell, state.mine);
+    if (path.length === 0) continue;
+    unit.targetWorkplaceId = minePatchTargetId(patch.id);
+    unit.path = path;
     unit.pathIndex = 0;
-    const atAnchor =
-      unit.pos.col === anchor.col && unit.pos.row === anchor.row && path.length <= 1;
-    unit.status = atAnchor ? 'working' : 'moving';
+    const atPatch =
+      unit.pos.col === patch.cell.col && unit.pos.row === patch.cell.row && path.length <= 1;
+    unit.status = atPatch ? 'working' : 'moving';
   }
 }
 
-/** Tick harvest for laborers on harvest jobs. Hand-pump is presence-only. */
+/** Tick mine stone harvest for laborers on patch jobs. Hand-pump is presence-only. */
 export function tickLaborerHarvestAndPump(state: GameState, dt: number): void {
-  let harvestLaborers = 0;
   for (const unit of state.staff) {
     if (unit.kind !== 'laborer' || unit.status !== 'working') continue;
-    if (isHarvestTarget(unit.targetWorkplaceId)) harvestLaborers += 1;
-  }
+    if (!isMinePatchTarget(unit.targetWorkplaceId)) continue;
 
-  if (harvestLaborers <= 0) return;
-  const total = harvestLaborers * HARVEST_UNITS_PER_SEC * dt;
-  reward(state, {
-    metal: total * HARVEST_METAL_SHARE,
-    stone: total * HARVEST_STONE_SHARE,
-  });
+    const patch = findMinePatchByTarget(state.mine, unit.targetWorkplaceId!);
+    if (!patch || patch.remaining <= 0) {
+      unit.targetWorkplaceId = null;
+      unit.status = 'idle';
+      unit.path = [unit.pos];
+      unit.pathIndex = 0;
+      continue;
+    }
+    if (unit.pos.col !== patch.cell.col || unit.pos.row !== patch.cell.row) continue;
+
+    const want = MINE_STONE_HARVEST_PER_SEC * dt;
+    const gained = Math.min(want, patch.remaining);
+    if (gained <= 0) continue;
+    patch.remaining -= gained;
+    reward(state, { stone: gained });
+    state.waveHaul.stone += gained;
+
+    if (patch.remaining <= 0) {
+      unit.targetWorkplaceId = null;
+      unit.status = 'idle';
+      unit.path = [unit.pos];
+      unit.pathIndex = 0;
+    }
+  }
 }

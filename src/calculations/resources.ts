@@ -96,6 +96,16 @@ export function formatResourceCost(cost: ResourceCost): string {
   return parts.length > 0 ? parts.join(' + ') : 'free';
 }
 
+/** Wave haul summary, e.g. "+12 stone" or "nothing". */
+export function formatWaveHaul(haul: Resources): string {
+  const parts: string[] = [];
+  if (haul.stone > 0) parts.push(`+${formatResourceAmount(haul.stone)} stone`);
+  if (haul.metal > 0) parts.push(`+${formatResourceAmount(haul.metal)} metal`);
+  if (haul.gold > 0) parts.push(`+${formatResourceAmount(haul.gold)} gold`);
+  if (haul.souls > 0) parts.push(`+${formatResourceAmount(haul.souls)} souls`);
+  return parts.length > 0 ? parts.join(', ') : 'nothing';
+}
+
 export function totalResourceUnits(cost: ResourceCost): number {
   const r = asResources(cost);
   return r.gold + r.metal + r.stone + r.souls;

@@ -3,7 +3,7 @@ import {
   STARTING_RESOURCES,
   WIZARD_DEFAULTS,
 } from '@/config/constants';
-import { cloneResources } from '@/calculations/resources';
+import { cloneResources, emptyResources } from '@/calculations/resources';
 import {
   STARTING_BLUEPRINT_IDS,
   STARTING_INFRA_BLUEPRINT_IDS,
@@ -12,6 +12,7 @@ import {
 import { emptyResearchState } from './research';
 import { startRun, captureBuildBaseline } from './phases';
 import { seedFrom } from '../calculations/rng';
+import { generateShallowMine } from './mines';
 import { createStarterTower } from './starterTower';
 import { resetTickState } from './tick';
 import type { GameState, SimSpeed } from './types';
@@ -74,8 +75,12 @@ export function createInitialState(seed: string | number = 'wizard'): GameState 
     steamTurretRuntime: {},
     flameTurretRuntime: {},
     elevators: [],
+    mine: { entrance: { col: 0, row: -1 }, tunnels: {}, patches: [] },
+    waveHaul: emptyResources(),
+    pendingWaveClear: null,
     buildBaseline: null,
   };
+  state.mine = generateShallowMine(state.tower);
   captureBuildBaseline(state);
   return state;
 }
