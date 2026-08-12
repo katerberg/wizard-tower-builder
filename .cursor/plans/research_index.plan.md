@@ -20,7 +20,8 @@ Use this file to **orient**, not to **implement**. Each shot has (or will have) 
 | **Understand the full design** | [`docs/RESEARCH.md`](../../docs/RESEARCH.md) | Implementation plans |
 | **Unlock state + static tree data** | Shipped with static v1 (`src/model/research/`) | Spell discovery |
 | **Research rooms + magi progress** | Shipped with static v1 | Spell discovery / content retunes |
-| **Frontier UI** | Shipped (`view/dom/research.ts`) | Full tree map |
+| **Frontier UI** | Superseded by DAG modal | — |
+| **DAG modal + queue** | Shipped (`view/dom/researchModal.ts`, queue in `player.research`) | Spell discovery |
 | **School pick + height spell offers** | `spell_discovery.plan.md` (create at shot start) | Blueprint tree content |
 | **Author edges + bonuses + tune** | Initial edges shipped; bonuses TBD | Procedural generator |
 | **Procedural run-start trees** | Later series — **not v1** | — |

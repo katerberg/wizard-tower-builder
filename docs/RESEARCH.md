@@ -2,7 +2,7 @@
 
 Design for **gated progression**: a static tech tree researched through **research rooms + magi**, plus a separate **rare spell-discovery** path tied to height clears. Players start with basics; interconnection-heavy builds unlock over the run. Spells stay a skilled “micro” layer — rooms and staff should be enough to brute-force a run.
 
-**Status:** v1 static tech tree **implemented** (starter kit, research rooms + magi progress, frontier UI, expansion gating, dev Unlock all + per-node Unlock). Spell discovery / school pick / spell bonuses and procedural trees remain deferred.
+**Status:** v1 static tech tree **implemented** (starter kit, research rooms + magi progress, queue, DAG modal UI, expansion gating, dev Unlock). Spell discovery / school pick / spell bonuses and procedural trees remain deferred.
 
 ---
 
@@ -13,7 +13,7 @@ Design for **gated progression**: a static tech tree researched through **resear
 3. **Research is labor** — pick a frontier node, pay costs to **start** it, then allocate magi to research rooms until it completes (time / labor-cycles + souls and other resources).
 4. **Spells are micro** — rooms/staff carry the run; spells cover gaps and reward skill (StarCraft-micro analogy). The spellbook stays small; new spells are rare and **not** tech-tree nodes.
 5. **Slow pace** — players can bank capacity and start research when ready; completions typically land on a ~every-few-waves cadence, not every wave.
-6. **Frontier-only UI** — show what can be started next, not the full fogged tree (v1).
+6. **Local tree visibility** — sidebar shows active/queue only; the DAG modal shows completed + available + the next preview layer (not the entire fogged tree).
 
 ---
 
@@ -45,7 +45,9 @@ Spell *identity* (fireball, wall of flame, …) comes from discovery. Spell *mas
 | Tree contents | Blueprints (+ optional bundled starter mods); each room blueprint opens a **small expansion/mod subtree** |
 | Staff hard gate | Any workplace that needs a staff kind requires that housing unlocked first (e.g. **Chamber before Mana Spring**) |
 | Pace | Can bank and start when ready; research then runs via allocation (not instant unlock on spend) |
-| Tree visibility (v1) | **Frontier only** (available-to-start nodes) |
+| Queue | Up to **5** paid enqueued projects (excludes active); full refund if removed before start |
+| Cancel active | Half resource refund; all progress lost; inline warning |
+| Tree visibility (v1) | Sidebar = active/queue; modal DAG = completed + frontier + one preview layer |
 | v1 tree shape | **Static** authored DAG |
 | Procedural trees | Deferred — hard gates below stay sacred for a later generator |
 
@@ -83,35 +85,37 @@ Prerequisites encode “you must understand pipes before steam.” Sacred edges 
 
 ```mermaid
 flowchart LR
-  frontier[See frontier nodes]
-  pick[Pick next research]
-  pay[Pay souls and other costs]
+  pick[Pick node in DAG modal]
+  pay[Pay start cost]
+  activeOrQueue[Start if idle else Enqueue]
   allocate[Allocate magi to research rooms]
   progress[Accumulate labor cycles]
   complete[Node completes]
+  promote[Auto-promote queue head]
   unlock[Blueprint or bonus unlocks]
-  frontier --> pick --> pay --> allocate --> progress --> complete --> unlock
-  unlock --> frontier
+  pick --> pay --> activeOrQueue --> allocate --> progress --> complete --> unlock
+  complete --> promote
+  promote --> allocate
 ```
 
-### Start research
+### Start / enqueue
 
-1. Build phase: UI lists **frontier** nodes (prereqs owned, not completed, not in progress).
-2. Player selects one eligible node and confirms **start** if they can pay its cost.
-3. At most **one** active research project per run in v1 (soft; raise later if playtest wants parallel tracks).
-4. Paying costs **starts** the project — it does not complete it.
+1. Build phase: open the research DAG modal (**Choose research…** or **Edit**).
+2. Select a frontier node; confirm **Start** (idle) or **Enqueue** (when something is already active).
+3. At most **one** active project; up to **5** paid items in the queue (excludes active).
+4. Enqueue spends `startCost` immediately. Removing a queued item before it becomes active refunds **100%**.
+5. Cancelling the **active** project refunds **50%** of its `startCost` (floored per resource) and **wipes progress** (inline warning required).
+6. When active completes, the queue head auto-promotes to active (no second charge).
 
 ### Research rooms & allocation
 
-- New blueprint: **Research room** (exact size/cost in an implementation shot). Starter kit or very early unlock so the loop can begin.
-- Magi path from **Chamber** to research rooms (same interior logistics spirit as springs).
-- During attack (and/or build — exact tick rule in engine shot): stationed magi generate **research progress** toward the active node.
+- Blueprint: **Research room** (starter kit). Magi path from **Chamber**.
+- During attack: stationed magi generate research progress toward the active node.
 - Progress needed scales with node depth/power; numbers flexible for playtest.
-- Cancelling an in-progress node: default **partial refund of resource costs, progress lost** (soft until playtest).
 
 ### Completion
 
-- When progress fills, the node’s unlock applies immediately (blueprint appears in BUILD library; bonus applies; expansion subtree frontier updates).
+- When progress fills, unlocks apply immediately; frontier / preview layer updates.
 - No extra “claim” click after completion.
 
 ---
@@ -128,21 +132,76 @@ flowchart LR
 
 One node → one primary unlock. Shared prerequisites are edges, not duplicate nodes.
 
-### Starter kit (illustrative; exact ids tunable in content shot)
+### Starter kit (shipped)
 
 Always available at run start (no research):
 
-| Category | Intent |
-|----------|--------|
-| Framing | Spire Block; buttresses may be starter or early frontier |
-| Infra | Stairs |
-| Housing | Enough to staff a macro path (e.g. Quarters and/or Guardroom) |
-| Defense | One simple damager path (Turret **or** Slot line — not the full Damagers section) |
-| Research | Research room (or unlockable on wave 1 frontier with trivial cost) |
-| Forts | None or one basic routing fort |
-| Spells | School pick → that school’s **base** spell only; Wand Strike always on |
+| Ids | Role |
+|-----|------|
+| `stem`, `buttress2` | Framing |
+| `staircase` | Infra |
+| `quartersRoom`, `guardroomRoom`, `chamberRoom` | Housing |
+| `turretRoom` | Simple damager |
+| `researchRoom` | Research workplace |
+| `spikes` (mod) | Starter modification |
 
-Everything else — pipes cluster, forge/flame, elevators, remaining forts, other housing, advanced damagers — sits on the tree behind hard gates.
+### Static node inventory (shipped)
+
+Source of truth: [`src/model/research/tree.ts`](../src/model/research/tree.ts).
+
+| Node id | Unlocks | Requires |
+|---------|---------|----------|
+| `bp-buttress3` | buttress3 | — |
+| `bp-pipe` | pipe | — |
+| `bp-elevator` | elevator | — |
+| `bp-slot` | slotRoom | — |
+| `bp-forge` | forgeRoom | — |
+| `bp-pump` | pumpRoom | bp-pipe |
+| `bp-boiler` | boilerRoom | bp-pipe |
+| `bp-mana-spring` | manaSpringRoom | bp-pipe |
+| `bp-hydrant` | hydrantRoom | bp-pipe |
+| `bp-steam-turret` | steamTurretRoom | bp-pipe, bp-boiler |
+| `bp-flame-turret` | flameTurretRoom | bp-forge |
+| `bp-moat` | moat | — |
+| `bp-glacis` | glacis | — |
+| `bp-parapet` | parapet | — |
+| `bp-cornice` | cornice | — |
+| `bp-stakes` | stakes | — |
+| `bp-barbican` | barbican | bp-parapet |
+| `exp-guardroom` | guardroomExpansion | — |
+| `exp-chamber` | chamberExpansion | — |
+| `exp-quarters` | quartersExpansion | — |
+| `exp-slot` | slotExpansion | bp-slot |
+| `exp-boiler` | boilerExpansion | bp-boiler |
+
+```mermaid
+flowchart TB
+  subgraph roots [Root frontier]
+    pipe[bp-pipe]
+    forge[bp-forge]
+    slot[bp-slot]
+    elev[bp-elevator]
+    butt3[bp-buttress3]
+    moat[bp-moat]
+    glacis[bp-glacis]
+    parapet[bp-parapet]
+    cornice[bp-cornice]
+    stakes[bp-stakes]
+    expG[exp-guardroom]
+    expC[exp-chamber]
+    expQ[exp-quarters]
+  end
+  pipe --> pump[bp-pump]
+  pipe --> boiler[bp-boiler]
+  pipe --> spring[bp-mana-spring]
+  pipe --> hydrant[bp-hydrant]
+  boiler --> steam[bp-steam-turret]
+  pipe --> steam
+  forge --> flame[bp-flame-turret]
+  slot --> expSlot[exp-slot]
+  boiler --> expBoiler[exp-boiler]
+  parapet --> barbican[bp-barbican]
+```
 
 ### Sacred hard gates (v1)
 
@@ -153,14 +212,11 @@ Must never break (static tree now; procedural generator later):
 | Pipe | Boiler, Water Pump, Mana Spring, Hydrant, Steam Turret |
 | Pipe + Boiler | Steam Turret |
 | Forge | Flame Turret |
-| Guardroom | Slot (and soldier workplaces) |
-| Chamber | Mana Spring (and any mage workplace) |
-| Quarters | Laborer-gated economy rooms if any are gated |
-| Stairs | Elevator |
+| Guardroom | Slot (and soldier workplaces) — Guardroom is starter, so Slot is a root node |
+| Chamber | Mana Spring staffing — Chamber is starter; spring still pipe-gated |
+| Stairs | Elevator — Stairs is starter, so Elevator is a root node |
 | Room blueprint | That room’s expansion/mod subtree |
 | School base spell | That school’s spell **bonuses** (bonuses still do not grant new spells) |
-
-Strike/add in content pass; this table is the invariant set.
 
 ### Room → expansion subtree
 
@@ -228,11 +284,13 @@ Run identity comes from:
 
 ## UI (v1)
 
-- **Frontier list** (or compact cards): name, costs to start, progress if active, prereq hint one line.
-- **Dev mode:** each frontier row (and the active project) exposes **Unlock** to instantly complete that node with no cost; HUD also has **Unlock all**.
-- No full-tree viewer in v1 (deferred — helpful for planning, conflicts with “discover the build”).
-- Research room inspector: assigned magi, progress bar for active project.
-- Spell offer modal on eligible wave clear (pick 1 of 3).
+- **Sidebar:** active project + progress; queue summary; **Choose research…** (idle) or **Edit** (active/queued). No full frontier list in the sidebar.
+- **DAG modal:** freeform graph of **completed + available + preview** (direct children of those, including unmet multi-prereq children greyed with missing-prereq labels). Expansion nodes collapsed by default under their parent blueprint.
+- On open, scroll so the **frontier band** is in view.
+- Click a node → detail pane (name, unlocks, cost, labor, missing prereqs). Primary action **Start** (idle) or **Enqueue** (busy). Dev **Unlock** on the node chip; **Unlock all** in modal footer.
+- Cancel active: inline confirm with half-refund warning. Dequeue: full refund, no confirm beyond the remove control.
+- Research room inspector: assigned magi.
+- Spell offer modal on eligible wave clear (pick 1 of 3) — still deferred.
 
 ---
 
@@ -241,30 +299,15 @@ Run identity comes from:
 Exact TypeScript lands in the engine plan. Shape for implementers:
 
 ```ts
-// Tech tree (static authored data)
-type ResearchNodeId = string;
-type ResearchNode = {
-  id: ResearchNodeId;
-  kind: 'blueprint' | 'expansion' | 'spellBonus';
-  unlocks: { blueprintId?: string; modificationId?: string; spellBonusId?: string };
-  requires: ResearchNodeId[];
-  startCost: { souls?: number; stone?: number; metal?: number; gold?: number };
-  progressRequired: number; // labor-cycles
-};
-
-// Per-run state (sketch)
-// player.unlockedBlueprints — already exists; seed starter only
-// player.unlockedSpells: string[]
-// player.spellBonuses: ...
+// Per-run state
 // player.research: {
 //   completedNodeIds: ResearchNodeId[];
-//   active?: { nodeId: ResearchNodeId; progress: number };
+//   active: { nodeId; progress } | null;
+//   queue: ResearchNodeId[]; // max 5, paid, not yet active
 // }
 ```
 
-Library filtering already respects `unlockedBlueprints` ([`src/store/selectors/build.ts`](../src/store/selectors/build.ts)); stop seeding all ids in [`src/model/game.ts`](../src/model/game.ts) / `STARTING_BLUEPRINT_IDS`.
-
-Hotbar must filter by `unlockedSpells` instead of the full school kit ([`src/model/spells/registry.ts`](../src/model/spells/registry.ts)).
+Library filtering already respects `unlockedBlueprints` ([`src/store/selectors/build.ts`](../src/store/selectors/build.ts)).
 
 ---
 
@@ -281,13 +324,13 @@ When the static tree is fun enough:
 ## Explicit non-goals (v1)
 
 - Procedural / per-run tree generation
-- Full static tree map UI
-- Instant unlock on pay (no magi progress)
+- Showing the **entire** fogged tree beyond completed + frontier + one preview layer
+- Instant unlock on pay (no magi progress) outside dev tools
 - Spells as tech-tree blueprint-style nodes
 - Height-gated **blueprint** unlocks
 - Mana Well / spell shop economy
 - Magi combat casting / replacing the wizard
-- Parallel multi-project research (unless playtest demands it after single-project ships)
+- Queue reorder UI
 - Training rooms / troop-type gates beyond housing→workplace hard gates above
 
 ---
@@ -299,7 +342,8 @@ When the static tree is fun enough:
 | 1 | Design doc (this file) + index | Docs only — **done** |
 | 2 | `research_engine.plan.md` | Unlock state, starter kit, static tree — **shipped in static v1** |
 | 3 | `research_rooms.plan.md` | Research room + magi labor-cycles — **shipped in static v1** |
-| 4 | `research_ui.plan.md` | Frontier list + inspector — **shipped in static v1** |
+| 4 | `research_ui.plan.md` | Frontier list — superseded by DAG modal |
+| 4b | Research DAG modal + queue | Sidebar slim + DAG modal + enqueue/cancel — **this shot** |
 | 5 | `spell_discovery.plan.md` | School pick, unlocked spell hotbar, height-clear 1-of-3 offers |
 | 6 | `research_content.plan.md` | Author static edges — **initial roster shipped**; tune pace in playtest |
 | 7 | Later | Procedural layout generator |
@@ -322,8 +366,11 @@ Orient-only index: [`.cursor/plans/research_index.plan.md`](../.cursor/plans/res
 | 6 | Spell rarity | ~3–5 per tower; 1-of-3 offers on height clears |
 | 7 | Staff gates | Housing before workplaces that need that staff |
 | 8 | Pace | Bankable start; progress via allocation |
-| 9 | Visibility | Frontier only (v1) |
+| 9 | Visibility | Sidebar active/queue; modal DAG local neighborhood |
 | 10 | v1 tree | Static DAG; procedural deferred |
+| 11 | Queue | Cap 5; pay on enqueue; full refund if not started |
+| 12 | Cancel active | Half refund; progress lost |
+| 13 | Auto-promote | Queue head starts when active completes |
 
 ---
 

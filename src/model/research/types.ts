@@ -27,4 +27,6 @@ export interface ActiveResearch {
 export interface PlayerResearchState {
   completedNodeIds: ResearchNodeId[];
   active: ActiveResearch | null;
+  /** Paid nodes waiting to become active (max RESEARCH_QUEUE_CAP). */
+  queue: ResearchNodeId[];
 }

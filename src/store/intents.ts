@@ -21,6 +21,12 @@ export type Intent =
   | { type: 'setManaSpringAllocation'; springRoomId: string; count: number }
   | { type: 'setResearchAllocation'; researchRoomId: string; count: number }
   | { type: 'startResearch'; nodeId: string }
+  | { type: 'enqueueResearch'; nodeId: string }
+  | { type: 'dequeueResearch'; nodeId: string }
+  | { type: 'cancelResearch' }
+  | { type: 'openResearchModal' }
+  | { type: 'selectResearchNode'; nodeId: string | null }
+  | { type: 'toggleResearchGroup'; groupId: string }
   | { type: 'devUnlockResearch'; nodeId: string }
   | { type: 'toggleLayer'; layer: TowerLayer }
   | { type: 'closeModal' }
@@ -47,6 +53,7 @@ export type Intent =
 export type ModalData =
   | { kind: 'room'; roomId: string }
   | { kind: 'structure'; structureId: string }
+  | { kind: 'research' }
   | { kind: 'help' };
 
 export interface WaveBuilderState {
@@ -71,4 +78,8 @@ export interface ViewState {
   connectivityFocusSlotId: string | null;
   /** Dev-only custom wave draft; Start Wave uses it while open. */
   waveBuilder: WaveBuilderState;
+  /** Selected node in the research DAG modal. */
+  selectedResearchNodeId: string | null;
+  /** Expanded expansion-group ids in the research DAG (collapsed by default). */
+  researchExpandedGroupIds: string[];
 }

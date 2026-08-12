@@ -2,9 +2,13 @@ export type { ActiveResearch, PlayerResearchState, ResearchNode, ResearchNodeId,
 export { getResearchNode, listResearchNodes, RESEARCH_NODES } from './tree';
 export {
   addResearchProgress,
+  cancelActiveResearch,
+  dequeueResearch,
   emptyResearchState,
+  enqueueResearch,
   instantUnlockResearch,
   isNodeCompleted,
+  isNodeQueued,
   listFrontierNodes,
   prereqsMet,
   researchStartCost,

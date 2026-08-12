@@ -6,17 +6,10 @@ export function createResearchPanel(root: HTMLElement, store: Store): () => void
     if (e.button !== 0) return;
     const target =
       e.target instanceof HTMLElement
-        ? e.target.closest<HTMLElement>('[data-action="startResearch"], [data-action="devUnlockResearch"]')
+        ? e.target.closest<HTMLElement>('[data-action="openResearchModal"]')
         : null;
     if (!target || (target instanceof HTMLButtonElement && target.disabled)) return;
-    const nodeId = target.dataset.node;
-    if (!nodeId) return;
-    const action = target.dataset.action;
-    if (action === 'devUnlockResearch') {
-      store.dispatch({ type: 'devUnlockResearch', nodeId });
-      return;
-    }
-    store.dispatch({ type: 'startResearch', nodeId });
+    store.dispatch({ type: 'openResearchModal' });
   });
 
   return function render(): void {
@@ -28,47 +21,28 @@ export function createResearchPanel(root: HTMLElement, store: Store): () => void
     }
     root.hidden = false;
 
-    const unlockBtn = (nodeId: string) =>
-      panel.devMode
-        ? `<button data-action="devUnlockResearch" data-node="${nodeId}">Unlock</button>`
-        : '';
-
     const activeHtml = panel.active
       ? `<div class="research-active">
-           <div class="research-active-row">
-             <strong>${panel.active.name}</strong>
-             ${unlockBtn(panel.active.id)}
-           </div>
+           <strong>${panel.active.name}</strong>
            <div class="research-progress-track">
              <div class="research-progress-fill" style="width:${Math.round(panel.active.ratio * 100)}%"></div>
            </div>
            <span class="research-progress-label">${panel.active.progress.toFixed(0)} / ${panel.active.required}</span>
          </div>`
-      : '<p class="research-hint">Pick a project, then assign magi to a Research Room.</p>';
+      : '<p class="research-hint">No active research.</p>';
 
-    const items = panel.frontier
-      .map(
-        (item) => `
-      <li class="research-item">
-        <div>
-          <strong>${item.name}</strong>
-          <span class="research-meta">${item.costLabel} · ${item.progressRequired} labor</span>
-          <p>${item.description}</p>
-        </div>
-        <div class="research-actions">
-          <button data-action="startResearch" data-node="${item.id}" ${
-            item.affordable ? '' : 'disabled'
-          }>Start</button>
-          ${unlockBtn(item.id)}
-        </div>
-      </li>`,
-      )
-      .join('');
+    const queueHtml =
+      panel.queue.length > 0
+        ? `<p class="research-queue-summary">Queue (${panel.queue.length}): ${panel.queue
+            .map((q) => q.name)
+            .join(' → ')}</p>`
+        : '';
 
     root.innerHTML = `
       <h2>Research</h2>
       ${activeHtml}
-      <ul class="research-list">${items || '<li class="research-empty">No available projects.</li>'}</ul>
+      ${queueHtml}
+      <button class="primary" data-action="openResearchModal">${panel.ctaLabel}</button>
     `;
   };
 }
