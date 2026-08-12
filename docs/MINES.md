@@ -1,6 +1,6 @@
 # Mines & laborer harvest
 
-**Status:** Engine slice **shipped** (shallow stone grid + pathing; abstract `harvest:underground` removed). Prospect / iron·gem veins / storage / clear tally / leylines **not** shipped — see [`.cursor/plans/mine_harvest_index.plan.md`](../.cursor/plans/mine_harvest_index.plan.md).
+**Status:** Engine slice **shipped** (shallow stone grid + pathing + stone haul modal). **Phase 2 (prospecting + veins)** planned in [`.cursor/plans/mine_harvest_prospect.plan.md`](../.cursor/plans/mine_harvest_prospect.plan.md) — not shipped. Storage / leylines still later.
 
 Complements [`HOUSING.md`](HOUSING.md) (laborer jobs), [`HEIGHT_PROGRESSION.md`](HEIGHT_PROGRESSION.md) (anti-grind), and the wallet rules in [`.cursor/plans/resource_economy_index.plan.md`](../.cursor/plans/resource_economy_index.plan.md). Live construction costs: [`ECONOMY_COST_MATRIX.md`](ECONOMY_COST_MATRIX.md).
 
@@ -201,9 +201,8 @@ Use the index plan; do not implement from this doc alone.
 | # | Slice | Outcome |
 |---|-------|---------|
 | 0 | Design (this doc + matrix + index + leyline stub) | Locked concept |
-| 1 | Mine grid engine + entrance attach + replace abstract harvest with shallow stone | Laborers path underground; stone income |
-| 2 | Finite veins + iron/gem yields + rare falloff | Metal/gold from patches |
-| 3 | Prospect allocation + next-tier reveal + clear tally UX | Scout loop |
+| 1 | Mine grid engine + entrance attach + replace abstract harvest with shallow stone | **Shipped** |
+| 2–3 | Prospecting phase: veins + allocation + tier reveal + clear tally | Plan: [`mine_harvest_prospect.plan.md`](../.cursor/plans/mine_harvest_prospect.plan.md) |
 | 4 | Storage rooms | Anti-hoard mass |
 | 5 | Balance / docs refresh | Numbers + status → shipped |
 
