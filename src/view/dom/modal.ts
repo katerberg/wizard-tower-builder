@@ -121,12 +121,33 @@ export function createModal(root: HTMLElement, store: Store): () => void {
     }
 
     if (modal.kind === 'research') {
+      // Preserve scroll position across re-renders (e.g. when selecting a node).
+      const scrollEl = root.querySelector('.research-dag-scroll');
+      let savedScrollLeft: number | null = null;
+      let savedScrollTop: number | null = null;
+      if (scrollEl instanceof HTMLElement) {
+        savedScrollLeft = scrollEl.scrollLeft;
+        savedScrollTop = scrollEl.scrollTop;
+      }
+
       root.innerHTML = `
         <div class="modal-backdrop"></div>
         <div class="modal-panel research-modal-panel">
           ${researchModalBody(store)}
         </div>`;
-      scrollResearchDagToFrontier(root);
+
+
+      if (savedScrollLeft !== null || savedScrollTop !== null) {
+        // Re-render: restore the user's scroll position so the view doesn't jump.
+        const newScroll = root.querySelector('.research-dag-scroll');
+        if (newScroll instanceof HTMLElement) {
+          if (savedScrollLeft !== null) newScroll.scrollLeft = savedScrollLeft;
+          if (savedScrollTop !== null) newScroll.scrollTop = savedScrollTop;
+        }
+      } else {
+        // First open: scroll to the frontier.
+        scrollResearchDagToFrontier(root);
+      }
       return;
     }
 
