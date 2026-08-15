@@ -496,6 +496,7 @@ button:disabled:hover {
   font-size: 11px;
   color: inherit;
   text-align: left;
+  overflow: hidden;
 }
 
 .research-dag-node strong {

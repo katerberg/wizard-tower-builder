@@ -2,6 +2,7 @@ import { RESEARCH_QUEUE_CAP } from '@/config/research';
 import { formatResourceCost } from '@/calculations/resources';
 import { getResearchNode } from '@/model/research';
 import {
+  RESEARCH_DAG_LAYER_GAP,
   RESEARCH_DAG_NODE_SIZE,
   selectResearchDag,
   type ResearchDagNodeView,
@@ -22,12 +23,18 @@ function edgePath(
   to: { x: number; y: number },
 ): string {
   const { w, h } = RESEARCH_DAG_NODE_SIZE;
-  const x1 = from.x + w;
-  const y1 = from.y + h / 2;
-  const x2 = to.x;
-  const y2 = to.y + h / 2;
-  const mx = (x1 + x2) / 2;
-  return `M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`;
+  const x1 = from.x + w / 2;
+  const y1 = from.y + h;
+  const x2 = to.x + w / 2;
+  const y2 = to.y;
+  const adjacentSpan = h + RESEARCH_DAG_LAYER_GAP;
+  if (y2 - y1 <= adjacentSpan + 1) {
+    const my = (y1 + y2) / 2;
+    return `M${x1},${y1} C${x1},${my} ${x2},${my} ${x2},${y2}`;
+  }
+  // Skip-layer: arc beside both nodes so the curve stays out of intervening rows.
+  const xBend = Math.max(from.x, to.x) + w + 24;
+  return `M${x1},${y1} C${xBend},${y1 + 28} ${xBend},${y2 - 28} ${x2},${y2}`;
 }
 
 function nodeClass(node: ResearchDagNodeView, selected: boolean): string {
@@ -38,9 +45,20 @@ function nodeClass(node: ResearchDagNodeView, selected: boolean): string {
 
 function renderGraph(dag: ResearchDagView, devMode: boolean): string {
   const { w, h } = RESEARCH_DAG_NODE_SIZE;
-  const maxX = Math.max(200, ...dag.nodes.map((n) => n.x), ...dag.groups.map((g) => g.x)) + w + 40;
+  const pos = new Map<string, { x: number; y: number }>([
+    ...dag.nodes.map((n) => [n.id, n] as const),
+    ...dag.groups.filter((g) => g.collapsed).map((g) => [g.id, g] as const),
+  ]);
+  const skipBend = dag.edges.reduce((max, e) => {
+    const from = pos.get(e.from);
+    const to = pos.get(e.to);
+    if (!from || !to) return max;
+    if (to.y - from.y - h <= RESEARCH_DAG_LAYER_GAP + 1) return max;
+    return Math.max(max, Math.max(from.x, to.x) + w + 24);
+  }, 0);
+  const maxX =
+    Math.max(200, skipBend, ...dag.nodes.map((n) => n.x), ...dag.groups.map((g) => g.x)) + w + 48;
   const maxY = Math.max(120, ...dag.nodes.map((n) => n.y), ...dag.groups.map((g) => g.y)) + h + 40;
-  const pos = new Map(dag.nodes.map((n) => [n.id, n]));
 
   const edges = dag.edges
     .map((e) => {
@@ -85,7 +103,7 @@ function renderGraph(dag: ResearchDagView, devMode: boolean): string {
             data-action="toggleResearchGroup" data-group="${g.id}">▾ ${escapeHtml(g.label)}</button>`;
       }
       return `
-        <button type="button" class="research-dag-node status-preview group"
+        <button type="button" class="research-dag-node status-${g.status} group"
           style="left:${g.x}px;top:${g.y}px;width:${w}px;height:${h}px"
           data-action="toggleResearchGroup" data-group="${g.id}">
           <strong>${escapeHtml(g.label)}</strong>
@@ -95,7 +113,7 @@ function renderGraph(dag: ResearchDagView, devMode: boolean): string {
     .join('');
 
   return `
-    <div class="research-dag-scroll" data-frontier-x="${dag.frontierFocusX}">
+    <div class="research-dag-scroll" data-frontier-y="${dag.frontierFocusY}">
       <div class="research-dag-canvas" style="width:${maxX}px;height:${maxY}px">
         <svg class="research-dag-svg" width="${maxX}" height="${maxY}">${edges}</svg>
         ${groups}
@@ -276,6 +294,6 @@ export function bindResearchModalInteractions(root: HTMLElement, store: Store): 
 export function scrollResearchDagToFrontier(root: HTMLElement): void {
   const scroll = root.querySelector('.research-dag-scroll');
   if (!(scroll instanceof HTMLElement)) return;
-  const focusX = Number(scroll.dataset.frontierX ?? 0);
-  scroll.scrollLeft = Math.max(0, focusX - 40);
+  const focusY = Number(scroll.dataset.frontierY ?? 0);
+  scroll.scrollTop = Math.max(0, focusY - 40);
 }

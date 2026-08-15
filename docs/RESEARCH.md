@@ -285,7 +285,7 @@ Run identity comes from:
 ## UI (v1)
 
 - **Sidebar:** active project + progress; queue summary; **Choose research…** (idle) or **Edit** (active/queued). No full frontier list in the sidebar.
-- **DAG modal:** freeform graph of **completed + available + preview** (direct children of those, including unmet multi-prereq children greyed with missing-prereq labels). Expansion nodes collapsed by default under their parent blueprint.
+- **DAG modal:** layered graph (**top to bottom** by prereq depth) of **completed + available + preview** (direct children of those, including unmet multi-prereq children greyed with missing-prereq labels). Expansion nodes collapse into their own chips — housing expansions sit with the roots; per-blueprint upgrades sit in the next row under the parent. Edges follow parent→child downward; skip-layer edges arc around intervening rows.
 - On open, scroll so the **frontier band** is in view.
 - Click a node → detail pane (name, unlocks, cost, labor, missing prereqs). Primary action **Start** (idle) or **Enqueue** (busy). Dev **Unlock** on the node chip; **Unlock all** in modal footer.
 - Cancel active: inline confirm with half-refund warning. Dequeue: full refund, no confirm beyond the remove control.
