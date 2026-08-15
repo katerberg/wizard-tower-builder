@@ -131,21 +131,18 @@ function detailPane(dag: ResearchDagView, devMode: boolean): string {
   const primary =
     selected.status === 'available'
       ? dag.busy
-        ? `<button type="button" class="primary" data-action="enqueueResearch" data-node="${selected.id}" ${
-            dag.canEnqueue ? '' : 'disabled'
-          }>Enqueue · ${escapeHtml(selected.costLabel ?? '')}</button>`
-        : `<button type="button" class="primary" data-action="startResearch" data-node="${selected.id}" ${
-            dag.canStart ? '' : 'disabled'
-          }>Start research · ${escapeHtml(selected.costLabel ?? '')}</button>`
+        ? `<button type="button" class="primary" data-action="enqueueResearch" data-node="${selected.id}" ${dag.canEnqueue ? '' : 'disabled'
+        }>Enqueue · ${escapeHtml(selected.costLabel ?? '')}</button>`
+        : `<button type="button" class="primary" data-action="startResearch" data-node="${selected.id}" ${dag.canStart ? '' : 'disabled'
+        }>Start research · ${escapeHtml(selected.costLabel ?? '')}</button>`
       : '';
 
   const cancelBlock =
     selected.status === 'active'
       ? `<div class="research-cancel-block">
-           <p class="warning">Cancel refunds half the start cost and loses all progress.</p>
            <button type="button" class="danger" data-action="cancelResearchConfirm">Cancel research…</button>
            <div class="research-cancel-confirm" hidden>
-             <p>Refund half of ${escapeHtml(formatResourceCost(selected.startCost))}. Progress will be lost.</p>
+             <p class="warning">Refund half of ${escapeHtml(formatResourceCost(selected.startCost))}. Progress will be lost.</p>
              <button type="button" class="danger" data-action="cancelResearch">Confirm cancel</button>
              <button type="button" data-action="cancelResearchAbort">Keep researching</button>
            </div>
@@ -163,16 +160,14 @@ function detailPane(dag: ResearchDagView, devMode: boolean): string {
       <p>${escapeHtml(selected.description)}</p>
       <div class="stat"><span>Unlocks</span><strong>${escapeHtml(selected.unlockSummary)}</strong></div>
       <div class="stat"><span>Labor</span><strong>${selected.progressRequired}</strong></div>
-      ${
-        selected.costLabel
-          ? `<div class="stat"><span>Cost</span><strong>${escapeHtml(selected.costLabel)}</strong></div>`
-          : ''
-      }
-      ${
-        selected.missingPrereqNames.length
-          ? `<p class="warning">Missing: ${escapeHtml(selected.missingPrereqNames.join(', '))}</p>`
-          : ''
-      }
+      ${selected.costLabel
+      ? `<div class="stat"><span>Cost</span><strong>${escapeHtml(selected.costLabel)}</strong></div>`
+      : ''
+    }
+      ${selected.missingPrereqNames.length
+      ? `<p class="warning">Missing: ${escapeHtml(selected.missingPrereqNames.join(', '))}</p>`
+      : ''
+    }
       <div class="research-detail-actions">
         ${primary}
         ${dequeue}
@@ -266,13 +261,17 @@ export function bindResearchModalInteractions(root: HTMLElement, store: Store): 
         if (nodeId) store.dispatch({ type: 'dequeueResearch', nodeId });
         break;
       case 'cancelResearchConfirm': {
-        const block = root.querySelector('.research-cancel-confirm');
-        if (block instanceof HTMLElement) block.hidden = false;
+        const confirmBlock = root.querySelector('.research-cancel-confirm');
+        if (confirmBlock instanceof HTMLElement) confirmBlock.hidden = false;
+        const triggerBtn = root.querySelector('[data-action="cancelResearchConfirm"]');
+        if (triggerBtn instanceof HTMLElement) triggerBtn.hidden = true;
         break;
       }
       case 'cancelResearchAbort': {
-        const block = root.querySelector('.research-cancel-confirm');
-        if (block instanceof HTMLElement) block.hidden = true;
+        const confirmBlock = root.querySelector('.research-cancel-confirm');
+        if (confirmBlock instanceof HTMLElement) confirmBlock.hidden = true;
+        const triggerBtn = root.querySelector('[data-action="cancelResearchConfirm"]');
+        if (triggerBtn instanceof HTMLElement) triggerBtn.hidden = false;
         break;
       }
       case 'cancelResearch':

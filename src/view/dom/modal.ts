@@ -121,33 +121,12 @@ export function createModal(root: HTMLElement, store: Store): () => void {
     }
 
     if (modal.kind === 'research') {
-      // Preserve scroll position across re-renders (e.g. when selecting a node).
-      const scrollEl = root.querySelector('.research-dag-scroll');
-      let savedScrollLeft: number | null = null;
-      let savedScrollTop: number | null = null;
-      if (scrollEl instanceof HTMLElement) {
-        savedScrollLeft = scrollEl.scrollLeft;
-        savedScrollTop = scrollEl.scrollTop;
-      }
-
       root.innerHTML = `
         <div class="modal-backdrop"></div>
         <div class="modal-panel research-modal-panel">
           ${researchModalBody(store)}
         </div>`;
-
-
-      if (savedScrollLeft !== null || savedScrollTop !== null) {
-        // Re-render: restore the user's scroll position so the view doesn't jump.
-        const newScroll = root.querySelector('.research-dag-scroll');
-        if (newScroll instanceof HTMLElement) {
-          if (savedScrollLeft !== null) newScroll.scrollLeft = savedScrollLeft;
-          if (savedScrollTop !== null) newScroll.scrollTop = savedScrollTop;
-        }
-      } else {
-        // First open: scroll to the frontier.
-        scrollResearchDagToFrontier(root);
-      }
+      scrollResearchDagToFrontier(root);
       return;
     }
 
@@ -191,14 +170,14 @@ function structureBody(inspector: NonNullable<ReturnType<typeof selectStructureI
   const shellHtml =
     shellEntries.length > 0
       ? `<div class="mod-list"><h4>Shell fortifications</h4>${shellEntries
-          .map((s) => {
-            const btn =
-              isBuildPhase
-                ? `<button class="mod-btn danger" data-action="sellShell" data-col="${s.col}" data-row="${s.row}">Remove</button>`
-                : '';
-            return `<div class="mod-row"><span class="mod-glyph">${s.glyph}</span><span class="mod-info"><strong>${s.name}</strong> <span class="mod-level">(${s.col},${s.row})</span></span>${btn}</div>`;
-          })
-          .join('')}</div>`
+        .map((s) => {
+          const btn =
+            isBuildPhase
+              ? `<button class="mod-btn danger" data-action="sellShell" data-col="${s.col}" data-row="${s.row}">Remove</button>`
+              : '';
+          return `<div class="mod-row"><span class="mod-glyph">${s.glyph}</span><span class="mod-info"><strong>${s.name}</strong> <span class="mod-level">(${s.col},${s.row})</span></span>${btn}</div>`;
+        })
+        .join('')}</div>`
       : '';
   return `
     <h3>${blueprint.name}</h3>
@@ -250,13 +229,12 @@ function roomBody(inspector: RoomInspector): string {
     specialty = `
       <h4>${staffTitle(inspector.housingStaffKind)}</h4>
       <div class="stat"><span>Recruited</span><strong>${inspector.housingRecruited} / ${inspector.housingCapacity}</strong></div>
-      ${
-        isBuildPhase
-          ? `<div class="slot-stepper">
+      ${isBuildPhase
+        ? `<div class="slot-stepper">
                <button class="mod-btn stepper-btn ${atMin ? 'disabled' : ''}" data-action="unrecruitStaff" data-room="${room.id}">−</button>
                <button class="mod-btn ${full ? 'disabled' : ''}" data-action="recruitStaff" data-room="${room.id}">Recruit · ${inspector.recruitCost}g</button>
              </div>`
-          : ''
+        : ''
       }`;
   }
 
@@ -264,14 +242,13 @@ function roomBody(inspector: RoomInspector): string {
     specialty += `
       <h4>Slot staffing</h4>
       <div class="stat"><span>Allocated</span><strong>${inspector.slotAllocated} / ${inspector.slotCapacity}</strong></div>
-      ${
-        isBuildPhase
-          ? `<div class="slot-stepper">
+      ${isBuildPhase
+        ? `<div class="slot-stepper">
                <button class="stepper-btn" data-action="slotMinus" data-room="${room.id}">−</button>
                <span>${inspector.slotAllocated}</span>
                <button class="stepper-btn" data-action="slotPlus" data-room="${room.id}">+</button>
              </div>`
-          : ''
+        : ''
       }`;
   }
 
@@ -279,14 +256,13 @@ function roomBody(inspector: RoomInspector): string {
     specialty += `
       <h4>Spring staffing</h4>
       <div class="stat"><span>Magi allocated</span><strong>${inspector.manaSpringAllocated} / ${inspector.manaSpringCapacity}</strong></div>
-      ${
-        isBuildPhase
-          ? `<div class="slot-stepper">
+      ${isBuildPhase
+        ? `<div class="slot-stepper">
                <button class="stepper-btn" data-action="springMinus" data-room="${room.id}">−</button>
                <span>${inspector.manaSpringAllocated}</span>
                <button class="stepper-btn" data-action="springPlus" data-room="${room.id}">+</button>
              </div>`
-          : ''
+        : ''
       }`;
   }
 
@@ -294,14 +270,13 @@ function roomBody(inspector: RoomInspector): string {
     specialty += `
       <h4>Research staffing</h4>
       <div class="stat"><span>Magi allocated</span><strong>${inspector.researchAllocated} / ${inspector.researchCapacity}</strong></div>
-      ${
-        isBuildPhase
-          ? `<div class="slot-stepper">
+      ${isBuildPhase
+        ? `<div class="slot-stepper">
                <button class="stepper-btn" data-action="researchMinus" data-room="${room.id}">−</button>
                <span>${inspector.researchAllocated}</span>
                <button class="stepper-btn" data-action="researchPlus" data-room="${room.id}">+</button>
              </div>`
-          : ''
+        : ''
       }`;
   }
 
