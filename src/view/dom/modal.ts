@@ -2,9 +2,21 @@ import { formatResourceAmount, formatWaveHaul } from '@/calculations/resources';
 import { selectRoomInspector, selectStructureInspector, type RoomInspector } from '@/store/selectors';
 import type { Resources } from '@/model/types';
 import type { Store } from '@/store/store';
+import {
+  bindResearchModalInteractions,
+  researchModalBody,
+  scrollResearchDagToFrontier,
+} from './researchModal';
 
 export function createModal(root: HTMLElement, store: Store): () => void {
+  bindResearchModalInteractions(root, store);
+
   root.addEventListener('click', (e) => {
+    const snapshot = store.getSnapshot();
+    if (snapshot.view.modal?.kind === 'research') {
+      // Research actions handled via pointerdown in bindResearchModalInteractions
+      // except backdrop / closeModal which share this listener.
+    }
     const target =
       e.target instanceof HTMLElement ? e.target.closest<HTMLElement>('[data-action]') : null;
     if (target?.classList.contains('disabled')) return;
@@ -15,7 +27,10 @@ export function createModal(root: HTMLElement, store: Store): () => void {
     }
     if (action === 'closeModal') {
       store.dispatch({ type: 'closeModal' });
-    } else if (action === 'sellRoom' && target?.dataset.room) {
+      return;
+    }
+    if (snapshot.view.modal?.kind === 'research') return;
+    if (action === 'sellRoom' && target?.dataset.room) {
       store.dispatch({ type: 'sellRoom', roomId: target.dataset.room });
     } else if (action === 'sellStructure' && target?.dataset.structure) {
       store.dispatch({ type: 'sellStructure', structureId: target.dataset.structure });
@@ -100,9 +115,20 @@ export function createModal(root: HTMLElement, store: Store): () => void {
     const modal = view.modal;
     if (
       !modal ||
-      (game.phase === 'attack' && (modal.kind === 'room' || modal.kind === 'structure'))
+      (game.phase === 'attack' &&
+        (modal.kind === 'room' || modal.kind === 'structure' || modal.kind === 'research'))
     ) {
       root.innerHTML = '';
+      return;
+    }
+
+    if (modal.kind === 'research') {
+      root.innerHTML = `
+        <div class="modal-backdrop"></div>
+        <div class="modal-panel research-modal-panel">
+          ${researchModalBody(store)}
+        </div>`;
+      scrollResearchDagToFrontier(root);
       return;
     }
 
@@ -148,14 +174,14 @@ function structureBody(inspector: NonNullable<ReturnType<typeof selectStructureI
   const shellHtml =
     shellEntries.length > 0
       ? `<div class="mod-list"><h4>Shell fortifications</h4>${shellEntries
-          .map((s) => {
-            const btn =
-              isBuildPhase
-                ? `<button class="mod-btn danger" data-action="sellShell" data-col="${s.col}" data-row="${s.row}">Remove</button>`
-                : '';
-            return `<div class="mod-row"><span class="mod-glyph">${s.glyph}</span><span class="mod-info"><strong>${s.name}</strong> <span class="mod-level">(${s.col},${s.row})</span></span>${btn}</div>`;
-          })
-          .join('')}</div>`
+        .map((s) => {
+          const btn =
+            isBuildPhase
+              ? `<button class="mod-btn danger" data-action="sellShell" data-col="${s.col}" data-row="${s.row}">Remove</button>`
+              : '';
+          return `<div class="mod-row"><span class="mod-glyph">${s.glyph}</span><span class="mod-info"><strong>${s.name}</strong> <span class="mod-level">(${s.col},${s.row})</span></span>${btn}</div>`;
+        })
+        .join('')}</div>`
       : '';
   return `
     <h3>${blueprint.name}</h3>
@@ -207,13 +233,12 @@ function roomBody(inspector: RoomInspector): string {
     specialty = `
       <h4>${staffTitle(inspector.housingStaffKind)}</h4>
       <div class="stat"><span>Recruited</span><strong>${inspector.housingRecruited} / ${inspector.housingCapacity}</strong></div>
-      ${
-        isBuildPhase
-          ? `<div class="slot-stepper">
+      ${isBuildPhase
+        ? `<div class="slot-stepper">
                <button class="mod-btn stepper-btn ${atMin ? 'disabled' : ''}" data-action="unrecruitStaff" data-room="${room.id}">−</button>
                <button class="mod-btn ${full ? 'disabled' : ''}" data-action="recruitStaff" data-room="${room.id}">Recruit · ${inspector.recruitCost}g</button>
              </div>`
-          : ''
+        : ''
       }`;
   }
 
@@ -221,14 +246,13 @@ function roomBody(inspector: RoomInspector): string {
     specialty += `
       <h4>Slot staffing</h4>
       <div class="stat"><span>Allocated</span><strong>${inspector.slotAllocated} / ${inspector.slotCapacity}</strong></div>
-      ${
-        isBuildPhase
-          ? `<div class="slot-stepper">
+      ${isBuildPhase
+        ? `<div class="slot-stepper">
                <button class="stepper-btn" data-action="slotMinus" data-room="${room.id}">−</button>
                <span>${inspector.slotAllocated}</span>
                <button class="stepper-btn" data-action="slotPlus" data-room="${room.id}">+</button>
              </div>`
-          : ''
+        : ''
       }`;
   }
 
@@ -236,14 +260,13 @@ function roomBody(inspector: RoomInspector): string {
     specialty += `
       <h4>Spring staffing</h4>
       <div class="stat"><span>Magi allocated</span><strong>${inspector.manaSpringAllocated} / ${inspector.manaSpringCapacity}</strong></div>
-      ${
-        isBuildPhase
-          ? `<div class="slot-stepper">
+      ${isBuildPhase
+        ? `<div class="slot-stepper">
                <button class="stepper-btn" data-action="springMinus" data-room="${room.id}">−</button>
                <span>${inspector.manaSpringAllocated}</span>
                <button class="stepper-btn" data-action="springPlus" data-room="${room.id}">+</button>
              </div>`
-          : ''
+        : ''
       }`;
   }
 
@@ -251,14 +274,13 @@ function roomBody(inspector: RoomInspector): string {
     specialty += `
       <h4>Research staffing</h4>
       <div class="stat"><span>Magi allocated</span><strong>${inspector.researchAllocated} / ${inspector.researchCapacity}</strong></div>
-      ${
-        isBuildPhase
-          ? `<div class="slot-stepper">
+      ${isBuildPhase
+        ? `<div class="slot-stepper">
                <button class="stepper-btn" data-action="researchMinus" data-room="${room.id}">−</button>
                <span>${inspector.researchAllocated}</span>
                <button class="stepper-btn" data-action="researchPlus" data-room="${room.id}">+</button>
              </div>`
-          : ''
+        : ''
       }`;
   }
 

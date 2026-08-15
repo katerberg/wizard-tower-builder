@@ -1,28 +1,9 @@
-import {
-  asResources,
-  canAffordResources,
-  formatResourceCost,
-} from '@/calculations/resources';
-import { getResearchNode, listFrontierNodes } from '@/model/research';
-import type { ResourceCost } from '@/model/types';
+import { getResearchNode } from '@/model/research';
 import type { Snapshot } from '../store';
-import { selectBuildEconomy } from './build';
 
-export interface ResearchFrontierItem {
-  id: string;
-  name: string;
-  description: string;
-  kind: 'blueprint' | 'expansion';
-  startCost: ResourceCost;
-  costLabel: string;
-  progressRequired: number;
-  affordable: boolean;
-}
-
-export interface ResearchPanelView {
+export interface ResearchSidebarView {
   visible: boolean;
   devMode: boolean;
-  frontier: ResearchFrontierItem[];
   active: null | {
     id: string;
     name: string;
@@ -30,37 +11,26 @@ export interface ResearchPanelView {
     required: number;
     ratio: number;
   };
-  busy: boolean;
+  queue: { id: string; name: string }[];
+  ctaLabel: string;
 }
 
-export function selectResearchPanel(snapshot: Snapshot): ResearchPanelView {
+export function selectResearchPanel(snapshot: Snapshot): ResearchSidebarView {
   const { game } = snapshot;
   const inRun = game.scene === 'run';
   const inBuild = inRun && game.phase === 'build';
-  const { remaining } = selectBuildEconomy(snapshot);
   const active = game.player.research.active;
   const activeNode = active ? getResearchNode(active.nodeId) : undefined;
-
-  const frontier = inBuild
-    ? listFrontierNodes(game).map((node) => {
-        const cost = asResources(node.startCost);
-        return {
-          id: node.id,
-          name: node.name,
-          description: node.description,
-          kind: node.kind,
-          startCost: node.startCost,
-          costLabel: formatResourceCost(node.startCost),
-          progressRequired: node.progressRequired,
-          affordable: canAffordResources(remaining, cost) && !active,
-        };
-      })
-    : [];
+  const queue = game.player.research.queue
+    .map((id) => {
+      const node = getResearchNode(id);
+      return node ? { id: node.id, name: node.name } : null;
+    })
+    .filter((q): q is { id: string; name: string } => q !== null);
 
   return {
-    visible: inRun && (inBuild || Boolean(active)),
+    visible: inBuild || Boolean(active),
     devMode: game.devMode,
-    frontier,
     active:
       active && activeNode
         ? {
@@ -71,6 +41,7 @@ export function selectResearchPanel(snapshot: Snapshot): ResearchPanelView {
             ratio: Math.min(1, active.progress / activeNode.progressRequired),
           }
         : null,
-    busy: Boolean(active),
+    queue,
+    ctaLabel: active || queue.length > 0 ? 'Edit' : 'Choose research…',
   };
 }

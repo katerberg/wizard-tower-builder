@@ -43,6 +43,8 @@ export class Store {
         layerVisibility: { rooms: true, infra: true, workers: true },
         connectivityFocusSlotId: null,
         waveBuilder: { open: false, counts: {} },
+        selectedResearchNodeId: null,
+        researchExpandedGroupIds: [],
       },
       buildHistory: [],
     };

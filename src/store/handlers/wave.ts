@@ -64,5 +64,7 @@ function restart(ctx: HandlerContext): void {
     layerVisibility: { rooms: true, infra: true, workers: true },
     connectivityFocusSlotId: null,
     waveBuilder: { open: false, counts: {} },
+    selectedResearchNodeId: null,
+    researchExpandedGroupIds: [],
   };
 }

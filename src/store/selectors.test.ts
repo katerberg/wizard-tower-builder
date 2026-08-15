@@ -3,12 +3,15 @@ import { getBlueprint } from '@/model/blueprints';
 import { createRoom, createStructure, placeRoom, placeStructure } from '@/model/tower';
 import { Store } from '@/store/store';
 import {
+  RESEARCH_DAG_NODE_SIZE,
   selectLibraryBlueprints,
   selectLibrarySections,
+  selectResearchDag,
   selectRoomBuildAlerts,
   selectRoomInspector,
   selectSpellBar,
   selectUiTooltip,
+  type ResearchDagView,
 } from './selectors';
 
 function placeStem(store: Store, cell: { col: number; row: number }): void {
@@ -241,5 +244,78 @@ describe('selectUiTooltip', () => {
     const tip = selectUiTooltip(store.getSnapshot(), { kind: 'tool', id: 'select' });
     expect(tip?.title).toBe('Select');
     expect(tip?.description.toLowerCase()).toContain('inspect');
+  });
+});
+
+function dagBoxes(dag: ResearchDagView): { id: string; x: number; y: number; w: number; h: number }[] {
+  const { w, h } = RESEARCH_DAG_NODE_SIZE;
+  const boxes = dag.nodes.map((n) => ({ id: n.id, x: n.x, y: n.y, w, h }));
+  for (const g of dag.groups) {
+    if (g.collapsed) boxes.push({ id: g.id, x: g.x, y: g.y, w, h });
+  }
+  return boxes;
+}
+
+function expectNoOverlaps(dag: ResearchDagView): void {
+  const boxes = dagBoxes(dag);
+  for (let i = 0; i < boxes.length; i++) {
+    for (let j = i + 1; j < boxes.length; j++) {
+      const a = boxes[i];
+      const b = boxes[j];
+      const overlap =
+        a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+      expect(overlap, `${a.id} overlaps ${b.id}`).toBe(false);
+    }
+  }
+}
+
+describe('selectResearchDag layout', () => {
+  it('does not overlap nodes or collapsed groups on the starting tree', () => {
+    const store = new Store('dag-start');
+    const dag = selectResearchDag(store.getSnapshot());
+    expectNoOverlaps(dag);
+
+    const housing = dag.groups.find((g) => g.id === 'exp-group:housing');
+    const barbican = dag.nodes.find((n) => n.id === 'bp-barbican');
+    const root = dag.nodes.find((n) => n.id === 'bp-buttress3');
+    expect(housing).toBeDefined();
+    expect(housing?.collapsed).toBe(true);
+    expect(housing?.status).toBe('available');
+    expect(housing?.y).toBe(root?.y);
+    expect(housing?.x).toBeLessThan(root?.x ?? Infinity);
+    expect(barbican).toBeDefined();
+    expect(barbican!.y).toBeGreaterThan(root!.y);
+    expect(housing?.x === barbican?.x && housing?.y === barbican?.y).toBe(false);
+  });
+
+  it('places children near their parents instead of packing every layer from the left', () => {
+    const store = new Store('dag-align');
+    const dag = selectResearchDag(store.getSnapshot());
+    const forge = dag.nodes.find((n) => n.id === 'bp-forge')!;
+    const flame = dag.nodes.find((n) => n.id === 'bp-flame-turret')!;
+    const pipe = dag.nodes.find((n) => n.id === 'bp-pipe')!;
+    const boiler = dag.nodes.find((n) => n.id === 'bp-boiler')!;
+    expect(flame.y).toBeGreaterThan(forge.y);
+    expect(boiler.y).toBeGreaterThan(pipe.y);
+    expect(Math.abs(flame.x - forge.x)).toBeLessThan(RESEARCH_DAG_NODE_SIZE.w + 40);
+    expect(Math.abs(boiler.x - pipe.x)).toBeLessThan(RESEARCH_DAG_NODE_SIZE.w * 2 + 80);
+  });
+
+  it('does not overlap after unlocking the full tree', () => {
+    const store = new Store('dag-all');
+    store.dispatch({ type: 'toggleDevMode' });
+    store.dispatch({ type: 'devUnlockAll' });
+    const dag = selectResearchDag(store.getSnapshot());
+    expect(dag.nodes.length).toBeGreaterThan(10);
+    expectNoOverlaps(dag);
+  });
+
+  it('keeps chips from overlapping when a housing group is expanded', () => {
+    const store = new Store('dag-expand');
+    store.dispatch({ type: 'toggleResearchGroup', groupId: 'exp-group:housing' });
+    const dag = selectResearchDag(store.getSnapshot());
+    expect(dag.groups.find((g) => g.id === 'exp-group:housing')?.collapsed).toBe(false);
+    expect(dag.nodes.some((n) => n.id === 'exp-guardroom')).toBe(true);
+    expectNoOverlaps(dag);
   });
 });
