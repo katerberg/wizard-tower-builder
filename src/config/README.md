@@ -18,3 +18,6 @@
 | Mod costs | `model/modifications/` |
 
 `constants.ts` re-exports grid/economy/combat/staff/infra for convenience.
+
+Expected-build locks (idle combat, height-aware fixtures): [`docs/BALANCE.md`](../../docs/BALANCE.md) and `npm run test:balance`.
+

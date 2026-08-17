@@ -11,6 +11,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:playability": "vitest run src/store/playability.test.ts",
+    "test:balance": "vitest run src/store/balance.test.ts",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --format json | node scripts/eslint-summary.mjs && npm run typecheck"

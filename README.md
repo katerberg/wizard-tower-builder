@@ -202,7 +202,9 @@ Mount points: `#board`, `#stage`, `#hud`, `#library`, `#message-log`, `#modal-ro
 | Mine harvest / prospecting (design) | [`docs/MINES.md`](docs/MINES.md) + [`.cursor/plans/mine_harvest_index.plan.md`](.cursor/plans/mine_harvest_index.plan.md) |
 | Current build costs by resource | [`docs/ECONOMY_COST_MATRIX.md`](docs/ECONOMY_COST_MATRIX.md) |
 | Research / tech tree / spell discovery (design) | [`docs/RESEARCH.md`](docs/RESEARCH.md) + [`.cursor/plans/research_index.plan.md`](.cursor/plans/research_index.plan.md) |
-| Tweak balance numbers | [`src/config/README.md`](src/config/README.md) |
+| Tweak balance numbers | [`src/config/README.md`](src/config/README.md) + [`docs/BALANCE.md`](docs/BALANCE.md) |
+| Add / lock an expected build | [`docs/BALANCE.md`](docs/BALANCE.md) + [`src/test/balance/builds.ts`](src/test/balance/builds.ts) |
+| Validate expected-build economy | **Deferred** — [`docs/BALANCE.md`](docs/BALANCE.md) (affordability envelopes on the harness) |
 | Change the attack tick order | [`src/model/tick.ts`](src/model/tick.ts) |
 | Change build/attack phases | [`src/model/phases.ts`](src/model/phases.ts) |
 | Change placement / stability | [`src/model/tower/`](src/model/tower/) |
@@ -227,6 +229,9 @@ src/
   store/
     handlers/          # Only writers of game state
     selectors/         # UI affordances by domain
+  test/
+    playability.ts     # Headless build + wave driver
+    balance/           # Named expected-build fixtures + sim report
   view/
     canvas/layers/     # Board paint pipeline
     dom/ theme.ts …
@@ -299,6 +304,8 @@ Still not done:
 - Additional turret / economy room types beyond Boiler, Mana Spring, Turret, Steam Turret, Forge, Flame Turret, and Water Pump
 - Infra/mod repair and mid-wave building (laborers repair room HP only today)
 - Exact harvest/wear balance curves; weather events on the weathering channel
+- **Validate expected-build economy** — affordability envelopes (slack leftover, not exact gold snapshots) for named fixtures; depends on the balance harness ([`docs/BALANCE.md`](docs/BALANCE.md))
+- **Possible-towers visualization** — catalog → spatial heatmap → layout search; harness emits an in-memory sim report only ([`docs/BALANCE.md`](docs/BALANCE.md))
 - Mine grid harvest / prospecting / storage rooms — design in [`docs/MINES.md`](docs/MINES.md); **engine slice shipped** (shallow stone workplaces); prospect / iron-gems / storage still open
 - Leyline / substance harvest + mana-spring removal — stub only ([`.cursor/plans/leyline_harvest_stub.plan.md`](.cursor/plans/leyline_harvest_stub.plan.md))
 
