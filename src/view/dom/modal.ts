@@ -114,7 +114,7 @@ export function createModal(root: HTMLElement, store: Store): () => void {
       const inspector = selectStructureInspector(snapshot, modal.structureId);
       body = inspector ? structureBody(inspector) : '<p>Structure no longer exists.</p>';
     } else if (modal.kind === 'waveClear') {
-      body = waveClearBody(modal.gold, modal.haul);
+      body = waveClearBody(modal.gold, modal.haul, modal.prospectNote);
     } else {
       body = helpBody();
     }
@@ -148,14 +148,14 @@ function structureBody(inspector: NonNullable<ReturnType<typeof selectStructureI
   const shellHtml =
     shellEntries.length > 0
       ? `<div class="mod-list"><h4>Shell fortifications</h4>${shellEntries
-          .map((s) => {
-            const btn =
-              isBuildPhase
-                ? `<button class="mod-btn danger" data-action="sellShell" data-col="${s.col}" data-row="${s.row}">Remove</button>`
-                : '';
-            return `<div class="mod-row"><span class="mod-glyph">${s.glyph}</span><span class="mod-info"><strong>${s.name}</strong> <span class="mod-level">(${s.col},${s.row})</span></span>${btn}</div>`;
-          })
-          .join('')}</div>`
+        .map((s) => {
+          const btn =
+            isBuildPhase
+              ? `<button class="mod-btn danger" data-action="sellShell" data-col="${s.col}" data-row="${s.row}">Remove</button>`
+              : '';
+          return `<div class="mod-row"><span class="mod-glyph">${s.glyph}</span><span class="mod-info"><strong>${s.name}</strong> <span class="mod-level">(${s.col},${s.row})</span></span>${btn}</div>`;
+        })
+        .join('')}</div>`
       : '';
   return `
     <h3>${blueprint.name}</h3>
@@ -207,13 +207,12 @@ function roomBody(inspector: RoomInspector): string {
     specialty = `
       <h4>${staffTitle(inspector.housingStaffKind)}</h4>
       <div class="stat"><span>Recruited</span><strong>${inspector.housingRecruited} / ${inspector.housingCapacity}</strong></div>
-      ${
-        isBuildPhase
-          ? `<div class="slot-stepper">
+      ${isBuildPhase
+        ? `<div class="slot-stepper">
                <button class="mod-btn stepper-btn ${atMin ? 'disabled' : ''}" data-action="unrecruitStaff" data-room="${room.id}">−</button>
                <button class="mod-btn ${full ? 'disabled' : ''}" data-action="recruitStaff" data-room="${room.id}">Recruit · ${inspector.recruitCost}g</button>
              </div>`
-          : ''
+        : ''
       }`;
   }
 
@@ -221,14 +220,13 @@ function roomBody(inspector: RoomInspector): string {
     specialty += `
       <h4>Slot staffing</h4>
       <div class="stat"><span>Allocated</span><strong>${inspector.slotAllocated} / ${inspector.slotCapacity}</strong></div>
-      ${
-        isBuildPhase
-          ? `<div class="slot-stepper">
+      ${isBuildPhase
+        ? `<div class="slot-stepper">
                <button class="stepper-btn" data-action="slotMinus" data-room="${room.id}">−</button>
                <span>${inspector.slotAllocated}</span>
                <button class="stepper-btn" data-action="slotPlus" data-room="${room.id}">+</button>
              </div>`
-          : ''
+        : ''
       }`;
   }
 
@@ -236,14 +234,13 @@ function roomBody(inspector: RoomInspector): string {
     specialty += `
       <h4>Spring staffing</h4>
       <div class="stat"><span>Magi allocated</span><strong>${inspector.manaSpringAllocated} / ${inspector.manaSpringCapacity}</strong></div>
-      ${
-        isBuildPhase
-          ? `<div class="slot-stepper">
+      ${isBuildPhase
+        ? `<div class="slot-stepper">
                <button class="stepper-btn" data-action="springMinus" data-room="${room.id}">−</button>
                <span>${inspector.manaSpringAllocated}</span>
                <button class="stepper-btn" data-action="springPlus" data-room="${room.id}">+</button>
              </div>`
-          : ''
+        : ''
       }`;
   }
 
@@ -251,14 +248,13 @@ function roomBody(inspector: RoomInspector): string {
     specialty += `
       <h4>Research staffing</h4>
       <div class="stat"><span>Magi allocated</span><strong>${inspector.researchAllocated} / ${inspector.researchCapacity}</strong></div>
-      ${
-        isBuildPhase
-          ? `<div class="slot-stepper">
+      ${isBuildPhase
+        ? `<div class="slot-stepper">
                <button class="stepper-btn" data-action="researchMinus" data-room="${room.id}">−</button>
                <span>${inspector.researchAllocated}</span>
                <button class="stepper-btn" data-action="researchPlus" data-room="${room.id}">+</button>
              </div>`
-          : ''
+        : ''
       }`;
   }
 
@@ -288,16 +284,20 @@ function roomBody(inspector: RoomInspector): string {
     ${remove}`;
 }
 
-function waveClearBody(gold: number, haul: Resources): string {
+function waveClearBody(gold: number, haul: Resources, prospectNote: string | null): string {
   const haulLabel = formatWaveHaul(haul);
   const haulLine =
     haulLabel === 'nothing'
       ? '<p class="haul-empty">Mine haul: nothing this wave.</p>'
       : `<p class="haul-ok">Mine haul: <strong>${haulLabel}</strong></p>`;
+  const prospectLine = prospectNote
+    ? `<p class="haul-ok">Prospecting: <strong>${prospectNote}</strong></p>`
+    : '';
   return `
     <h3>Wave cleared</h3>
     <p class="haul-ok">Clear reward: <strong>+${formatResourceAmount(gold)} gold</strong></p>
     ${haulLine}
+    ${prospectLine}
     <p class="hint">Laborers mine when connected to ground by stairs or elevators.</p>`;
 }
 

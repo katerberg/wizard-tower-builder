@@ -20,6 +20,7 @@ export type Intent =
   | { type: 'setSlotAllocation'; slotRoomId: string; count: number }
   | { type: 'setManaSpringAllocation'; springRoomId: string; count: number }
   | { type: 'setResearchAllocation'; researchRoomId: string; count: number }
+  | { type: 'setProspectAllocation'; count: number }
   | { type: 'startResearch'; nodeId: string }
   | { type: 'devUnlockResearch'; nodeId: string }
   | { type: 'toggleLayer'; layer: TowerLayer }
@@ -48,7 +49,7 @@ export type ModalData =
   | { kind: 'room'; roomId: string }
   | { kind: 'structure'; structureId: string }
   | { kind: 'help' }
-  | { kind: 'waveClear'; gold: number; haul: Resources };
+  | { kind: 'waveClear'; gold: number; haul: Resources; prospectNote: string | null };
 
 export interface WaveBuilderState {
   open: boolean;

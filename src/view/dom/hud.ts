@@ -6,6 +6,7 @@ import {
   selectBuildUndoState,
   selectLogisticsReport,
   selectMana,
+  selectProspectAllocation,
   selectSelectedBlueprint,
   selectTowerStability,
 } from '@/store/selectors';
@@ -19,7 +20,7 @@ export function createHud(root: HTMLElement, store: Store): () => void {
         ? eventTarget.closest<HTMLElement>('[data-action]')
         : null;
     if (!target || (target instanceof HTMLButtonElement && target.disabled)) return;
-    const action = target.dataset.action as Intent['type'] | undefined;
+    const action = target.dataset.action;
     if (!action) return;
     if (action === 'devSetSpellSchool') {
       const school = target.dataset.school;
@@ -28,7 +29,15 @@ export function createHud(root: HTMLElement, store: Store): () => void {
       }
       return;
     }
-    store.dispatch({ type: action } as Intent);
+    if (action === 'prospectMinus' || action === 'prospectPlus') {
+      const snapshot = store.getSnapshot();
+      const prospect = selectProspectAllocation(snapshot);
+      const count = action === 'prospectMinus' ? prospect.current - 1 : prospect.current + 1;
+      store.dispatch({ type: 'setProspectAllocation', count });
+      return;
+    }
+    // All other data-action values are valid intent types.
+    store.dispatch({ type: action as Intent['type'] } as Intent);
   }
 
   // Use pointerdown, not click: during the attack phase the HUD re-renders every
@@ -80,9 +89,8 @@ export function createHud(root: HTMLElement, store: Store): () => void {
     const logistics = inBuild ? selectLogisticsReport(snapshot.game) : null;
     const logisticsHtml =
       logistics && logistics.warnings.length > 0
-        ? `<p class="warning">${logistics.warnings[0]}${
-            logistics.warnings.length > 1 ? ` (+${logistics.warnings.length - 1} more)` : ''
-          }</p>`
+        ? `<p class="warning">${logistics.warnings[0]}${logistics.warnings.length > 1 ? ` (+${logistics.warnings.length - 1} more)` : ''
+        }</p>`
         : '';
 
     const phaseControls = inBuild
@@ -118,6 +126,15 @@ export function createHud(root: HTMLElement, store: Store): () => void {
          </div>`
       : '';
 
+    const prospect = inBuild ? selectProspectAllocation(snapshot) : null;
+    const prospectHtml = inBuild
+      ? `<div class="stat"><span>Prospectors</span><strong>${prospect?.current ?? 0} / ${prospect?.max ?? 0}</strong></div>
+         <div class="slot-stepper">
+           <button class="stepper-btn ${prospect && prospect.current <= 0 ? 'disabled' : ''}" data-action="prospectMinus">−</button>
+           <button class="stepper-btn ${prospect && prospect.current >= prospect.max ? 'disabled' : ''}" data-action="prospectPlus">+</button>
+         </div>`
+      : '';
+
     root.innerHTML = `
       <h1>Wizard Tower</h1>
       <div class="stat"><span>Phase</span><strong>${labelPhase(game.scene, game.phase)}</strong></div>
@@ -128,6 +145,7 @@ export function createHud(root: HTMLElement, store: Store): () => void {
       <div class="stat"><span>Souls</span><strong>${soulsLabel}</strong></div>
       <div class="stat"><span>Wizard HP</span><strong>${player.wizard.hp} / ${player.wizard.maxHp}</strong></div>
       ${attackInfo}
+      ${prospectHtml}
       ${buildModeHint}
       ${phaseControls}
       <div class="dev-row">

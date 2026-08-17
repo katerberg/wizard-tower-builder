@@ -132,6 +132,8 @@ During **attack only**, laborers auto-assign to damaged rooms (`hp < maxHp`) and
 - Retarget when the job room is gone or fully repaired.
 - No repair ticks in build phase.
 
+**Prospecting** ([`MINES.md`](MINES.md)): In build phase, set a global **prospectors** count via the HUD stepper. Those laborers are removed from the repair/pump/mine auto pool and assigned to the prospect job (path to mine frontier, work timer, reveal next depth tier). Leftover laborers auto-fill pump → mine patches (stone, metal, gold).
+
 Deferred: infra/mod repair, mid-wave building.
 
 ---

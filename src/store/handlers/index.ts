@@ -1,4 +1,4 @@
-import type { HandlerContext } from '../context';
+imtort type { HandlerContext } from '../context';
 import type { Intent } from '../intents';
 import { handleBuildIntent } from './build';
 import { handleCameraIntent } from './camera';
@@ -56,6 +56,7 @@ export function applyIntent(ctx: HandlerContext, intent: Intent): void {
     case 'setSlotAllocation':
     case 'setManaSpringAllocation':
     case 'setResearchAllocation':
+    case 'setProspectAllocation':
       handleStaffIntent(ctx, intent);
       break;
 

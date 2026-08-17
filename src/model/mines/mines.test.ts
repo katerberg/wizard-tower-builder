@@ -98,7 +98,7 @@ describe('mine stone harvest', () => {
     return { state, patch };
   }
 
-  it('yields stone only and depletes the patch', () => {
+  it('yields stone + passive iron drip and depletes the patch', () => {
     const { state, patch } = stateWithLaborerAtPatch();
     const beforeStone = state.player.resources.stone;
     const beforeMetal = state.player.resources.metal;
@@ -107,7 +107,9 @@ describe('mine stone harvest', () => {
     tickLaborerHarvestAndPump(state, 1);
 
     expect(state.player.resources.stone).toBe(beforeStone + MINE_STONE_HARVEST_PER_SEC);
-    expect(state.player.resources.metal).toBe(beforeMetal);
+    // Passive iron drip: 3% of stone harvest → metal.
+    const expectedMetal = MINE_STONE_HARVEST_PER_SEC * 0.03;
+    expect(state.player.resources.metal).toBeCloseTo(beforeMetal + expectedMetal, 5);
     expect(patch.remaining).toBe(beforeRemaining - MINE_STONE_HARVEST_PER_SEC);
   });
 

@@ -145,6 +145,7 @@ export class Store {
       manaSpringAllocations: structuredClone(game.manaSpringAllocations),
       researchRoomAllocations: structuredClone(game.researchRoomAllocations),
       buildRecruitSpend: game.buildRecruitSpend,
+      prospectAllocation: game.prospectAllocation,
     });
   }
 
@@ -189,6 +190,7 @@ export class Store {
           kind: 'waveClear',
           gold: summary.gold,
           haul: summary.haul,
+          prospectNote: summary.prospectNote,
         };
       }
       this.dirty = true;

@@ -4,7 +4,7 @@ import { roomAnchorCell } from '@/calculations/interiorGraph';
 import { roomCells } from '@/calculations/grid';
 import { computeRoomStats, computeStructureStats } from '@/calculations/combat';
 import { getBlueprint } from '@/model/blueprints';
-import { isMinePatchTarget } from '@/model/mines';
+import { isMinePatchTarget, isProspectTarget } from '@/model/mines';
 import { roomAt } from '@/model/tower';
 import { assignSurplusLaborers, isPumpTarget } from './harvest';
 import type { Cell, GameState, Room, StaffKind, StaffUnit, Structure } from '@/model/types';
@@ -159,8 +159,8 @@ export function tickLaborerRepairs(state: GameState, dt: number): void {
     ) {
       continue;
     }
-    // Pump / mine jobs stay put (do not peel for repair).
-    if (isPumpTarget(unit.targetWorkplaceId) || isMinePatchTarget(unit.targetWorkplaceId)) {
+    // Pump / mine / prospect jobs stay put (do not peel for repair).
+    if (isPumpTarget(unit.targetWorkplaceId) || isMinePatchTarget(unit.targetWorkplaceId) || isProspectTarget(unit.targetWorkplaceId)) {
       continue;
     }
     const target = unit.targetWorkplaceId ? findRepairTarget(state, unit.targetWorkplaceId) : null;
