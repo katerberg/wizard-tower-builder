@@ -41,6 +41,7 @@ export type Intent =
   | { type: 'revertBuild' }
   | { type: 'selectSpell'; spellId: string | null }
   | { type: 'castSpellAt'; spellId: string; cell: Cell }
+  | { type: 'moveWizard'; cell: Cell }
   | { type: 'cancelCast' }
   | { type: 'setSimSpeed'; speed: SimSpeed };
 

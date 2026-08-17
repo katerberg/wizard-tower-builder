@@ -49,6 +49,14 @@ export function enemyAtCell(state: GameState, cell: Cell): Enemy | undefined {
 }
 
 export function buildSpellContext(state: GameState, spellName: string): SpellCastContext {
+  const damageCollector = (damage: number) => {
+    const dealt = mitigateWizardDamage(state, damage);
+    state.solarCollector.hp = Math.max(0, state.solarCollector.hp - dealt);
+    addMessage(state, `${spellName} batters the solar collector for ${dealt}!`, 'combat');
+    if (state.solarCollector.hp <= 0) {
+      loseGame(state);
+    }
+  };
   const ctx: SpellCastContext = {
     state,
     spellName,
@@ -75,15 +83,8 @@ export function buildSpellContext(state: GameState, spellName: string): SpellCas
     log(text, kind) {
       addMessage(state, text, kind);
     },
-    damageWizard(damage) {
-      const wizard = state.player.wizard;
-      const dealt = mitigateWizardDamage(state, damage);
-      wizard.hp = Math.max(0, wizard.hp - dealt);
-      addMessage(state, `${spellName} batters the wizard for ${dealt}!`, 'combat');
-      if (wizard.hp <= 0) {
-        loseGame(state);
-      }
-    },
+    damageWizard: damageCollector,
+    damageCollector,
   };
   return ctx;
 }

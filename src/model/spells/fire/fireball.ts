@@ -1,7 +1,7 @@
 import { macroCellOfNode } from '@/calculations/subGrid';
+import { getSolarCollectorPosition } from '@/model/wizard';
 import type { SpellCastContext, SpellDef } from '../types';
 import type { Cell } from '../../types';
-import { getWizardPosition } from '../../tower';
 
 function cellsInAoE(center: Cell, radius: number): Cell[] {
   const cells: Cell[] = [];
@@ -30,17 +30,16 @@ export function enemiesInFireballBlast(ctx: SpellCastContext, center: Cell): Ret
   return enemiesInCells(ctx, cellsInAoE(center, 1));
 }
 
-function wizardInCells(ctx: SpellCastContext, cells: Cell[]): boolean {
-  const wizardPos = getWizardPosition(ctx.state.tower);
-  const wizardMacro = macroCellOfNode(wizardPos);
-  return cells.some((c) => c.col === wizardMacro.col && c.row === wizardMacro.row);
+function collectorInCells(ctx: SpellCastContext, cells: Cell[]): boolean {
+  const collectorMacro = macroCellOfNode(getSolarCollectorPosition(ctx.state));
+  return cells.some((c) => c.col === collectorMacro.col && c.row === collectorMacro.row);
 }
 
 export const fireball: SpellDef = {
   id: 'fireball',
   name: 'Fireball',
   glyph: '*',
-  description: 'Instant 3×3 blast. Damages enemies — and the wizard if caught in the blast. Procs Kindled.',
+  description: 'Instant 3×3 blast. Damages enemies — and the solar collector if caught in the blast. Procs Kindled.',
   manaCost: 4,
   cooldown: 2,
   targeting: 'gridPoint',
@@ -55,12 +54,12 @@ export const fireball: SpellDef = {
     for (const enemy of hit) {
       ctx.applyFireDamage(enemy, fireball.damage);
     }
-    if (wizardInCells(ctx, blastCells)) {
-      ctx.damageWizard(fireball.damage);
+    if (collectorInCells(ctx, blastCells)) {
+      ctx.damageCollector(fireball.damage);
     }
     if (hit.length > 0) {
       ctx.log(`Fireball scorches ${hit.length} ${hit.length === 1 ? 'foe' : 'foes'}.`, 'combat');
-    } else if (!wizardInCells(ctx, blastCells)) {
+    } else if (!collectorInCells(ctx, blastCells)) {
       ctx.log('Fireball detonates — no enemies caught in the blast.', 'combat');
     }
   },

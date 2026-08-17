@@ -17,14 +17,14 @@ import {
   attackOverhangBlocking,
   handleStuckClimberSmash,
 } from './enemies/demolisherCombat';
-import { attackBlockingRoom, attackWizard, closestRoomToEnemy, enemyTouchesRoom, greedyStepTowardRoom } from './enemies/flierCombat';
+import { attackBlockingRoom, attackCollector, closestRoomToEnemy, enemyTouchesRoom, greedyStepTowardRoom } from './enemies/flierCombat';
 import { addMessage } from './messages';
 import { findPath } from '../calculations/pathfinding';
 import { fortificationSlowMultiplier } from './fortifications/effects';
 import { runEnemyStepEffects, runRoomEffects } from './modifications/effects';
 import {
-  buildSpellContext, blizzardSlowMultiplier, getEffectiveWizardPosition,
-  isMacroCellBlockedByTornado, mitigateWizardDamage, onEnemyWallStep, runAutoSpells,
+  buildSpellContext, blizzardSlowMultiplier,
+  isMacroCellBlockedByTornado, mitigateCollectorDamage, onEnemyWallStep, runAutoSpells,
   runFaultPatchStepEffects, runKindlingPatchStepEffects, runWetCellStepEffects,
   shouldStubDiscombobulatedStep, soakSlowMultiplier, tickAirEffects, tickEarthEffects,
   tickFireEffects, tickSpellCooldowns, tickWaterEffects,
@@ -33,6 +33,7 @@ import { endWave, loseGame } from './phases';
 import { shuffle } from '../calculations/rng';
 import { goblinNames, bruteNames, wispNames } from './names';
 import { spawnIntervalFor } from './waves';
+import { collectorGoalKey, getSolarCollectorPosition, stepWizard } from './wizard';
 import type { Enemy, EnemyTemplate, ExteriorNode, GameState, MovementProfile } from './types';
 
 let enemyCounter = 0;
@@ -87,9 +88,9 @@ export function takeEnemyName(templateId: string): string {
 }
 
 function spawnEnemy(state: GameState, template: EnemyTemplate, side: 'left' | 'right'): void {
-  const wizardPos = getEffectiveWizardPosition(state);
+  const collectorPos = getSolarCollectorPosition(state);
   const pos = template.movement.canFly
-    ? spawnAirNode(state.tower, side, flySpawnBandForCrown(state.waveStartHeight), wizardPos)
+    ? spawnAirNode(state.tower, side, flySpawnBandForCrown(state.waveStartHeight), collectorPos)
     : spawnNode(state.tower, side);
   state.enemies.push({
     id: `enemy-${enemyCounter++}`, templateId: template.id, name: pickName(template.id), pos,
@@ -133,15 +134,12 @@ function trackMacroMovement(enemy: Enemy, state: GameState, canFly: boolean): vo
   enemy.lastMacroKey = key;
   if (enemy.lifetimeMacroCells !== undefined && (enemy.macroCellsMoved ?? 0) >= enemy.lifetimeMacroCells) enemy.currentHp = 0;
 }
-function wizardGoalKey(pos: ExteriorNode): string {
-  const m = macroCellOfNode(pos); return `${m.col},${m.row}`;
-}
 
 /** Advance one fixed timestep. Only meaningful during the attack phase. */
 export function step(state: GameState, dt: number): void {
   if (state.scene !== 'run' || state.phase !== 'attack') return;
   state.waveTimer += dt;
-  const wizardPos = getEffectiveWizardPosition(state);
+  const collectorPos = getSolarCollectorPosition(state);
   const wizard = state.player.wizard;
 
   // 1. Spawn queued enemies, alternating sides while below the live cap.
@@ -153,27 +151,30 @@ export function step(state: GameState, dt: number): void {
     state.spawnTimer = spawnIntervalFor(templateId);
   }
 
-  // 2. Enemy movement and combat.
-  const goalKey = wizardGoalKey(wizardPos);
+  // 2. Enemy movement and combat (goal = solar collector perch).
+  const goalKey = collectorGoalKey(state);
   const launches: Enemy[] = [];
   for (const enemy of state.enemies) {
     if (enemy.currentHp <= 0) continue;
     const template = getEnemyTemplate(enemy.templateId);
     if (!template || enemy.airborne) continue;
-    const needsRepath = enemy.path.length === 0 || (template.movement.canFly && enemy.pathGoalKey !== goalKey) ||
-      (enemy.path.length > 0 && enemy.pathIndex >= enemy.path.length - 1 && !reached(enemy.pos, wizardPos));
+    const needsRepath = enemy.path.length === 0 || enemy.pathGoalKey !== goalKey ||
+      (enemy.path.length > 0 && enemy.pathIndex >= enemy.path.length - 1 && !reached(enemy.pos, collectorPos));
     if (needsRepath) {
-      enemy.path = findPath(state.tower, enemy.pos, wizardPos, pathProfileFor(template.movement));
+      enemy.path = findPath(state.tower, enemy.pos, collectorPos, pathProfileFor(template.movement));
       enemy.pathIndex = 0;
       enemy.pathGoalKey = goalKey;
     }
     if (template.carrier) {
-      const dist = macroManhattan(enemy.pos, wizardPos);
+      const dist = macroManhattan(enemy.pos, collectorPos);
       enemy.carrierLaunchTimer = (enemy.carrierLaunchTimer ?? 0) - dt;
       if (enemy.carrierLaunchTimer <= 0) { launches.push(enemy); enemy.carrierLaunchTimer = CARRIER_LAUNCH_INTERVAL; }
       if (dist <= CARRIER_HOVER_MACRO_RANGE) continue;
     }
-    if (reached(enemy.pos, wizardPos)) { attackWizard(state, enemy, template, wizard, mitigateWizardDamage, dt); continue; }
+    if (reached(enemy.pos, collectorPos)) {
+      attackCollector(state, enemy, template, wizard, mitigateCollectorDamage, dt);
+      continue;
+    }
     if (template.movement.canFly && enemy.path.length === 0) {
       const room = closestRoomToEnemy(state, enemy);
       if (room && enemyTouchesRoom(enemy, room)) { attackBlockingRoom(state, enemy, template, dt); continue; }
@@ -185,7 +186,7 @@ export function step(state: GameState, dt: number): void {
       }
       continue;
     }
-    // Climbers with no path to the wizard: smash closest room/framing (demolishers included).
+    // Climbers with no path to the collector: smash closest room/framing.
     if (!template.movement.canFly && enemy.path.length === 0) {
       handleStuckClimberSmash(
         state,
@@ -207,7 +208,6 @@ export function step(state: GameState, dt: number): void {
         if (template.movement.canAttackOverhang) {
           attackOverhangBlocking(state, enemy, template, nextPos, dt);
         }
-        // Blocked — stay put; attackCooldown gates swings. Retry next tick.
         enemy.moveCooldown = 0;
         continue;
       }
@@ -225,8 +225,10 @@ export function step(state: GameState, dt: number): void {
   tickAirEffects(state, dt, (name) => buildSpellContext(state, name));
   tickEarthEffects(state, dt, (name) => buildSpellContext(state, name)); tickWaterEffects(state, dt);
 
-  // 4. Elevators, staff work, harvesting, and tower weathering.
-  stepElevators(state, dt); stepStaff(state, dt); tickLaborerRepairs(state, dt);
+  // 4. Elevators, wizard, staff work, harvesting, and tower weathering.
+  stepElevators(state, dt);
+  stepWizard(state, dt);
+  stepStaff(state, dt); tickLaborerRepairs(state, dt);
   tickLaborerHarvestAndPump(state, dt); tickStoneWeathering(state, dt);
 
   // 5. Room and modification effects.
@@ -241,6 +243,6 @@ export function step(state: GameState, dt: number): void {
     } else survivors.push(enemy);
   }
   state.enemies = survivors;
-  if (wizard.hp <= 0) { loseGame(state); return; }
+  if (state.solarCollector.hp <= 0) { loseGame(state); return; }
   if (state.spawnQueue.length === 0 && state.enemies.length === 0) endWave(state);
 }

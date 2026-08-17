@@ -12,6 +12,7 @@ import { handleResearchIntent } from './research';
 import { handleSpeedIntent } from './speed';
 import { handleSpellIntent } from './spells';
 import { handleWaveIntent } from './wave';
+import { handleWizardIntent } from './wizard';
 
 export function applyIntent(ctx: HandlerContext, intent: Intent): void {
   switch (intent.type) {
@@ -90,6 +91,10 @@ export function applyIntent(ctx: HandlerContext, intent: Intent): void {
     case 'castSpellAt':
     case 'cancelCast':
       handleSpellIntent(ctx, intent);
+      break;
+
+    case 'moveWizard':
+      handleWizardIntent(ctx, intent);
       break;
 
     case 'setSimSpeed':

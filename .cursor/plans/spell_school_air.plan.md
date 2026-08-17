@@ -214,7 +214,7 @@ Exact edge cases (corner wrap, ground row) → tune in playtest; default: **any 
 | Rule          | Detail                                                                                                         |
 | ------------- | -------------------------------------------------------------------------------------------------------------- |
 | Target        | Self-cast                                                                                                      |
-| Effect        | Wizard **levitates** off perch for fixed duration                                                              |
+| Effect        | Wizard takes flight for fixed duration; click-to-path through open air                                                              |
 | Casting       | **May cast other spells** while Flight is active                                                               |
 | Immunity      | **No** special immunity to own air zones                                                                       |
 | End of Flight | Wizard **floats downward** until reaching a **standable** exterior cell (existing walkability / surface rules) |

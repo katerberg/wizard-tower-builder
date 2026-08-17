@@ -1,5 +1,11 @@
-import { ELEVATOR_CAPACITY, STAFF_ELEVATOR_SPEED } from '@/config/constants';
+import {
+  ELEVATOR_CAPACITY,
+  STAFF_ELEVATOR_SPEED,
+  WIZARD_PASSENGER_ID,
+} from '@/config/constants';
 import { hasInfraKind } from '@/model/infra';
+import { macroCenterSubCell, macroCellOfNode } from '@/calculations/subGrid';
+import { expandMacroPathToSubCells } from '@/calculations/wizardPathfinding';
 import type {
   Cell,
   ElevatorCar,
@@ -8,6 +14,7 @@ import type {
   GameState,
   StaffUnit,
   Tower,
+  WizardAvatar,
 } from '@/model/types';
 
 function parseInfraKey(key: string): Cell {
@@ -121,11 +128,23 @@ function staffById(state: GameState, id: string): StaffUnit | undefined {
   return state.staff.find((s) => s.id === id);
 }
 
-function waitersAt(
-  state: GameState,
-  shaftId: string,
-  row: number,
-): StaffUnit[] {
+function wizardAvatar(state: GameState): WizardAvatar | undefined {
+  return state.wizardAvatar;
+}
+
+function wizardWaitingAt(state: GameState, shaftId: string, row: number): boolean {
+  const w = wizardAvatar(state);
+  return (
+    !!w &&
+    w.status === 'waiting_elevator' &&
+    w.elevatorShaftId === shaftId &&
+    macroCellOfNode(w.pos).row === row &&
+    w.elevatorExitRow !== undefined &&
+    w.elevatorExitRow !== row
+  );
+}
+
+function waitersAt(state: GameState, shaftId: string, row: number): StaffUnit[] {
   return state.staff.filter(
     (s) =>
       s.status === 'waiting_elevator' &&
@@ -136,10 +155,10 @@ function waitersAt(
   );
 }
 
-function wantsDirection(unit: StaffUnit, dir: ElevatorDir, carRow: number): boolean {
-  if (unit.elevatorExitRow === undefined) return false;
-  if (dir === 'up') return unit.elevatorExitRow > carRow;
-  if (dir === 'down') return unit.elevatorExitRow < carRow;
+function wantsDirection(exitRow: number | undefined, dir: ElevatorDir, carRow: number): boolean {
+  if (exitRow === undefined) return false;
+  if (dir === 'up') return exitRow > carRow;
+  if (dir === 'down') return exitRow < carRow;
   return false;
 }
 
@@ -150,9 +169,44 @@ function clearElevatorFields(unit: StaffUnit): void {
   delete unit.elevatorWaitElapsed;
 }
 
+function clearWizardElevatorFields(w: WizardAvatar): void {
+  delete w.elevatorShaftId;
+  delete w.elevatorExitRow;
+  delete w.elevatorExitMacroIndex;
+  delete w.elevatorWaitElapsed;
+}
+
+function unloadWizardAtFloor(state: GameState, car: ElevatorCar): boolean {
+  const w = wizardAvatar(state);
+  if (!w || !car.passengers.includes(WIZARD_PASSENGER_ID)) return false;
+  if (w.elevatorExitRow !== car.row) {
+    w.pos = macroCenterSubCell(car.col, car.row);
+    return false;
+  }
+  const exitIndex = w.elevatorExitMacroIndex ?? w.macroPathIndex;
+  w.pos = macroCenterSubCell(car.col, car.row);
+  w.macroPathIndex = exitIndex;
+  const remaining = w.macroPath.slice(exitIndex);
+  w.path = expandMacroPathToSubCells(state.tower, remaining);
+  w.pathIndex = 0;
+  if (w.path.length > 0) {
+    w.path[0] = { ...w.pos, face: 'top' };
+  }
+  clearWizardElevatorFields(w);
+  w.status = remaining.length > 1 ? 'moving' : 'idle';
+  w.moveCooldown = 0;
+  return true;
+}
+
 function unloadAtFloor(state: GameState, car: ElevatorCar): void {
   const remaining: string[] = [];
   for (const id of car.passengers) {
+    if (id === WIZARD_PASSENGER_ID) {
+      if (!unloadWizardAtFloor(state, car)) {
+        remaining.push(id);
+      }
+      continue;
+    }
     const unit = staffById(state, id);
     if (!unit) continue;
     if (unit.elevatorExitRow === car.row) {
@@ -171,13 +225,26 @@ function unloadAtFloor(state: GameState, car: ElevatorCar): void {
   car.passengers = remaining;
 }
 
+function boardWizardAtFloor(state: GameState, car: ElevatorCar, dir: ElevatorDir): void {
+  if (car.passengers.length >= ELEVATOR_CAPACITY) return;
+  if (car.passengers.includes(WIZARD_PASSENGER_ID)) return;
+  const w = wizardAvatar(state);
+  if (!w || !wizardWaitingAt(state, car.shaftId, car.row)) return;
+  if (!wantsDirection(w.elevatorExitRow, dir, car.row)) return;
+  car.passengers.push(WIZARD_PASSENGER_ID);
+  w.status = 'riding_elevator';
+  w.pos = macroCenterSubCell(car.col, car.row);
+  w.moveCooldown = 0;
+}
+
 function boardAtFloor(state: GameState, car: ElevatorCar, dir: ElevatorDir): void {
+  boardWizardAtFloor(state, car, dir);
   const queue = waitersAt(state, car.shaftId, car.row).sort(
     (a, b) => (b.elevatorWaitElapsed ?? 0) - (a.elevatorWaitElapsed ?? 0),
   );
   for (const unit of queue) {
     if (car.passengers.length >= ELEVATOR_CAPACITY) break;
-    if (!wantsDirection(unit, dir, car.row)) continue;
+    if (!wantsDirection(unit.elevatorExitRow, dir, car.row)) continue;
     car.passengers.push(unit.id);
     unit.status = 'riding_elevator';
     unit.pos = { col: car.col, row: car.row };
@@ -187,28 +254,53 @@ function boardAtFloor(state: GameState, car: ElevatorCar, dir: ElevatorDir): voi
 
 /** When idle, first boarded waiter sets direction; then fill same-direction waiters. */
 function boardFromIdle(state: GameState, car: ElevatorCar): ElevatorDir | null {
-  const queue = waitersAt(state, car.shaftId, car.row).sort(
+  const w = wizardAvatar(state);
+  const staffQueue = waitersAt(state, car.shaftId, car.row).sort(
     (a, b) => (b.elevatorWaitElapsed ?? 0) - (a.elevatorWaitElapsed ?? 0),
   );
-  if (queue.length === 0) return null;
 
-  const first = queue[0];
-  if (first.elevatorExitRow === undefined || first.elevatorExitRow === car.row) return null;
-  const dir: ElevatorDir = first.elevatorExitRow > car.row ? 'up' : 'down';
+  interface Caller { exitRow: number; wait: number; isWizard: boolean }
+  const callers: Caller[] = [];
+  if (wizardWaitingAt(state, car.shaftId, car.row) && w?.elevatorExitRow !== undefined) {
+    callers.push({
+      exitRow: w.elevatorExitRow,
+      wait: w.elevatorWaitElapsed ?? 0,
+      isWizard: true,
+    });
+  }
+  for (const unit of staffQueue) {
+    if (unit.elevatorExitRow === undefined) continue;
+    callers.push({
+      exitRow: unit.elevatorExitRow,
+      wait: unit.elevatorWaitElapsed ?? 0,
+      isWizard: false,
+    });
+  }
+  callers.sort((a, b) => b.wait - a.wait);
+  if (callers.length === 0) return null;
+
+  const first = callers[0];
+  if (first.exitRow === car.row) return null;
+  const dir: ElevatorDir = first.exitRow > car.row ? 'up' : 'down';
   boardAtFloor(state, car, dir);
   return car.passengers.length > 0 ? dir : null;
+}
+
+function passengerExitRow(state: GameState, id: string): number | undefined {
+  if (id === WIZARD_PASSENGER_ID) return wizardAvatar(state)?.elevatorExitRow;
+  return staffById(state, id)?.elevatorExitRow;
 }
 
 function farthestPassengerExit(state: GameState, car: ElevatorCar, dir: ElevatorDir): number | null {
   let best: number | null = null;
   for (const id of car.passengers) {
-    const unit = staffById(state, id);
-    if (unit?.elevatorExitRow === undefined) continue;
-    if (dir === 'up' && unit.elevatorExitRow > car.row) {
-      best = best === null ? unit.elevatorExitRow : Math.max(best, unit.elevatorExitRow);
+    const exit = passengerExitRow(state, id);
+    if (exit === undefined) continue;
+    if (dir === 'up' && exit > car.row) {
+      best = best === null ? exit : Math.max(best, exit);
     }
-    if (dir === 'down' && unit.elevatorExitRow < car.row) {
-      best = best === null ? unit.elevatorExitRow : Math.min(best, unit.elevatorExitRow);
+    if (dir === 'down' && exit < car.row) {
+      best = best === null ? exit : Math.min(best, exit);
     }
   }
   return best;
@@ -228,8 +320,12 @@ function nextPickupRow(
   const lo = dir === 'up' ? car.row + 1 : farthest;
   const hi = dir === 'up' ? farthest : car.row - 1;
   for (let row = lo; row <= hi; row++) {
-    const waiters = waitersAt(state, car.shaftId, row).filter((w) => wantsDirection(w, dir, row));
-    if (waiters.length === 0) continue;
+    const hasStaff = waitersAt(state, car.shaftId, row).some((w) =>
+      wantsDirection(w.elevatorExitRow, dir, row),
+    );
+    const hasWizard = wizardWaitingAt(state, car.shaftId, row)
+      && wantsDirection(wizardAvatar(state)?.elevatorExitRow, dir, row);
+    if (!hasStaff && !hasWizard) continue;
     if (dir === 'up') {
       best = best === null ? row : Math.min(best, row);
     } else {
@@ -242,9 +338,8 @@ function nextPickupRow(
 function nextPassengerStop(state: GameState, car: ElevatorCar, dir: ElevatorDir): number | null {
   let best: number | null = null;
   for (const id of car.passengers) {
-    const unit = staffById(state, id);
-    if (unit?.elevatorExitRow === undefined) continue;
-    const exit = unit.elevatorExitRow;
+    const exit = passengerExitRow(state, id);
+    if (exit === undefined) continue;
     if (dir === 'up' && exit > car.row) {
       best = best === null ? exit : Math.min(best, exit);
     }
@@ -278,6 +373,17 @@ function collectCalls(state: GameState, shaftId: string): CallFloor[] {
     const wait = unit.elevatorWaitElapsed ?? 0;
     byRow.set(unit.pos.row, Math.max(byRow.get(unit.pos.row) ?? 0, wait));
   }
+  const w = wizardAvatar(state);
+  if (
+    w?.status === 'waiting_elevator' &&
+    w.elevatorShaftId === shaftId &&
+    w.elevatorExitRow !== undefined &&
+    w.elevatorExitRow !== macroCellOfNode(w.pos).row
+  ) {
+    const row = macroCellOfNode(w.pos).row;
+    const wait = w.elevatorWaitElapsed ?? 0;
+    byRow.set(row, Math.max(byRow.get(row) ?? 0, wait));
+  }
   return [...byRow.entries()].map(([row, maxWait]) => ({ row, maxWait }));
 }
 
@@ -298,6 +404,11 @@ function pickNearestCall(car: ElevatorCar, calls: CallFloor[]): CallFloor | null
 
 function syncPassengerPositions(state: GameState, car: ElevatorCar): void {
   for (const id of car.passengers) {
+    if (id === WIZARD_PASSENGER_ID) {
+      const w = wizardAvatar(state);
+      if (w) w.pos = macroCenterSubCell(car.col, car.row);
+      continue;
+    }
     const unit = staffById(state, id);
     if (unit) unit.pos = { col: car.col, row: car.row };
   }
@@ -313,7 +424,6 @@ function processStop(state: GameState, car: ElevatorCar): void {
       car.targetRow = next;
       return;
     }
-    // No further stops in this direction — unload should have cleared; fall through.
   }
 
   if (car.passengers.length === 0) {
@@ -323,7 +433,6 @@ function processStop(state: GameState, car: ElevatorCar): void {
       const next = chooseNextTarget(state, car, boardedDir);
       car.targetRow = next;
       if (next === null || next === car.row) {
-        // Degenerate — unload immediately next tick
         car.dir = 'idle';
         car.targetRow = null;
       }
@@ -338,7 +447,6 @@ function processStop(state: GameState, car: ElevatorCar): void {
       return;
     }
     if (call?.row === car.row) {
-      // Waiters here but boardFromIdle failed (e.g. exit==row); stay idle
       car.targetRow = null;
       return;
     }
@@ -346,10 +454,10 @@ function processStop(state: GameState, car: ElevatorCar): void {
     return;
   }
 
-  // Passengers remain but no valid next — reset direction from passengers
-  const unit = staffById(state, car.passengers[0]);
-  if (unit?.elevatorExitRow !== undefined && unit.elevatorExitRow !== car.row) {
-    car.dir = unit.elevatorExitRow > car.row ? 'up' : 'down';
+  const firstId = car.passengers[0];
+  const exit = passengerExitRow(state, firstId);
+  if (exit !== undefined && exit !== car.row) {
+    car.dir = exit > car.row ? 'up' : 'down';
     car.targetRow = chooseNextTarget(state, car, car.dir);
   } else {
     car.dir = 'idle';
@@ -374,7 +482,6 @@ function stepCarOneFloor(state: GameState, car: ElevatorCar): void {
 
 /** Advance elevator cars and boarding during the attack phase. */
 export function stepElevators(state: GameState, dt: number): void {
-  // Accumulate wait time for callers.
   for (const unit of state.staff) {
     if (unit.status === 'waiting_elevator') {
       unit.elevatorWaitElapsed = (unit.elevatorWaitElapsed ?? 0) + dt;
@@ -385,10 +492,8 @@ export function stepElevators(state: GameState, dt: number): void {
     car.moveCooldown -= dt;
     if (car.moveCooldown > 0) continue;
 
-    // Idle car with no target: look for calls / local waiters.
     if (car.dir === 'idle' && car.targetRow === null) {
       processStop(state, car);
-      // Depart next tick (door close) — do not step the same frame as boarding.
       if (car.targetRow !== null && car.targetRow !== car.row) {
         car.moveCooldown = 1 / STAFF_ELEVATOR_SPEED;
       }

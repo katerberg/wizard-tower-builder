@@ -308,7 +308,8 @@ function helpBody(): string {
       <li>Build framing (spires / buttresses), then place rooms on top. Infra and rooms auto-add framing when needed.</li>
       <li>Recruit staff in housing, allocate slots and mana springs, connect floors with stairs.</li>
       <li>Surplus laborers harvest stone underground — quarters need stairs or elevators to reach ground.</li>
-      <li>Crawlers climb the outside of framing and rooms; fliers pass through bare framing and only rooms block them.</li>
+      <li>Crawlers climb the outside of framing and rooms toward the solar collector; fliers pass through bare framing and only rooms block them. Protect the collector — lose if its HP hits zero.</li>
+      <li>In attack, click the board to move the wizard (firefighter) via stairs/elevators, or select a spell then click to cast. Flight lets you path through open air briefly.</li>
       <li>Demolishers cannot crawl under overhangs — they smash rooms, then framing, on their path. Collapses cascade and pipe networks re-resolve mid-wave.</li>
       <li>Workers need stairs to change floors even on empty framing.</li>
       <li>Right-click sells the room first (framing stays); click again to sell framing.</li>

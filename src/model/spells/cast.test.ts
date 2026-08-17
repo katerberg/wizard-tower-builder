@@ -101,13 +101,13 @@ describe('fireball casting', () => {
     expect(far.currentHp).toBe(28);
   });
 
-  it('damages the wizard when the blast includes their perch', () => {
+  it('damages the solar collector when the blast includes the perch', () => {
     const state = towerWithStem(createInitialState('fb6'));
     state.phase = 'attack';
-    const wizardHp = state.player.wizard.hp;
+    const collectorHp = state.solarCollector.hp;
 
     castSpell(state, 'fireball', { kind: 'cell', cell: { col: 8, row: 1 } });
-    expect(state.player.wizard.hp).toBe(wizardHp - 12);
+    expect(state.solarCollector.hp).toBe(collectorHp - 12);
   });
 });
 

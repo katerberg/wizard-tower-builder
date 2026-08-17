@@ -76,6 +76,8 @@ export function attachInput(
       const { game, view } = store.getSnapshot();
       if (game.phase === 'attack' && view.selectedSpellId) {
         store.dispatch({ type: 'castSpellAt', spellId: view.selectedSpellId, cell });
+      } else if (game.phase === 'attack') {
+        store.dispatch({ type: 'moveWizard', cell });
       } else if (game.phase === 'build' && view.selectedBlueprintId) {
         store.dispatch({ type: 'placeSelectedAt', cell });
       } else if (game.phase === 'build' && roomAt(game.tower, cell.col, cell.row)) {

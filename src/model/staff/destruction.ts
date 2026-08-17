@@ -3,6 +3,7 @@ import { addMessage } from '../messages';
 import { lockPipeFluids } from '../pipes';
 import type { RemovalDelta } from '../tower/sell';
 import type { Cell, GameState, StaffKind, StaffUnit } from '../types';
+import { maybeWizardCollapseFall } from '../wizard';
 import {
   housingCapacity,
   housingKindOf,
@@ -124,6 +125,8 @@ export function applyDestructionAftermath(state: GameState, delta: RemovalDelta)
     enemy.pathIndex = 0;
     enemy.pathGoalKey = undefined;
   }
+
+  maybeWizardCollapseFall(state, cleared);
 
   state.tower = lockPipeFluids(state.tower, maxWaterReachRow(state));
 }

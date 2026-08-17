@@ -1,5 +1,6 @@
 import {
   MAX_MANA,
+  SOLAR_COLLECTOR_DEFAULTS,
   STARTING_RESOURCES,
   WIZARD_DEFAULTS,
 } from '@/config/constants';
@@ -15,6 +16,7 @@ import { seedFrom } from '../calculations/rng';
 import { generateShallowMine } from './mines';
 import { createStarterTower } from './starterTower';
 import { resetTickState } from './tick';
+import { createWizardAvatarAtPerch } from './wizard';
 import type { GameState, SimSpeed } from './types';
 
 const DEFAULT_SIM_SPEED: SimSpeed = 1;
@@ -39,7 +41,7 @@ export function createInitialState(seed: string | number = 'wizard'): GameState 
       unlockedModifications: [...STARTING_MODIFICATION_IDS],
       research: emptyResearchState(),
       levelIndex: 0,
-      wizard: { ...WIZARD_DEFAULTS, hp: WIZARD_DEFAULTS.maxHp, glyph: '@' },
+      wizard: { ...WIZARD_DEFAULTS, glyph: '@' },
       mana: MAX_MANA,
       maxMana: MAX_MANA,
     },
@@ -79,8 +81,23 @@ export function createInitialState(seed: string | number = 'wizard'): GameState 
     waveHaul: emptyResources(),
     pendingWaveClear: null,
     buildBaseline: null,
+    solarCollector: {
+      hp: SOLAR_COLLECTOR_DEFAULTS.maxHp,
+      maxHp: SOLAR_COLLECTOR_DEFAULTS.maxHp,
+      glyph: SOLAR_COLLECTOR_DEFAULTS.glyph,
+    },
+    wizardAvatar: {
+      pos: { col: 0, row: 0, face: 'top' },
+      path: [],
+      pathIndex: 0,
+      macroPath: [],
+      macroPathIndex: 0,
+      moveCooldown: 0,
+      status: 'idle',
+    },
   };
   state.mine = generateShallowMine(state.tower);
+  state.wizardAvatar = createWizardAvatarAtPerch(state);
   captureBuildBaseline(state);
   return state;
 }

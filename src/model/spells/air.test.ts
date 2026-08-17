@@ -186,12 +186,14 @@ describe('Flight', () => {
     state.phase = 'attack';
     state.player.mana = 20;
     state.activeSpellSchool = 'air';
+    // Align avatar with the replaced tower crown before Flight.
+    const perch = getWizardPosition(state.tower);
+    state.wizardAvatar.pos = { ...perch };
 
     const flightResult = castSpell(state, 'flight', { kind: 'self' });
     expect(flightResult.ok).toBe(true);
     expect(state.wizardFlight).toBeDefined();
-    const perch = getWizardPosition(state.tower);
-    expect(state.wizardFlight!.pos.row).toBe(perch.row + FLIGHT_ASCENT_SUB_ROWS);
+    expect(state.wizardAvatar.pos.row).toBe(perch.row + FLIGHT_ASCENT_SUB_ROWS);
 
     const gustResult = castSpell(state, 'gust', { kind: 'cell', cell: { col: 8, row: 2 } });
     expect(gustResult.ok).toBe(true);

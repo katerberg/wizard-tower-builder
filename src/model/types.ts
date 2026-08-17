@@ -180,15 +180,46 @@ export interface BuildDraftSnapshot {
 }
 
 export interface Wizard {
-  hp: number;
-  maxHp: number;
   glyph: string;
-  // v1 defense: wizard auto-attacks; dedicated turret rooms also fire via rooms.
+  // Wand Strike / combat stats. Lose-condition HP is on SolarCollector.
   attack: number;
   defense: number;
   dexterity: number;
   range: number;
   attackCooldown: number;
+}
+
+/** Crown objective — enemies path here; Fortify mitigates its damage. */
+export interface SolarCollector {
+  hp: number;
+  maxHp: number;
+  glyph: string;
+}
+
+export type WizardMoveStatus =
+  | 'idle'
+  | 'moving'
+  | 'waiting_elevator'
+  | 'riding_elevator'
+  | 'flying'
+  | 'falling';
+
+/** Player firefighter avatar — distinct from staff; never an enemy melee target. */
+export interface WizardAvatar {
+  /** Sub-cell position (`face: 'air'` while flying). */
+  pos: ExteriorNode;
+  /** Expanded sub-cell waypoints for the current grounded / air path. */
+  path: ExteriorNode[];
+  pathIndex: number;
+  /** Macro cells used for elevator planning and repath. */
+  macroPath: Cell[];
+  macroPathIndex: number;
+  moveCooldown: number;
+  status: WizardMoveStatus;
+  elevatorShaftId?: string;
+  elevatorExitRow?: number;
+  elevatorExitMacroIndex?: number;
+  elevatorWaitElapsed?: number;
 }
 
 export type ExteriorFace = 'left' | 'right' | 'top' | 'air';
@@ -266,7 +297,7 @@ export interface Enemy {
   lastMacroKey?: string;
   /** Carrier launch cooldown accumulator. */
   carrierLaunchTimer?: number;
-  /** Last wizard macro key used for flier repath (`col,row`). */
+  /** Last solar-collector perch macro key used for repath (`col,row`). */
   pathGoalKey?: string;
   /** Water school: Soak stacks (0–100). Slow only — no inherent damage. */
   soak?: number;
@@ -327,11 +358,9 @@ export interface BlizzardZone {
   tickTimer: number;
 }
 
+/** Flight spell timer — position lives on WizardAvatar. */
 export interface WizardFlight {
-  pos: ExteriorNode;
   until: number;
-  descending: boolean;
-  descendTimer?: number;
 }
 
 /** Earth school — Fault trap (Charge per pass). */
@@ -444,6 +473,10 @@ export interface GameState {
   blizzardZones: BlizzardZone[];
   tornadoEnterDone: Record<string, true>;
   wizardFlight?: WizardFlight;
+  /** Mobile wizard avatar (firefighter). */
+  wizardAvatar: WizardAvatar;
+  /** Crown lose-condition objective. */
+  solarCollector: SolarCollector;
   /** Earth school — Charge meter (0…max). */
   earthCharge: number;
   /** Earth school — Fault patches. */

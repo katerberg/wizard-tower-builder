@@ -83,7 +83,7 @@ export class PlayabilityDriver {
       steps,
       scene: game.scene,
       phase: game.phase,
-      wizardHp: game.player.wizard.hp,
+      wizardHp: game.solarCollector.hp,
       currency: game.player.resources.gold,
       enemiesRemaining: game.enemies.length,
       spawnQueueRemaining: game.spawnQueue.length,

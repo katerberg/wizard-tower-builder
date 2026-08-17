@@ -1,6 +1,6 @@
 import { macroDistance } from '@/calculations/subGrid';
 import { WIZARD_DEFAULTS } from '@/config/constants';
-import { getWizardPosition } from '../tower';
+import { getEffectiveWizardPosition } from './air/flight';
 import type { SpellDef } from './types';
 
 export const wandStrike: SpellDef = {
@@ -16,7 +16,7 @@ export const wandStrike: SpellDef = {
   dexterity: WIZARD_DEFAULTS.dexterity,
   autoCast: true,
   cast(ctx) {
-    const wizardPos = getWizardPosition(ctx.state.tower);
+    const wizardPos = getEffectiveWizardPosition(ctx.state);
     let target = null;
     let bestDist = Infinity;
     for (const enemy of ctx.state.enemies) {
