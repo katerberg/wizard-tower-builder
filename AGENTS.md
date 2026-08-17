@@ -15,6 +15,7 @@ Non-obvious notes for running/testing:
 
 - Per `.cursor/rules/verify-before-done.mdc`, no code change is complete until `npm run lint && npm test` both exit 0 (this mirrors CI in `.github/workflows/ci.yml`).
 - Per `.cursor/rules/plans-include-docs.mdc`, every plan must include an explicit docs deliverable (`docs/`, README, or folder READMEs)—or state **Docs: none** with a reason for purely internal work.
+- Non-trivial planning: follow `.agents/skills/one-shot-plan/SKILL.md` (one question dump, then a locked plan). Do not drip 1–5 questions or leave TBDs in the plan.
 - Task entry points: README **“Where do I…?”** table and short READMEs under `src/model/spells/`, `src/model/rooms/`, `src/config/`, `src/store/`, `src/view/`.
 - The app boots **directly into a run's build phase** with a pre-seeded tower — there is no main menu / "New game" screen to click through.
 - Core-loop smoke test: pick a blueprint (e.g. `Spire Block`) from the BUILD library, place it on a cell resting on the existing structure (gold decreases), then click `Start Wave` to enter the attack phase where enemies climb and the wizard fires. Win by clearing a wave while framing height is still ≥ 100 (`docs/HEIGHT_PROGRESSION.md`).
