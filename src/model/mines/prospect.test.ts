@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
   PROSPECT_MAX_ALLOCATION,
   RARE_PATCH_FALLOFF,
@@ -19,11 +19,9 @@ import {
   tickLaborerHarvestAndPump,
   prospectFrontierCell,
 } from '@/model/staff/harvest';
-import { deployStaffForWave, stepStaff } from '@/model/staff/deploy';
 import { tickLaborerRepairs } from '@/model/staff/combat';
 import { endWave } from '@/model/phases';
 import { createRoom, createStructure, createTower, placeRoom, placeStructure } from '@/model/tower';
-import type { StaffUnit } from '@/model/types';
 
 function setupMineState(): ReturnType<typeof createInitialState> {
   const state = createInitialState('prospect-test');
@@ -110,7 +108,7 @@ describe('prospectors excluded from mine auto-fill', () => {
         pathIndex: 0,
         moveCooldown: 0,
         status: 'working',
-      } as StaffUnit,
+      },
       {
         id: 'L2',
         kind: 'laborer',
@@ -121,7 +119,7 @@ describe('prospectors excluded from mine auto-fill', () => {
         pathIndex: 0,
         moveCooldown: 0,
         status: 'idle',
-      } as StaffUnit,
+      },
     ];
 
     assignSurplusLaborers(state);
@@ -147,7 +145,6 @@ describe('rare patch falloff', () => {
     state.mine.tunnels['6,-2'] = true;
     state.mine.tunnels['7,-2'] = true;
 
-    const patch = state.mine.patches.find((p) => p.id === 'metal-99')!;
     state.staff = [
       {
         id: 'L1',
@@ -159,7 +156,7 @@ describe('rare patch falloff', () => {
         pathIndex: 0,
         moveCooldown: 0,
         status: 'working',
-      } as StaffUnit,
+      },
       {
         id: 'L2',
         kind: 'laborer',
@@ -170,7 +167,7 @@ describe('rare patch falloff', () => {
         pathIndex: 0,
         moveCooldown: 0,
         status: 'working',
-      } as StaffUnit,
+      },
     ];
 
     const beforeMetal = state.waveHaul.metal;
@@ -201,7 +198,7 @@ describe('prospect job resolves and reveals tier', () => {
         pathIndex: 0,
         moveCooldown: 0,
         status: 'working',
-      } as StaffUnit,
+      },
     ];
 
     const beforeDepth = state.mine.unlockedDepth;
@@ -230,7 +227,7 @@ describe('prospectors stay put during repair retarget', () => {
         pathIndex: 0,
         moveCooldown: 0,
         status: 'working',
-      } as StaffUnit,
+      },
     ];
 
     tickLaborerRepairs(state, 0.1);
