@@ -5,3 +5,4 @@ export * from './logistics';
 export * from './hud';
 export * from './waveBuilder';
 export * from './research';
+export * from './researchDag';

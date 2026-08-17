@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
+import { RESEARCH_QUEUE_CAP } from '@/config/research';
 import { createInitialState } from '@/model/game';
 import {
   addResearchProgress,
+  cancelActiveResearch,
+  dequeueResearch,
+  enqueueResearch,
   getResearchNode,
   instantUnlockResearch,
   listFrontierNodes,
@@ -19,6 +23,7 @@ describe('research tech tree', () => {
     expect(state.player.unlockedBlueprints).not.toContain('pipe');
     expect(state.player.unlockedBlueprints).not.toContain('steamTurretRoom');
     expect(state.player.unlockedModifications).toEqual(['spikes']);
+    expect(state.player.research.queue).toEqual([]);
   });
 
   it('lists frontier nodes with met prerequisites', () => {
@@ -71,6 +76,7 @@ describe('research tech tree', () => {
     expect(state.player.unlockedBlueprints).toContain('moat');
     expect(state.player.unlockedModifications).toContain('slotExpansion');
     expect(state.player.unlockedModifications).toContain('boilerExpansion');
+    expect(state.player.research.queue).toEqual([]);
   });
 
   it('instantUnlockResearch completes one node without spending', () => {
@@ -82,5 +88,60 @@ describe('research tech tree', () => {
     expect(state.player.research.completedNodeIds).toContain('bp-pipe');
     expect(state.buildBaseline!.resources.souls).toBe(beforeSouls);
     expect(state.player.research.active).toBeNull();
+  });
+
+  it('enqueues while active, spends cost, and full-refunds on dequeue', () => {
+    const state = createInitialState();
+    startResearch(state, 'bp-pipe');
+    const before = state.buildBaseline!.resources.souls;
+    const slotCost = getResearchNode('bp-slot')!.startCost.souls ?? 0;
+    expect(enqueueResearch(state, 'bp-slot').ok).toBe(true);
+    expect(state.player.research.queue).toEqual(['bp-slot']);
+    expect(state.buildBaseline!.resources.souls).toBe(before - slotCost);
+    expect(enqueueResearch(state, 'bp-boiler').ok).toBe(false); // prereq
+    expect(dequeueResearch(state, 'bp-slot').ok).toBe(true);
+    expect(state.player.research.queue).toEqual([]);
+    expect(state.buildBaseline!.resources.souls).toBe(before);
+  });
+
+  it('rejects enqueue over the queue cap', () => {
+    const state = createInitialState();
+    state.buildBaseline!.resources.souls = 500;
+    state.buildBaseline!.resources.metal = 500;
+    state.buildBaseline!.resources.stone = 500;
+    startResearch(state, 'bp-pipe');
+    const roots = ['bp-slot', 'bp-forge', 'bp-elevator', 'bp-buttress3', 'bp-moat', 'bp-glacis'];
+    for (let i = 0; i < RESEARCH_QUEUE_CAP; i++) {
+      expect(enqueueResearch(state, roots[i]).ok).toBe(true);
+    }
+    expect(enqueueResearch(state, roots[RESEARCH_QUEUE_CAP]).ok).toBe(false);
+    expect(state.player.research.queue).toHaveLength(RESEARCH_QUEUE_CAP);
+  });
+
+  it('cancels active research with half refund and clears progress', () => {
+    const state = createInitialState();
+    const cost = getResearchNode('bp-pipe')!.startCost.souls ?? 0;
+    const before = state.buildBaseline!.resources.souls;
+    startResearch(state, 'bp-pipe');
+    addResearchProgress(state, 5);
+    expect(cancelActiveResearch(state).ok).toBe(true);
+    expect(state.player.research.active).toBeNull();
+    expect(state.buildBaseline!.resources.souls).toBe(before - cost + Math.floor(cost * 0.5));
+  });
+
+  it('auto-promotes the queue head when active research completes', () => {
+    const state = createInitialState();
+    startResearch(state, 'bp-pipe');
+    enqueueResearch(state, 'bp-slot');
+    addResearchProgress(state, getResearchNode('bp-pipe')!.progressRequired);
+    expect(state.player.research.completedNodeIds).toContain('bp-pipe');
+    expect(state.player.research.active?.nodeId).toBe('bp-slot');
+    expect(state.player.research.active?.progress).toBe(0);
+    expect(state.player.research.queue).toEqual([]);
+  });
+
+  it('cannot enqueue without an active project', () => {
+    const state = createInitialState();
+    expect(enqueueResearch(state, 'bp-pipe').ok).toBe(false);
   });
 });

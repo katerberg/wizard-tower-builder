@@ -2,9 +2,21 @@ import { formatResourceAmount, formatWaveHaul } from '@/calculations/resources';
 import { selectRoomInspector, selectStructureInspector, type RoomInspector } from '@/store/selectors';
 import type { Resources } from '@/model/types';
 import type { Store } from '@/store/store';
+import {
+  bindResearchModalInteractions,
+  researchModalBody,
+  scrollResearchDagToFrontier,
+} from './researchModal';
 
 export function createModal(root: HTMLElement, store: Store): () => void {
+  bindResearchModalInteractions(root, store);
+
   root.addEventListener('click', (e) => {
+    const snapshot = store.getSnapshot();
+    if (snapshot.view.modal?.kind === 'research') {
+      // Research actions handled via pointerdown in bindResearchModalInteractions
+      // except backdrop / closeModal which share this listener.
+    }
     const target =
       e.target instanceof HTMLElement ? e.target.closest<HTMLElement>('[data-action]') : null;
     if (target?.classList.contains('disabled')) return;
@@ -15,7 +27,10 @@ export function createModal(root: HTMLElement, store: Store): () => void {
     }
     if (action === 'closeModal') {
       store.dispatch({ type: 'closeModal' });
-    } else if (action === 'sellRoom' && target?.dataset.room) {
+      return;
+    }
+    if (snapshot.view.modal?.kind === 'research') return;
+    if (action === 'sellRoom' && target?.dataset.room) {
       store.dispatch({ type: 'sellRoom', roomId: target.dataset.room });
     } else if (action === 'sellStructure' && target?.dataset.structure) {
       store.dispatch({ type: 'sellStructure', structureId: target.dataset.structure });
@@ -100,9 +115,20 @@ export function createModal(root: HTMLElement, store: Store): () => void {
     const modal = view.modal;
     if (
       !modal ||
-      (game.phase === 'attack' && (modal.kind === 'room' || modal.kind === 'structure'))
+      (game.phase === 'attack' &&
+        (modal.kind === 'room' || modal.kind === 'structure' || modal.kind === 'research'))
     ) {
       root.innerHTML = '';
+      return;
+    }
+
+    if (modal.kind === 'research') {
+      root.innerHTML = `
+        <div class="modal-backdrop"></div>
+        <div class="modal-panel research-modal-panel">
+          ${researchModalBody(store)}
+        </div>`;
+      scrollResearchDagToFrontier(root);
       return;
     }
 
