@@ -140,7 +140,7 @@ export function createModal(root: HTMLElement, store: Store): () => void {
       const inspector = selectStructureInspector(snapshot, modal.structureId);
       body = inspector ? structureBody(inspector) : '<p>Structure no longer exists.</p>';
     } else if (modal.kind === 'waveClear') {
-      body = waveClearBody(modal.gold, modal.haul);
+      body = waveClearBody(modal.gold, modal.haul, modal.prospectNote);
     } else {
       body = helpBody();
     }
@@ -310,16 +310,20 @@ function roomBody(inspector: RoomInspector): string {
     ${remove}`;
 }
 
-function waveClearBody(gold: number, haul: Resources): string {
+function waveClearBody(gold: number, haul: Resources, prospectNote: string | null): string {
   const haulLabel = formatWaveHaul(haul);
   const haulLine =
     haulLabel === 'nothing'
       ? '<p class="haul-empty">Mine haul: nothing this wave.</p>'
       : `<p class="haul-ok">Mine haul: <strong>${haulLabel}</strong></p>`;
+  const prospectLine = prospectNote
+    ? `<p class="haul-ok">Prospecting: <strong>${prospectNote}</strong></p>`
+    : '';
   return `
     <h3>Wave cleared</h3>
     <p class="haul-ok">Clear reward: <strong>+${formatResourceAmount(gold)} gold</strong></p>
     ${haulLine}
+    ${prospectLine}
     <p class="hint">Laborers mine when connected to ground by stairs or elevators.</p>`;
 }
 

@@ -7,10 +7,11 @@ import { findInteriorPath } from '@/calculations/interiorPathfinding';
 import { canSoldierTraverse, roomAnchorCell } from '@/calculations/interiorGraph';
 import { planElevatorRide, isElevatorVerticalStep } from '@/model/elevators';
 import { hasInfraKind } from '@/model/infra';
-import { findMinePatchByTarget, isMinePatchTarget } from '@/model/mines';
+import { findMinePatchByTarget, isMinePatchTarget, isProspectTarget, PROSPECT_TARGET } from '@/model/mines';
 import { addMessage } from '@/model/messages';
 import { isManaSpringRoom } from '@/model/pipes';
 import { isResearchRoom } from '@/model/research';
+import { prospectFrontierCell } from '@/model/staff/harvest';
 import {
   housingCapacity,
   housingKindOf,
@@ -209,25 +210,50 @@ function deployMagi(state: GameState, staggerBase: number): number {
 /** Spawn all rostered laborers at their housing (idle until assigned). */
 function spawnIdleLaborers(state: GameState, staggerBase: number): number {
   let spawned = 0;
+  const prospectCount = state.prospectAllocation;
+  let prospectRemaining = prospectCount;
+  const frontier = prospectFrontierCell(state);
+
   for (const room of state.tower.rooms) {
     if (!isQuarters(room)) continue;
     const anchor = housingAnchor(state, room);
     if (!anchor) continue;
     const count = state.housingRecruited[room.id] ?? 0;
     for (let i = 0; i < count; i++) {
-      const unit: StaffUnit = {
-        id: `staff-${staffCounter++}`,
-        kind: 'laborer',
-        homeHousingId: room.id,
-        targetWorkplaceId: null,
-        pos: { ...anchor },
-        path: [anchor],
-        pathIndex: 0,
-        moveCooldown: (staggerBase + spawned) * 0.12,
-        status: 'idle',
-      };
-      state.staff.push(unit);
-      spawned += 1;
+      const isProspector = prospectRemaining > 0;
+      if (isProspector) {
+        // Deploy as prospector — path to frontier.
+        prospectRemaining -= 1;
+        const path = findInteriorPath(state.tower, anchor, frontier, state.mine);
+        const unit: StaffUnit = {
+          id: `staff-${staffCounter++}`,
+          kind: 'laborer',
+          homeHousingId: room.id,
+          targetWorkplaceId: PROSPECT_TARGET,
+          pos: { ...anchor },
+          path: path.length > 0 ? path : [anchor],
+          pathIndex: 0,
+          moveCooldown: (staggerBase + spawned) * 0.12,
+          status: path.length <= 1 ? 'working' : 'moving',
+        };
+        state.staff.push(unit);
+        spawned += 1;
+      } else {
+        // Spawn idle — will be assigned to pump/mine/repair later.
+        const unit: StaffUnit = {
+          id: `staff-${staffCounter++}`,
+          kind: 'laborer',
+          homeHousingId: room.id,
+          targetWorkplaceId: null,
+          pos: { ...anchor },
+          path: [anchor],
+          pathIndex: 0,
+          moveCooldown: (staggerBase + spawned) * 0.12,
+          status: 'idle',
+        };
+        state.staff.push(unit);
+        spawned += 1;
+      }
     }
   }
   return spawned;
@@ -319,11 +345,12 @@ export function stepStaff(state: GameState, dt: number): void {
         ? (state.tower.structures ?? []).find((s) => s.id === targetId)
         : undefined;
     const pumpJob = isPumpTarget(targetId);
+    const prospectJob = isProspectTarget(targetId);
     const minePatch = targetId && isMinePatchTarget(targetId)
       ? findMinePatchByTarget(state.mine, targetId)
       : undefined;
 
-    if (!workplaceRoom && !workplaceStructure && !pumpJob && !minePatch) {
+    if (!workplaceRoom && !workplaceStructure && !pumpJob && !prospectJob && !minePatch) {
       unit.status = 'idle';
       unit.targetWorkplaceId = null;
       continue;
@@ -334,14 +361,16 @@ export function stepStaff(state: GameState, dt: number): void {
         workplaceRoom.origin)
       : workplaceStructure
         ? (roomAnchorCell(
-            state.tower,
-            workplaceStructure.origin,
-            workplaceStructure.size,
-            state.mine,
-          ) ?? workplaceStructure.origin)
+          state.tower,
+          workplaceStructure.origin,
+          workplaceStructure.size,
+          state.mine,
+        ) ?? workplaceStructure.origin)
         : pumpJob
           ? groundPumpAnchor(state)
-          : minePatch!.cell;
+          : prospectJob
+            ? prospectFrontierCell(state)
+            : minePatch!.cell;
 
     const inFootprint = workplaceRoom
       ? isInRoomFootprint(workplaceRoom, unit.pos)

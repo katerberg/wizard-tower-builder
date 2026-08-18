@@ -92,8 +92,9 @@ export function selectBuildUndoState(snapshot: Snapshot): BuildUndoState {
     JSON.stringify(game.slotAllocations) !== JSON.stringify(baseline.slotAllocations) ||
     JSON.stringify(game.manaSpringAllocations) !== JSON.stringify(baseline.manaSpringAllocations) ||
     JSON.stringify(game.researchRoomAllocations) !==
-      JSON.stringify(baseline.researchRoomAllocations) ||
-    game.buildRecruitSpend !== 0;
+    JSON.stringify(baseline.researchRoomAllocations) ||
+    game.buildRecruitSpend !== 0 ||
+    game.prospectAllocation !== baseline.prospectAllocation;
   return {
     canUndo: snapshot.buildUndoDepth > 0,
     canRevert: !towersEqual(game.tower, baseline.tower) || staffChanged,
@@ -261,6 +262,23 @@ export interface RoomBuildAlert {
 export interface StructureBuildAlert {
   structureId: string;
   message: string;
+}
+
+/** Prospect allocation info for the HUD stepper. */
+export interface ProspectAllocationInfo {
+  current: number;
+  max: number;
+}
+
+export function selectProspectAllocation(snapshot: Snapshot): ProspectAllocationInfo {
+  const { game } = snapshot;
+  let totalLaborers = 0;
+  for (const room of game.tower.rooms) {
+    if (room.blueprintId !== 'quartersRoom') continue;
+    totalLaborers += game.housingRecruited[room.id] ?? 0;
+  }
+  const max = Math.min(6, totalLaborers);
+  return { current: game.prospectAllocation, max };
 }
 
 /** Per-room build-phase warnings for canvas/modal (replaces a single HUD dump). */

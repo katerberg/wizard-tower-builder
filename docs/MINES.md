@@ -1,12 +1,12 @@
 # Mines & laborer harvest
 
-**Status:** Engine slice **shipped** (shallow stone grid + pathing; abstract `harvest:underground` removed). Prospect / iron·gem veins / storage / clear tally / leylines **not** shipped — see [`.cursor/plans/mine_harvest_index.plan.md`](../.cursor/plans/mine_harvest_index.plan.md).
+**Status:** Prospecting **shipped** (phase 2: veins + allocation + tier reveal + clear tally). Storage / leylines still later.
 
 Complements [`HOUSING.md`](HOUSING.md) (laborer jobs), [`HEIGHT_PROGRESSION.md`](HEIGHT_PROGRESSION.md) (anti-grind), and the wallet rules in [`.cursor/plans/resource_economy_index.plan.md`](../.cursor/plans/resource_economy_index.plan.md). Live construction costs: [`ECONOMY_COST_MATRIX.md`](ECONOMY_COST_MATRIX.md).
 
 ---
 
-## Shipped (engine)
+## Shipped
 
 | Piece | Behavior |
 |-------|----------|
@@ -14,10 +14,13 @@ Complements [`HOUSING.md`](HOUSING.md) (laborer jobs), [`HEIGHT_PROGRESSION.md`]
 | Pathing | Interior graph treats mine tunnels as walkable; free vertical in/into mine |
 | Ground access | Quarters must path to the mine entrance via **stairs/elevators** (vertical); disconnected quarters warn and cannot mine |
 | Jobs | After repair + hand-pump reserve, surplus laborers who can reach ground path to stone patches |
-| Yield | **Stone only** at `MINE_STONE_HARVEST_PER_SEC`; patches deplete; tallied in `waveHaul` |
-| Clear UX | Wave-clear **modal** + log line with gold + mine haul |
-| Stay put | Mine/pump workers are not cleared by the repair retarget loop |
+| Yield | **Stone** at `MINE_STONE_HARVEST_PER_SEC`; **metal/gold** with `RARE_PATCH_FALLOFF` (×0.5 per extra laborer); passive iron drip at `PASSIVE_IRON_FRACTION` (3%) |
+| Patches | Finite; deplete; laborer retargets when empty |
+| Clear UX | Wave-clear **modal** + log line with gold + mine haul + **prospect result** (e.g. "Discovered depth 2 — mixed iron veins") |
+| Stay put | Mine/pump/prospect workers are not cleared by the repair retarget loop |
 | Render | Staff with `row < 0` are not drawn (invisible mine) |
+| Prospecting | Build-phase HUD stepper allocates laborers (0…min(6, recruited)); equip cost charged at wave start; work timer reveals next depth tier with quality-rolled veins |
+| Deep tiers | `generateDeepTier` appends tunnels + patches on prospect resolve; quality bands: poor/mixed/rich; never empty |
 
 Knobs: [`src/config/mines.ts`](../src/config/mines.ts). Generation: [`src/model/mines/`](../src/model/mines/).
 
@@ -57,7 +60,7 @@ Wave clear surfaces a short **haul tally** (“+stone / +metal / +gold from gems
 | Passive finds | Digging raw bodies can surface iron at **low %**; **prospect allocation** is the main next-tier unlock |
 | Storage | **Storage rooms** (future slice in this track) hold stockpiles; they add mass/height pressure and discourage infinite hoarding |
 | Anti-dwell | **Wear** + repair labor tax, **finite veins**, **longer trips as shallow layers empty**, storage mass — not grind seals |
-| Clear UX | Wave-clear **modal** + log for haul (**shipped** for stone); prospect stats later |
+| Clear UX | Wave-clear **modal** + log for haul (**shipped** for stone+metal+gold); prospect stats (**shipped**) |
 | Leylines | **Stub only** this pass; magi / substance / mana-spring removal land in the leyline plan |
 
 ---
@@ -201,9 +204,8 @@ Use the index plan; do not implement from this doc alone.
 | # | Slice | Outcome |
 |---|-------|---------|
 | 0 | Design (this doc + matrix + index + leyline stub) | Locked concept |
-| 1 | Mine grid engine + entrance attach + replace abstract harvest with shallow stone | Laborers path underground; stone income |
-| 2 | Finite veins + iron/gem yields + rare falloff | Metal/gold from patches |
-| 3 | Prospect allocation + next-tier reveal + clear tally UX | Scout loop |
+| 1 | Mine grid engine + entrance attach + replace abstract harvest with shallow stone | **Shipped** |
+| 2–3 | Prospecting phase: veins + allocation + tier reveal + clear tally | **Shipped** via [`mine_harvest_prospect.plan.md`](../.cursor/plans/mine_harvest_prospect.plan.md) |
 | 4 | Storage rooms | Anti-hoard mass |
 | 5 | Balance / docs refresh | Numbers + status → shipped |
 
