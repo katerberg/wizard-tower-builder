@@ -43,6 +43,8 @@ export class Store {
         layerVisibility: { rooms: true, infra: true, workers: true },
         connectivityFocusSlotId: null,
         waveBuilder: { open: false, counts: {} },
+        selectedResearchNodeId: null,
+        researchExpandedGroupIds: [],
       },
       buildHistory: [],
     };
@@ -145,6 +147,7 @@ export class Store {
       manaSpringAllocations: structuredClone(game.manaSpringAllocations),
       researchRoomAllocations: structuredClone(game.researchRoomAllocations),
       buildRecruitSpend: game.buildRecruitSpend,
+      prospectAllocation: game.prospectAllocation,
     });
   }
 
@@ -189,6 +192,7 @@ export class Store {
           kind: 'waveClear',
           gold: summary.gold,
           haul: summary.haul,
+          prospectNote: summary.prospectNote,
         };
       }
       this.dirty = true;

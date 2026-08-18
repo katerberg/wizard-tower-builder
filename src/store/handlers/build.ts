@@ -162,6 +162,7 @@ function undoBuild(ctx: HandlerContext): void {
   game.manaSpringAllocations = snap.manaSpringAllocations;
   game.researchRoomAllocations = snap.researchRoomAllocations;
   game.buildRecruitSpend = snap.buildRecruitSpend;
+  game.prospectAllocation = snap.prospectAllocation;
   pruneOrphanStaffState(game);
   ctx.closeModalIfRoomMissing();
   addMessage(game, 'Undid last change.', 'info');
@@ -178,8 +179,9 @@ function revertBuild(ctx: HandlerContext): void {
     JSON.stringify(game.slotAllocations) !== JSON.stringify(baseline.slotAllocations) ||
     JSON.stringify(game.manaSpringAllocations) !== JSON.stringify(baseline.manaSpringAllocations) ||
     JSON.stringify(game.researchRoomAllocations) !==
-      JSON.stringify(baseline.researchRoomAllocations) ||
-    game.buildRecruitSpend !== 0;
+    JSON.stringify(baseline.researchRoomAllocations) ||
+    game.buildRecruitSpend !== 0 ||
+    game.prospectAllocation !== baseline.prospectAllocation;
   if (!layoutChanged && !staffChanged) return;
 
   game.tower = structuredClone(baseline.tower);
@@ -188,6 +190,7 @@ function revertBuild(ctx: HandlerContext): void {
   game.manaSpringAllocations = structuredClone(baseline.manaSpringAllocations);
   game.researchRoomAllocations = structuredClone(baseline.researchRoomAllocations);
   game.buildRecruitSpend = 0;
+  game.prospectAllocation = baseline.prospectAllocation;
   buildHistory.length = 0;
   pruneOrphanStaffState(game);
   ctx.closeModalIfRoomMissing();

@@ -2,6 +2,7 @@ import {
   LABORER_RECRUIT_COST,
   MAGE_RECRUIT_COST,
   MANA_SPRING_STAFF_CAPACITY,
+  PROSPECT_MAX_ALLOCATION,
   RESEARCH_ROOM_STAFF_CAPACITY,
   SOLDIER_RECRUIT_COST,
 } from '@/config/constants';
@@ -62,6 +63,9 @@ export function handleStaffIntent(ctx: HandlerContext, intent: Intent): void {
       break;
     case 'setResearchAllocation':
       setResearchAllocation(ctx, intent.researchRoomId, intent.count);
+      break;
+    case 'setProspectAllocation':
+      setProspectAllocation(ctx, intent.count);
       break;
   }
 }
@@ -159,4 +163,22 @@ function setResearchAllocation(ctx: HandlerContext, researchRoomId: string, coun
   if ((game.researchRoomAllocations[researchRoomId] ?? 0) === clamped) return;
   ctx.recordBuildStep();
   game.researchRoomAllocations[researchRoomId] = clamped;
+}
+
+function setProspectAllocation(ctx: HandlerContext, count: number): void {
+  const { game } = ctx;
+  if (game.phase !== 'build') return;
+
+  // Count total recruited laborers across all quarters.
+  let totalLaborers = 0;
+  for (const room of game.tower.rooms) {
+    if (room.blueprintId !== 'quartersRoom') continue;
+    totalLaborers += game.housingRecruited[room.id] ?? 0;
+  }
+
+  const max = Math.min(PROSPECT_MAX_ALLOCATION, totalLaborers);
+  const clamped = Math.max(0, Math.min(max, Math.floor(count)));
+  if (game.prospectAllocation === clamped) return;
+  ctx.recordBuildStep();
+  game.prospectAllocation = clamped;
 }

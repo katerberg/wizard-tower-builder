@@ -57,6 +57,7 @@ export function createInitialState(seed: string | number = 'wizard'): GameState 
     manaSpringAllocations: {},
     researchRoomAllocations: {},
     buildRecruitSpend: 0,
+    prospectAllocation: 0,
     spellCooldowns: {},
     kindlingPatches: [],
     wallOfFlameSegments: [],
@@ -77,7 +78,7 @@ export function createInitialState(seed: string | number = 'wizard'): GameState 
     steamTurretRuntime: {},
     flameTurretRuntime: {},
     elevators: [],
-    mine: { entrance: { col: 0, row: -1 }, tunnels: {}, patches: [] },
+    mine: { entrance: { col: 0, row: -1 }, tunnels: {}, patches: [], unlockedDepth: 1 },
     waveHaul: emptyResources(),
     pendingWaveClear: null,
     buildBaseline: null,
@@ -95,6 +96,8 @@ export function createInitialState(seed: string | number = 'wizard'): GameState 
       moveCooldown: 0,
       status: 'idle',
     },
+    prospectWorkElapsed: 0,
+    prospectResolved: false,
   };
   state.mine = generateShallowMine(state.tower);
   state.wizardAvatar = createWizardAvatarAtPerch(state);

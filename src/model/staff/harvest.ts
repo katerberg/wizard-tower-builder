@@ -3,16 +3,23 @@ import {
   HAND_PUMP_LABORER_RESERVE,
   HAND_PUMP_MAX_WATER_ROW,
   MINE_STONE_HARVEST_PER_SEC,
+  PASSIVE_IRON_FRACTION,
   PUMP_WATER_ROW_EXTENSION,
+  RARE_PATCH_FALLOFF,
 } from '@/config/constants';
 import { reward } from '@/calculations/economy';
 import { findInteriorPath } from '@/calculations/interiorPathfinding';
 import { cellDistance, roomAnchorCell } from '@/calculations/interiorGraph';
 import {
   findMinePatchByTarget,
+  formatProspectNote,
+  generateDeepTier,
+  getProspectWorkTime,
   isMinePatchTarget,
+  isProspectTarget,
   minePatchTargetId,
 } from '@/model/mines';
+import { addMessage } from '@/model/messages';
 import type { Cell, GameState, MinePatch, Room, StaffUnit, Tower } from '@/model/types';
 
 const PUMP_TARGET = 'pump:hand';
@@ -108,11 +115,29 @@ function laborerCanReachMineJobs(state: GameState, unit: StaffUnit): boolean {
   return canPathToMineEntrance(state, unit.pos);
 }
 
-function availableStonePatches(state: GameState): MinePatch[] {
-  return state.mine.patches.filter((p) => p.resource === 'stone' && p.remaining > 0);
+/** All mine patches with remaining units (stone, metal, gold). */
+function availableMinePatches(state: GameState): MinePatch[] {
+  return state.mine.patches.filter((p) => p.remaining > 0);
 }
 
-/** Assign idle laborers to pump (reserve) then shallow mine stone patches. Call after repair. */
+/**
+ * Get the frontier cell for prospecting (deepest unlocked shaft tip).
+ * Returns the entrance cell if no deep tiers unlocked.
+ */
+export function prospectFrontierCell(state: GameState): Cell {
+  const mine = state.mine;
+  // Find the deepest tunnel in the entrance column.
+  let deepestRow = mine.entrance.row;
+  for (const key of Object.keys(mine.tunnels)) {
+    const [col, row] = key.split(',').map(Number);
+    if (col === mine.entrance.col && row < deepestRow) {
+      deepestRow = row;
+    }
+  }
+  return { col: mine.entrance.col, row: deepestRow };
+}
+
+/** Assign idle laborers to pump (reserve) then available mine patches (stone, metal, gold). Call after repair. */
 export function assignSurplusLaborers(state: GameState): void {
   const idle = state.staff.filter((s) => s.kind === 'laborer' && s.status === 'idle');
   if (idle.length === 0) return;
@@ -123,7 +148,7 @@ export function assignSurplusLaborers(state: GameState): void {
   ).length;
   let needPump = Math.max(0, reserve - currentPumpers);
   const pumpAnchor = groundPumpAnchor(state);
-  const patches = availableStonePatches(state);
+  const patches = availableMinePatches(state);
 
   for (const unit of idle) {
     if (!laborerCanReachMineJobs(state, unit)) {
@@ -147,7 +172,11 @@ export function assignSurplusLaborers(state: GameState): void {
       continue;
     }
 
+    // Prefer rare patches (metal/gold) over stone; within same type, nearest first.
     patches.sort((a, b) => {
+      const rarityA = a.resource === 'stone' ? 0 : a.resource === 'metal' ? 1 : 2;
+      const rarityB = b.resource === 'stone' ? 0 : b.resource === 'metal' ? 1 : 2;
+      if (rarityA !== rarityB) return rarityB - rarityA; // higher rarity first
       const da = cellDistance(unit.pos, a.cell);
       const db = cellDistance(unit.pos, b.cell);
       if (da !== db) return da - db;
@@ -165,8 +194,36 @@ export function assignSurplusLaborers(state: GameState): void {
   }
 }
 
-/** Tick mine stone harvest for laborers on patch jobs. Hand-pump is presence-only. */
+/**
+ * Resolve the prospect job: generate the next deep tier and form the prospect note.
+ * Called once per wave when prospect work time completes.
+ */
+export function resolveProspect(state: GameState): void {
+  const { mine } = state;
+  const { mine: newMine, rngState, band } = generateDeepTier(mine, state.tower, state.rngState);
+  state.mine = newMine;
+  state.rngState = rngState;
+
+  const note = formatProspectNote(newMine.unlockedDepth, band);
+  addMessage(state, note, 'economy');
+}
+
+/** Tick prospect job progress and mine harvest for laborers. */
 export function tickLaborerHarvestAndPump(state: GameState, dt: number): void {
+  // Prospect job: accumulate work time when prospectors are working.
+  const prospectors = state.staff.filter(
+    (s) => s.kind === 'laborer' && isProspectTarget(s.targetWorkplaceId) && s.status === 'working',
+  );
+  if (prospectors.length > 0 && !state.prospectResolved) {
+    const workTime = getProspectWorkTime(state.mine.unlockedDepth);
+    state.prospectWorkElapsed += dt;
+    if (state.prospectWorkElapsed >= workTime) {
+      // Resolve: reveal next tier.
+      state.prospectResolved = true;
+      resolveProspect(state);
+    }
+  }
+
   for (const unit of state.staff) {
     if (unit.kind !== 'laborer' || unit.status !== 'working') continue;
     if (!isMinePatchTarget(unit.targetWorkplaceId)) continue;
@@ -181,12 +238,39 @@ export function tickLaborerHarvestAndPump(state: GameState, dt: number): void {
     }
     if (unit.pos.col !== patch.cell.col || unit.pos.row !== patch.cell.row) continue;
 
-    const want = MINE_STONE_HARVEST_PER_SEC * dt;
-    const gained = Math.min(want, patch.remaining);
-    if (gained <= 0) continue;
-    patch.remaining -= gained;
-    reward(state, { stone: gained });
-    state.waveHaul.stone += gained;
+    if (patch.resource === 'stone') {
+      // Stone: unchanged rate; no falloff.
+      const want = MINE_STONE_HARVEST_PER_SEC * dt;
+      const gained = Math.min(want, patch.remaining);
+      if (gained <= 0) continue;
+      patch.remaining -= gained;
+      reward(state, { stone: gained });
+      state.waveHaul.stone += gained;
+
+      // Passive iron drip.
+      const ironDrip = gained * PASSIVE_IRON_FRACTION;
+      if (ironDrip > 0) {
+        reward(state, { metal: ironDrip });
+        state.waveHaul.metal += ironDrip;
+      }
+    } else {
+      // Metal / gold: diminishing returns per extra laborer on same patch.
+      const laborersOnPatch = state.staff.filter(
+        (s) =>
+          s.kind === 'laborer' &&
+          s.status === 'working' &&
+          isMinePatchTarget(s.targetWorkplaceId) &&
+          s.targetWorkplaceId === unit.targetWorkplaceId,
+      );
+      const index = laborersOnPatch.indexOf(unit);
+      const multiplier = Math.pow(RARE_PATCH_FALLOFF, index);
+      const want = MINE_STONE_HARVEST_PER_SEC * dt * multiplier;
+      const gained = Math.min(want, patch.remaining);
+      if (gained <= 0) continue;
+      patch.remaining -= gained;
+      reward(state, { [patch.resource]: gained });
+      state.waveHaul[patch.resource] += gained;
+    }
 
     if (patch.remaining <= 0) {
       unit.targetWorkplaceId = null;

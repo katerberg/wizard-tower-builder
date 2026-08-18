@@ -25,6 +25,7 @@ function baseline(tower = createTower(), resources: Partial<Resources> = { stone
     slotAllocations: {},
     manaSpringAllocations: {},
     researchRoomAllocations: {},
+    prospectAllocation: 0,
   };
 }
 

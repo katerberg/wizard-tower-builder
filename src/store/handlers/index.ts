@@ -57,10 +57,17 @@ export function applyIntent(ctx: HandlerContext, intent: Intent): void {
     case 'setSlotAllocation':
     case 'setManaSpringAllocation':
     case 'setResearchAllocation':
+    case 'setProspectAllocation':
       handleStaffIntent(ctx, intent);
       break;
 
     case 'startResearch':
+    case 'enqueueResearch':
+    case 'dequeueResearch':
+    case 'cancelResearch':
+    case 'openResearchModal':
+    case 'selectResearchNode':
+    case 'toggleResearchGroup':
     case 'devUnlockResearch':
       handleResearchIntent(ctx, intent);
       break;

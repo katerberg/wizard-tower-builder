@@ -36,6 +36,7 @@ export function captureBuildBaseline(state: GameState): void {
     slotAllocations: structuredClone(state.slotAllocations),
     manaSpringAllocations: structuredClone(state.manaSpringAllocations),
     researchRoomAllocations: structuredClone(state.researchRoomAllocations),
+    prospectAllocation: state.prospectAllocation,
   };
   state.buildRecruitSpend = 0;
 }
@@ -102,13 +103,19 @@ export function endWave(state: GameState): void {
   addMessage(state, `Wave ${state.levelIndex + 1} cleared! +${amount} gold.`, 'economy');
 
   const haul = cloneResources(state.waveHaul);
-  state.pendingWaveClear = { gold: amount, haul };
+  const prospectNote = state.prospectResolved
+    ? `Depth ${state.mine.unlockedDepth} discovered.`
+    : null;
+  state.pendingWaveClear = { gold: amount, haul, prospectNote };
   const haulLabel = formatWaveHaul(haul);
   addMessage(
     state,
     totalResourceUnits(haul) > 0 ? `Mine haul: ${haulLabel}.` : 'Mine haul: nothing this wave.',
     'economy',
   );
+  if (prospectNote) {
+    addMessage(state, `Prospecting: ${prospectNote}`, 'economy');
+  }
 
   runWaveClearedEffects(state);
   resetEarthState(state);

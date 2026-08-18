@@ -22,9 +22,9 @@ isProject: false
 | Understand full mine fantasy | [`docs/MINES.md`](../../docs/MINES.md) | This index alone |
 | See current wallet sinks | [`docs/ECONOMY_COST_MATRIX.md`](../../docs/ECONOMY_COST_MATRIX.md) | — |
 | Implement mine grid + shallow stone | `mine_harvest_engine.plan.md` (create at slice start) | Prospect / storage / leyline |
-| Implement finite veins + iron/gems | `mine_harvest_veins.plan.md` | Engine if not merged |
-| Implement prospect allocation + clear tally | `mine_harvest_prospect.plan.md` | Leylines |
-| Implement storage rooms | `mine_harvest_storage.plan.md` | Tech trees / elevators |
+| Implement finite veins + iron/gems | `mine_harvest_prospect.plan.md` (phase 2 folds veins) | Do not split unless needed |
+| Implement prospect allocation + clear tally | `mine_harvest_prospect.plan.md` | **Phase 2** after engine |
+| Implement storage rooms | `mine_harvest_storage.plan.md` | Anti-hoard mass |
 | Leyline / substance / remove springs | Leyline stub → its own index later | This mine track |
 
 **Workflow:** land design (done) → one detailed slice plan → one branch/PR → merge → next.
@@ -52,8 +52,7 @@ Full table: [`docs/MINES.md`](../../docs/MINES.md).
 |---|-------|---------------------|-------|
 | 0 | Design + cost matrix + this index + leyline stub | (this PR) | Concept locked |
 | 1 | Mine grid engine + entrance + shallow stone; remove abstract harvest | `mine_harvest_engine.plan.md` | **Shipped** |
-| 2 | Finite veins + iron/gem yields + rare falloff | `mine_harvest_veins.plan.md` | Amends gold income |
-| 3 | Prospect allocation + tier reveal + clear tally UX | `mine_harvest_prospect.plan.md` | Build-phase allocate out of pool |
+| 2–3 | Finite veins + prospect allocation + tier reveal + clear tally | `mine_harvest_prospect.plan.md` | **Phase 2** (folded; plan written) |
 | 4 | Storage rooms | `mine_harvest_storage.plan.md` | Anti-hoard mass |
 | 5 | Balance / docs status → shipped | `mine_harvest_balance.plan.md` | Update MINES status line |
 
