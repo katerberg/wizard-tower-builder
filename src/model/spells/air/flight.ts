@@ -1,65 +1,37 @@
-import { isWalkable } from '../../../calculations/exteriorGraph';
-import { getWizardPosition } from '../../tower';
-import type { ExteriorNode, GameState } from '../../types';
-import type { SpellDef } from '../types';
 import { FLIGHT_ASCENT_SUB_ROWS, FLIGHT_DURATION } from './constants';
+import { ensureWizardAvatar, beginWizardFall } from '@/model/wizard';
+import type { SpellDef } from '../types';
 
-export function getEffectiveWizardPosition(state: GameState): ExteriorNode {
-  if (state.wizardFlight) {
-    return state.wizardFlight.pos;
-  }
-  return getWizardPosition(state.tower);
-}
+export { getEffectiveWizardPosition } from '@/model/wizard';
 
-export function startFlight(state: GameState, ascentSubRows: number): void {
-  const perch = getWizardPosition(state.tower);
+export function startFlight(state: import('@/model/types').GameState, ascentSubRows: number): void {
+  const avatar = ensureWizardAvatar(state);
+  avatar.pos = {
+    ...avatar.pos,
+    row: avatar.pos.row + ascentSubRows,
+    face: 'air',
+  };
+  avatar.path = [];
+  avatar.pathIndex = 0;
+  avatar.macroPath = [];
+  avatar.macroPathIndex = 0;
+  avatar.status = 'flying';
   state.wizardFlight = {
-    pos: { ...perch, row: perch.row + ascentSubRows },
-    until: state.waveTimer + 0, // set by caller with duration
-    descending: false,
+    until: state.waveTimer + FLIGHT_DURATION,
   };
+  void ascentSubRows;
 }
 
-export function tickWizardFlight(state: GameState, dt: number, duration: number): void {
+export function tickWizardFlight(
+  state: import('@/model/types').GameState,
+): void {
   if (!state.wizardFlight) return;
-
-  if (!state.wizardFlight.descending) {
-    if (state.wizardFlight.until <= 0) {
-      state.wizardFlight.until = state.waveTimer + duration;
-    }
-    if (state.waveTimer < state.wizardFlight.until) return;
-    state.wizardFlight.descending = true;
+  if (state.waveTimer >= state.wizardFlight.until) {
+    beginWizardFall(state);
   }
-
-  state.wizardFlight.descendTimer = (state.wizardFlight.descendTimer ?? 0) + dt;
-  if (state.wizardFlight.descendTimer < 0.12) return;
-  state.wizardFlight.descendTimer = 0;
-
-  const below: ExteriorNode = {
-    ...state.wizardFlight.pos,
-    row: state.wizardFlight.pos.row - 1,
-  };
-
-  const profile = {
-    kind: 'under_overhang' as const,
-    canPassUnderOverhang: true,
-    canAttackOverhang: false,
-    canFly: false,
-    canTransferFaces: false,
-  };
-
-  if (isWalkable(state.tower, below.col, below.row, profile) || below.row === 0) {
-    state.wizardFlight.pos = below;
-    if (isWalkable(state.tower, below.col, below.row, profile)) {
-      delete state.wizardFlight;
-    }
-    return;
-  }
-
-  state.wizardFlight.pos = below;
 }
 
-export function clearWizardFlight(state: GameState): void {
+export function clearWizardFlight(state: import('@/model/types').GameState): void {
   delete state.wizardFlight;
 }
 
@@ -67,18 +39,28 @@ export const flight: SpellDef = {
   id: 'flight',
   name: 'Flight',
   glyph: 'F',
-  description: 'Levitate off the perch. Cast other spells while airborne; drift down to a standable cell when it ends.',
+  description:
+    'Take flight for a short time. Click to path through open air; when it ends, fall to a standable interior cell with no damage.',
   manaCost: 3,
   cooldown: 5,
   targeting: 'self',
   range: 0,
   damage: 0,
   cast(ctx) {
-    const perch = getWizardPosition(ctx.state.tower);
+    const avatar = ensureWizardAvatar(ctx.state);
+    avatar.pos = {
+      ...avatar.pos,
+      row: avatar.pos.row + FLIGHT_ASCENT_SUB_ROWS,
+      face: 'air',
+    };
+    avatar.path = [];
+    avatar.pathIndex = 0;
+    avatar.macroPath = [];
+    avatar.macroPathIndex = 0;
+    avatar.status = 'flying';
+    avatar.moveCooldown = 0;
     ctx.state.wizardFlight = {
-      pos: { ...perch, row: perch.row + FLIGHT_ASCENT_SUB_ROWS },
       until: ctx.state.waveTimer + FLIGHT_DURATION,
-      descending: false,
     };
     ctx.log('The wizard takes flight.', 'combat');
   },

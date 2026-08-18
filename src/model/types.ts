@@ -167,6 +167,7 @@ export interface BuildBaseline {
   slotAllocations: Record<string, number>;
   manaSpringAllocations: Record<string, number>;
   researchRoomAllocations: Record<string, number>;
+  prospectAllocation: number;
 }
 
 /** One undo frame for tower layout + draft staff economy. */
@@ -177,18 +178,50 @@ export interface BuildDraftSnapshot {
   manaSpringAllocations: Record<string, number>;
   researchRoomAllocations: Record<string, number>;
   buildRecruitSpend: number;
+  prospectAllocation: number;
 }
 
 export interface Wizard {
-  hp: number;
-  maxHp: number;
   glyph: string;
-  // v1 defense: wizard auto-attacks; dedicated turret rooms also fire via rooms.
+  // Wand Strike / combat stats. Lose-condition HP is on SolarCollector.
   attack: number;
   defense: number;
   dexterity: number;
   range: number;
   attackCooldown: number;
+}
+
+/** Crown objective — enemies path here; Fortify mitigates its damage. */
+export interface SolarCollector {
+  hp: number;
+  maxHp: number;
+  glyph: string;
+}
+
+export type WizardMoveStatus =
+  | 'idle'
+  | 'moving'
+  | 'waiting_elevator'
+  | 'riding_elevator'
+  | 'flying'
+  | 'falling';
+
+/** Player firefighter avatar — distinct from staff; never an enemy melee target. */
+export interface WizardAvatar {
+  /** Sub-cell position (`face: 'air'` while flying). */
+  pos: ExteriorNode;
+  /** Expanded sub-cell waypoints for the current grounded / air path. */
+  path: ExteriorNode[];
+  pathIndex: number;
+  /** Macro cells used for elevator planning and repath. */
+  macroPath: Cell[];
+  macroPathIndex: number;
+  moveCooldown: number;
+  status: WizardMoveStatus;
+  elevatorShaftId?: string;
+  elevatorExitRow?: number;
+  elevatorExitMacroIndex?: number;
+  elevatorWaitElapsed?: number;
 }
 
 export type ExteriorFace = 'left' | 'right' | 'top' | 'air';
@@ -266,7 +299,7 @@ export interface Enemy {
   lastMacroKey?: string;
   /** Carrier launch cooldown accumulator. */
   carrierLaunchTimer?: number;
-  /** Last wizard macro key used for flier repath (`col,row`). */
+  /** Last solar-collector perch macro key used for repath (`col,row`). */
   pathGoalKey?: string;
   /** Water school: Soak stacks (0–100). Slow only — no inherent damage. */
   soak?: number;
@@ -327,11 +360,9 @@ export interface BlizzardZone {
   tickTimer: number;
 }
 
+/** Flight spell timer — position lives on WizardAvatar. */
 export interface WizardFlight {
-  pos: ExteriorNode;
   until: number;
-  descending: boolean;
-  descendTimer?: number;
 }
 
 /** Earth school — Fault trap (Charge per pass). */
@@ -430,6 +461,8 @@ export interface GameState {
   researchRoomAllocations: Record<string, number>;
   /** Gold spent recruiting staff this build phase (commits on wave start). */
   buildRecruitSpend: number;
+  /** Laborers assigned to prospecting this wave (build-phase allocation). */
+  prospectAllocation: number;
   /** Seconds remaining before each spell can be cast again. */
   spellCooldowns: Record<string, number>;
   /** Active Kindling trap patches (fire school). */
@@ -444,6 +477,10 @@ export interface GameState {
   blizzardZones: BlizzardZone[];
   tornadoEnterDone: Record<string, true>;
   wizardFlight?: WizardFlight;
+  /** Mobile wizard avatar (firefighter). */
+  wizardAvatar: WizardAvatar;
+  /** Crown lose-condition objective. */
+  solarCollector: SolarCollector;
   /** Earth school — Charge meter (0…max). */
   earthCharge: number;
   /** Earth school — Fault patches. */
@@ -483,20 +520,25 @@ export interface GameState {
   pendingWaveClear: WaveClearSummary | null;
   /** Tower + gold at build-phase start; edits commit on wave start. */
   buildBaseline: BuildBaseline | null;
+  /** Seconds accumulated on the prospect job this wave (0 until prospect starts). */
+  prospectWorkElapsed: number;
+  /** True once the prospect job has been resolved this wave (tier revealed). */
+  prospectResolved: boolean;
 }
 
 /** Wave-clear economy beat shown in a modal (gold payroll + mine haul). */
 export interface WaveClearSummary {
   gold: number;
   haul: Resources;
+  /** Prospecting result note (null when no prospecting occurred this wave). */
+  prospectNote: string | null;
 }
 
 /** Finite harvest patch inside the invisible mine grid. */
 export interface MinePatch {
   id: string;
   cell: Cell;
-  /** Slice 1: stone only. Later veins add metal / gem→gold. */
-  resource: 'stone';
+  resource: 'stone' | 'metal' | 'gold';
   remaining: number;
 }
 
@@ -507,6 +549,8 @@ export interface MineState {
   /** Walkable tunnel cells (`cellKey` → true), including entrance and patches. */
   tunnels: Record<string, true>;
   patches: MinePatch[];
+  /** Highest revealed depth index (shallow = 1; incremented by prospecting). */
+  unlockedDepth: number;
 }
 
 export interface BoilerRuntime {

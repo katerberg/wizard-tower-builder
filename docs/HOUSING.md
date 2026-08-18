@@ -31,7 +31,7 @@ Shared rules:
 - Selling housing prunes roster/allocations for that room
 - Build-phase **undo / revert** covers room place/remove, recruit/unrecruit, mods, and workplace allocations
 
-The player **wizard** stays a separate hero entity. Magi are helpers only.
+The player **wizard** stays a separate mobile hero entity (see PLAYER_MOVEMENT.md). Magi are helpers only.
 
 ---
 
@@ -131,6 +131,8 @@ During **attack only**, laborers auto-assign to damaged rooms (`hp < maxHp`) and
 - No per-room headcount UI; recruit only in quarters.
 - Retarget when the job room is gone or fully repaired.
 - No repair ticks in build phase.
+
+**Prospecting** ([`MINES.md`](MINES.md)): In build phase, set a global **prospectors** count via the HUD stepper. Those laborers are removed from the repair/pump/mine auto pool and assigned to the prospect job (path to mine frontier, work timer, reveal next depth tier). Leftover laborers auto-fill pump → mine patches (stone, metal, gold).
 
 Deferred: infra/mod repair, mid-wave building.
 

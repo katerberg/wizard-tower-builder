@@ -99,8 +99,8 @@ Housing place cost is stone/souls (above); first occupant free; unrecruit floor 
 |--------|-------|-------------------|
 | Wave clear | Gold = `8 + floor(plateau.budget / 12)` | Unchanged primary payroll gold |
 | Kills | Souls per enemy template | Unchanged |
-| Surplus laborers | Abstract 1 unit/sec → 25% metal / 75% stone | **Engine:** mine stone patches (`MINE_STONE_HARVEST_PER_SEC`); metal/gems later |
-| Prospect | — | Next depth tier (quality varies) |
+| Surplus laborers | Abstract 1 unit/sec → 25% metal / 75% stone | **Engine:** mine stone/metal/gold patches (`MINE_STONE_HARVEST_PER_SEC`); rare falloff (`RARE_PATCH_FALLOFF` ×0.5); passive iron drip (3%) |
+| Prospect | — | **Shipped:** next depth tier (quality-rolled veins: poor/mixed/rich); equip cost: 5 stone + 1 metal at wave start |
 | Leylines | — | Later: substance (stub) |
 
 Repair remains **laborer time only** (no materials fee).

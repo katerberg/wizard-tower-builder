@@ -24,6 +24,7 @@ import {
 import { heightProgression, unlockEnemiesForHeight, WIN_HEIGHT } from './waves';
 import { buildSpawnQueue } from './waves';
 import { towerExtents } from './tower';
+import { snapWizardToPerch } from './wizard';
 import type { WaveDef } from './progression';
 import type { GameState } from './types';
 
@@ -35,6 +36,7 @@ export function captureBuildBaseline(state: GameState): void {
     slotAllocations: structuredClone(state.slotAllocations),
     manaSpringAllocations: structuredClone(state.manaSpringAllocations),
     researchRoomAllocations: structuredClone(state.researchRoomAllocations),
+    prospectAllocation: state.prospectAllocation,
   };
   state.buildRecruitSpend = 0;
 }
@@ -79,6 +81,7 @@ export function beginWave(state: GameState, override?: WaveDef): void {
   assignSurplusLaborers(state);
   state.tower = lockPipeFluids(state.tower, maxWaterReachRow(state));
   initElevators(state);
+  snapWizardToPerch(state);
   refillMana(state);
   resetSpellCooldowns(state);
   resetFireState(state);
@@ -100,13 +103,19 @@ export function endWave(state: GameState): void {
   addMessage(state, `Wave ${state.levelIndex + 1} cleared! +${amount} gold.`, 'economy');
 
   const haul = cloneResources(state.waveHaul);
-  state.pendingWaveClear = { gold: amount, haul };
+  const prospectNote = state.prospectResolved
+    ? `Depth ${state.mine.unlockedDepth} discovered.`
+    : null;
+  state.pendingWaveClear = { gold: amount, haul, prospectNote };
   const haulLabel = formatWaveHaul(haul);
   addMessage(
     state,
     totalResourceUnits(haul) > 0 ? `Mine haul: ${haulLabel}.` : 'Mine haul: nothing this wave.',
     'economy',
   );
+  if (prospectNote) {
+    addMessage(state, `Prospecting: ${prospectNote}`, 'economy');
+  }
 
   runWaveClearedEffects(state);
   resetEarthState(state);
@@ -131,7 +140,7 @@ export function endWave(state: GameState): void {
 
 export function loseGame(state: GameState): void {
   state.scene = 'gameOver';
-  addMessage(state, 'The wizard has fallen. The tower is overrun.', 'combat');
+  addMessage(state, 'The solar collector is destroyed. The tower is overrun.', 'combat');
 }
 
 export function winGame(state: GameState): void {

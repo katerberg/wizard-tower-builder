@@ -30,8 +30,8 @@ export const SLOT_ATTACK_RANGE = 3;
 /** Fire contribution by soldier index (0-based) in a slot. */
 export const SLOT_FIRE_EFFICIENCY = [1, 0.8, 0.7, 0.6] as const;
 
+/** Wand Strike / combat stats. HP lives on the solar collector. */
 export const WIZARD_DEFAULTS = {
-  maxHp: 30,
   attack: 6,
   defense: 0,
   dexterity: 3,

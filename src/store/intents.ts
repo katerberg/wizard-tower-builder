@@ -20,6 +20,7 @@ export type Intent =
   | { type: 'setSlotAllocation'; slotRoomId: string; count: number }
   | { type: 'setManaSpringAllocation'; springRoomId: string; count: number }
   | { type: 'setResearchAllocation'; researchRoomId: string; count: number }
+  | { type: 'setProspectAllocation'; count: number }
   | { type: 'startResearch'; nodeId: string }
   | { type: 'enqueueResearch'; nodeId: string }
   | { type: 'dequeueResearch'; nodeId: string }
@@ -47,6 +48,7 @@ export type Intent =
   | { type: 'revertBuild' }
   | { type: 'selectSpell'; spellId: string | null }
   | { type: 'castSpellAt'; spellId: string; cell: Cell }
+  | { type: 'moveWizard'; cell: Cell }
   | { type: 'cancelCast' }
   | { type: 'setSimSpeed'; speed: SimSpeed };
 
@@ -55,7 +57,7 @@ export type ModalData =
   | { kind: 'structure'; structureId: string }
   | { kind: 'research' }
   | { kind: 'help' }
-  | { kind: 'waveClear'; gold: number; haul: Resources };
+  | { kind: 'waveClear'; gold: number; haul: Resources; prospectNote: string | null };
 
 export interface WaveBuilderState {
   open: boolean;

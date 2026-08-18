@@ -1,6 +1,6 @@
 import { faceOf, surfaceContacts } from '../../../calculations/exteriorGraph';
 import { macroCellOfNode } from '../../../calculations/subGrid';
-import { getEffectiveWizardPosition } from './flight';
+import { getSolarCollectorPosition } from '@/model/wizard';
 import type { Enemy, GameState, TornadoSegment } from '../../types';
 import type { SpellCastContext } from '../types';
 import {
@@ -10,7 +10,6 @@ import {
   TORNADO_TICK_INTERVAL,
   BLIZZARD_TICK_DAMAGE,
   BLIZZARD_TICK_INTERVAL,
-  FLIGHT_DURATION,
 } from './constants';
 import { applyCollisionDamage, detachEnemy, tickAirborneEnemies, wasOnWall } from './fallCollision';
 import { resolveSubCellDisplacement } from './displacement';
@@ -106,14 +105,11 @@ export function tickAirEffects(
 ): void {
   ensureAirState(state);
   tickBlizzardZones(state);
-  tickWizardFlight(state, dt, FLIGHT_DURATION);
+  tickWizardFlight(state);
 
   tickAirborneEnemies(state, dt);
 
   state.tornadoSegments = state.tornadoSegments.filter((s) => s.expiresAt > state.waveTimer);
-
-  const wizardPos = getEffectiveWizardPosition(state);
-  const wizardMacro = macroCellOfNode(wizardPos);
 
   state.tornadoSegments.forEach((segment, segIndex) => {
     segment.tickTimer += dt;
@@ -140,14 +136,15 @@ export function tickAirEffects(
       }
     }
 
-    const wizardInside =
+    const collectorMacro = macroCellOfNode(getSolarCollectorPosition(state));
+    const collectorInside =
       segment.macroCells.some(
-        (c) => c.col === wizardMacro.col && (c.row === wizardMacro.row || c.row + 1 === wizardMacro.row),
+        (c) => c.col === collectorMacro.col && (c.row === collectorMacro.row || c.row + 1 === collectorMacro.row),
       );
-    const wizEnterKey = `${segKey}:wizard`;
-    if (wizardInside && !state.tornadoEnterDone[wizEnterKey]) {
+    const wizEnterKey = `${segKey}:collector`;
+    if (collectorInside && !state.tornadoEnterDone[wizEnterKey]) {
       state.tornadoEnterDone[wizEnterKey] = true;
-      ctx.damageWizard(TORNADO_ENTER_DAMAGE);
+      ctx.damageCollector(TORNADO_ENTER_DAMAGE);
     }
 
     if (segment.tickTimer < TORNADO_TICK_INTERVAL) return;

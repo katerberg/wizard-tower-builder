@@ -9,13 +9,13 @@ Stack: **TypeScript**, **Vite**, **HTML5 Canvas** (board), **DOM** (UI chrome). 
 The run alternates between two phases:
 
 1. **Build** — Spend **stone**, **metal**, and **souls** to place **framing** (spires / buttresses), **rooms**, and **infra**. Framing holds the tower up; rooms and infra sit on it (and auto-add Spire Blocks when needed). Paint **stairs** and **pipes**; recruit staff into housing (**gold** payroll); allocate slot/spring headcounts. Use the **Select** tool to inspect rooms (and bare framing). Right-click sells the room first (framing stays); click again to sell framing. When the tower is stable, start the wave.
-2. **Attack** — Enemies spawn at the base and pathfind toward the wizard. Staff path on the **interior** (horizontal through framing / passable rooms; **stairs/elevators** to change floors) to slots, mana springs, and repair jobs. Surplus laborers **hand-pump** water and path into an **underground mine** for **stone**. Defenses: wizard **Wand Strike** (auto) plus a four-spell hotbar; **Turret** / **Steam Turret** / **Flame Turret** (+ **Forge** fire pipes) rooms; soldier **Slots**; **spikes** (modification). Stone-built mass weathers and takes climber abrasion. Survive the wave to earn **gold** (clear) and **souls** (kills) and return to build. Lose if the wizard’s HP reaches zero.
+2. **Attack** — Enemies spawn at the base and pathfind toward the **solar collector** on the crown. The wizard is a click-to-path **firefighter** on the interior (stairs/elevators; Flight for air) casting at close range — enemies do not aggro the wizard. Staff path on the **interior** (horizontal through framing / passable rooms; **stairs/elevators** to change floors) to slots, mana springs, and repair jobs. Surplus laborers **hand-pump** water and path into an **underground mine** for **stone**. Defenses: wizard **Wand Strike** (auto) plus a four-spell hotbar; **Turret** / **Steam Turret** / **Flame Turret** (+ **Forge** fire pipes) rooms; soldier **Slots**; **spikes** (modification). Stone-built mass weathers and takes climber abrasion. Survive the wave to earn **gold** (clear) and **souls** (kills) and return to build. Lose if the **solar collector’s HP** reaches zero. See [`docs/PLAYER_MOVEMENT.md`](docs/PLAYER_MOVEMENT.md).
 
 **Win** by clearing a wave while framing height is still **≥ 100**. Difficulty scales with tower height at Start Wave (plateaus + permanent enemy unlocks); see [`docs/HEIGHT_PROGRESSION.md`](docs/HEIGHT_PROGRESSION.md).
 
 ### Spells
 
-Mana powers the wizard’s hotbar (keys **1–4** to select, click to aim/cast during attack). Four elemental schools ship today — **fire**, **air**, **earth**, and **water** — swapped via the HUD school picker in **dev mode**. Wand Strike is always on and not part of any school kit. **Research / tech tree** gates the BUILD library ([`docs/RESEARCH.md`](docs/RESEARCH.md)): start a frontier project, assign magi to Research Rooms, unlock blueprints over waves. Dev mode includes **Unlock all**. Spell discovery (rare height offers) and Mana Well / spell shop remain deferred. School design notes live under `.cursor/plans/spell_school_*.plan.md`.
+Mana powers the wizard’s hotbar (keys **1–4** to select, click to aim/cast during attack). With no spell selected, **click the board to path** the wizard. Four elemental schools ship today — **fire**, **air**, **earth**, and **water** — swapped via the HUD school picker in **dev mode**. Wand Strike is always on and not part of any school kit. **Research / tech tree** gates the BUILD library ([`docs/RESEARCH.md`](docs/RESEARCH.md)): start a frontier project, assign magi to Research Rooms, unlock blueprints over waves. Dev mode includes **Unlock all**. Spell discovery (rare height offers) and Mana Well / spell shop remain deferred. School design notes live under `.cursor/plans/spell_school_*.plan.md`.
 
 ### Tower placement rules
 
@@ -44,6 +44,7 @@ Damage: enemy / flier hits damage **rooms** only. **Earthquake** damages **struc
 | Undo / revert layout | HUD buttons (build phase)                           |
 | Start wave           | HUD button (when tower is stable)                   |
 | Cast spell           | Hotkeys **1–4**, then click (attack phase)          |
+| Move wizard          | Click board with no spell selected (attack phase)   |
 | Sim speed            | Sidebar **1× / 2× / 5× / 10×** (attack phase)       |
 | Scroll tower         | Mouse wheel on board                                |
 
@@ -57,7 +58,7 @@ As the tower grows taller, the world gets more dangerous. Wave composition and c
 
 **Crawlers** path on a one-cell-thick exterior "shell" that hugs **framing and rooms**: the ground (row 0), left/right walls, ledges, and pockets beneath overhangs. Open air is never walkable for them. Most steps are orthogonal; a constrained **corner-wrap** diagonal wraps convex shell corners. The live crawler profile is `under_overhang`.
 
-**Fliers** (`docs/FLYING.md`) treat **bare framing as open air** — only **rooms** are solid. They spawn from the sides near the tower crown (height at Start Wave), A\* through air around rooms, and repath when the wizard moves. Size tiers are `small` / `medium` / `large` (larger = slower). Templates: Striker (melee), Kamikaze, Carrier (launches short-lived drones). Wall of Flame can be placed in open air to cut lanes; spikes miss fliers. Fliers never damage framing.
+**Fliers** (`docs/FLYING.md`) treat **bare framing as open air** — only **rooms** are solid. They spawn from the sides near the tower crown (height at Start Wave), A\* through air around rooms toward the **solar collector**, and repath when the collector perch moves (e.g. height collapse). Size tiers are `small` / `medium` / `large` (larger = slower). Templates: Striker (melee), Kamikaze, Carrier (launches short-lived drones). Wall of Flame can be placed in open air to cut lanes; spikes miss fliers. Fliers never damage framing.
 
 ## Getting started
 
@@ -196,6 +197,7 @@ Mount points: `#board`, `#stage`, `#hud`, `#library`, `#message-log`, `#modal-ro
 | Task | Start here |
 |------|------------|
 | Plan a feature (batch questions → locked one-shot) | [`.agents/skills/one-shot-plan/SKILL.md`](.agents/skills/one-shot-plan/SKILL.md) |
+| Player movement / solar collector | [`docs/PLAYER_MOVEMENT.md`](docs/PLAYER_MOVEMENT.md) |
 | Add a spell | [`src/model/spells/README.md`](src/model/spells/README.md) |
 | Add a room (passive or behavioral) | [`src/model/rooms/README.md`](src/model/rooms/README.md) + `blueprints.ts` |
 | Add a modification | `src/model/modifications/` (one file + registry line) |

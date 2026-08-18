@@ -1,6 +1,7 @@
 import { CELL_SIZE, GRID_COLS, SUB_CELL_SIZE, SUB_CELLS_PER_MACRO } from '@/config/constants';
 import { colors } from '@/view/theme';
 import { previewPipeFluidAt } from '@/model/pipes';
+import { getSolarCollectorPosition } from '@/model/wizard';
 import { selectCastPreview, selectGhostPlacement, selectWizardPosition } from '@/store/selectors';
 import type { Snapshot } from '@/store/store';
 import { BOARD_WIDTH, cellCenter, cellTopLeft, exteriorNodeDrawCenter, GROUND_LINE_INSET, visibleRowRange } from '../camera';
@@ -48,14 +49,57 @@ export function drawCastPreview(ctx: CanvasRenderingContext2D, snapshot: Snapsho
 export function drawPaths(ctx: CanvasRenderingContext2D, snapshot: Snapshot, scrollY: number, viewportHeight: number): void {
   ctx.strokeStyle = colors.pathDebug; ctx.lineWidth = 1;
   for (const enemy of snapshot.game.enemies) { if (enemy.path.length < 2) continue; ctx.beginPath(); for (let i = enemy.pathIndex; i < enemy.path.length; i++) { const { x, y } = exteriorNodeDrawCenter(enemy.path[i], scrollY, viewportHeight, 4); if (i === enemy.pathIndex) ctx.moveTo(x, y); else ctx.lineTo(x, y); } ctx.stroke(); }
+  const avatar = snapshot.game.wizardAvatar;
+  if (avatar?.path && avatar.path.length >= 2) {
+    ctx.strokeStyle = colors.wizard;
+    ctx.globalAlpha = 0.5;
+    ctx.beginPath();
+    for (let i = avatar.pathIndex; i < avatar.path.length; i++) {
+      const { x, y } = exteriorNodeDrawCenter(avatar.path[i], scrollY, viewportHeight, 4);
+      if (i === avatar.pathIndex) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+}
+
+export function drawSolarCollector(ctx: CanvasRenderingContext2D, snapshot: Snapshot, scrollY: number, viewportHeight: number): void {
+  if (snapshot.game.scene === 'menu') return;
+  const pos = getSolarCollectorPosition(snapshot.game);
+  const { x, y } = exteriorNodeDrawCenter(pos, scrollY, viewportHeight, CELL_SIZE * 0.32);
+  if (y + CELL_SIZE * 0.32 < 0 || y - CELL_SIZE * 0.32 > viewportHeight) return;
+  const collector = snapshot.game.solarCollector;
+  ctx.beginPath();
+  ctx.arc(x, y, CELL_SIZE * 0.32, 0, Math.PI * 2);
+  ctx.fillStyle = '#f6e05e';
+  ctx.fill();
+  ctx.fillStyle = '#1a202c';
+  ctx.font = `${Math.floor(CELL_SIZE * 0.45)}px monospace`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(collector.glyph, x, y);
+  const ratio = Math.max(0, Math.min(1, collector.hp / collector.maxHp));
+  ctx.fillStyle = colors.hpBarBg;
+  ctx.fillRect(x - CELL_SIZE * 0.4, y - CELL_SIZE * 0.5, CELL_SIZE * 0.8, 4);
+  ctx.fillStyle = colors.hpBar;
+  ctx.fillRect(x - CELL_SIZE * 0.4, y - CELL_SIZE * 0.5, CELL_SIZE * 0.8 * ratio, 4);
 }
 
 export function drawWizard(ctx: CanvasRenderingContext2D, snapshot: Snapshot, scrollY: number, viewportHeight: number): void {
   if (snapshot.game.scene === 'menu') return;
-  const { x, y } = exteriorNodeDrawCenter(selectWizardPosition(snapshot), scrollY, viewportHeight, CELL_SIZE * 0.36); const wizard = snapshot.game.player.wizard;
+  const { x, y } = exteriorNodeDrawCenter(selectWizardPosition(snapshot), scrollY, viewportHeight, CELL_SIZE * 0.36);
+  const wizard = snapshot.game.player.wizard;
   if (y + CELL_SIZE * 0.36 < 0 || y - CELL_SIZE * 0.36 > viewportHeight) return;
-  ctx.beginPath(); ctx.arc(x, y, CELL_SIZE * 0.36, 0, Math.PI * 2); ctx.fillStyle = colors.wizard; ctx.fill(); ctx.fillStyle = '#1a202c'; ctx.font = `${Math.floor(CELL_SIZE * 0.5)}px monospace`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(wizard.glyph, x, y);
-  const ratio = Math.max(0, Math.min(1, wizard.hp / wizard.maxHp)); ctx.fillStyle = colors.hpBarBg; ctx.fillRect(x - CELL_SIZE * 0.4, y - CELL_SIZE * 0.5, CELL_SIZE * 0.8, 4); ctx.fillStyle = colors.hpBar; ctx.fillRect(x - CELL_SIZE * 0.4, y - CELL_SIZE * 0.5, CELL_SIZE * 0.8 * ratio, 4);
+  ctx.beginPath();
+  ctx.arc(x, y, CELL_SIZE * 0.36, 0, Math.PI * 2);
+  ctx.fillStyle = colors.wizard;
+  ctx.fill();
+  ctx.fillStyle = '#1a202c';
+  ctx.font = `${Math.floor(CELL_SIZE * 0.5)}px monospace`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(wizard.glyph, x, y);
 }
 
 export function drawCastAimLine(ctx: CanvasRenderingContext2D, snapshot: Snapshot, scrollY: number, viewportHeight: number): void {
