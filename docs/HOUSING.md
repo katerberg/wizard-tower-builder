@@ -31,7 +31,7 @@ Shared rules:
 - Selling housing prunes roster/allocations for that room
 - Build-phase **undo / revert** covers room place/remove, recruit/unrecruit, mods, and workplace allocations
 
-The player **wizard** stays a separate hero entity. Magi are helpers only.
+The player **wizard** stays a separate mobile hero entity (see PLAYER_MOVEMENT.md). Magi are helpers only.
 
 ---
 

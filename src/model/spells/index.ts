@@ -13,7 +13,7 @@ export { tornado, tornadoGridLine } from './air/tornado';
 export { flight, getEffectiveWizardPosition } from './air/flight';
 export { blizzard, blizzardZoneCells, isInBlizzardZone } from './air/blizzard';
 export { fault, runFaultPatchStepEffects, isValidFaultPlacement } from './earth/fault';
-export { fortify, isFortified, clearFortify, mitigateWizardDamage } from './earth/fortify';
+export { fortify, isFortified, clearFortify, mitigateWizardDamage, mitigateCollectorDamage } from './earth/fortify';
 export { boulder } from './earth/boulder';
 export { earthquake, supportSpineToGround, roomIdAtCell } from './earth/earthquake';
 export { splash } from './water/splash';

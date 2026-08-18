@@ -1,5 +1,5 @@
 import { macroCellOfNode } from '../../../calculations/subGrid';
-import { getWizardPosition } from '../../tower';
+import { getSolarCollectorPosition } from '@/model/wizard';
 import type { GameState, WallOfFlameSegment } from '../../types';
 import type { SpellCastContext } from '../types';
 import {
@@ -39,7 +39,7 @@ export function tickFireEffects(
 }
 
 function tickWallOfFlame(state: GameState, dt: number, buildCtx: (spellName: string) => SpellCastContext): void {
-  const wizardPos = getWizardPosition(state.tower);
+  const collectorPos = getSolarCollectorPosition(state);
 
   state.wallOfFlameSegments = state.wallOfFlameSegments.filter((seg) => seg.expiresAt > state.waveTimer);
 
@@ -67,12 +67,12 @@ function tickWallOfFlame(state: GameState, dt: number, buildCtx: (spellName: str
       }
     }
 
-    const wizardMacro = macroCellOfNode(wizardPos);
-    const wizardInside = segmentContainsCell(segment, wizardMacro.col, wizardMacro.row);
-    const wizardEnterKey = `${key}:wizard`;
-    if (wizardInside && !state.fireEnterDone[wizardEnterKey]) {
-      state.fireEnterDone[wizardEnterKey] = true;
-      ctx.damageWizard(WALL_OF_FLAME_ENTER_DAMAGE);
+    const collectorMacro = macroCellOfNode(collectorPos);
+    const collectorInside = segmentContainsCell(segment, collectorMacro.col, collectorMacro.row);
+    const collectorEnterKey = `${key}:collector`;
+    if (collectorInside && !state.fireEnterDone[collectorEnterKey]) {
+      state.fireEnterDone[collectorEnterKey] = true;
+      ctx.damageCollector(WALL_OF_FLAME_ENTER_DAMAGE);
     }
 
     if (segment.tickTimer < WALL_OF_FLAME_TICK_INTERVAL) return;
@@ -85,8 +85,8 @@ function tickWallOfFlame(state: GameState, dt: number, buildCtx: (spellName: str
       applyFireDamage(ctx, enemy, WALL_OF_FLAME_TICK_DAMAGE);
     }
 
-    if (wizardInside) {
-      ctx.damageWizard(WALL_OF_FLAME_TICK_DAMAGE);
+    if (collectorInside) {
+      ctx.damageCollector(WALL_OF_FLAME_TICK_DAMAGE);
     }
   });
 }

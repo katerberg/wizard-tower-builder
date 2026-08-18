@@ -64,21 +64,21 @@ Apply everywhere (templates, renderer radii, tests).
 
 ### Pathfinding
 
-- **A\*** through open air toward the wizard’s current effective position.
+- **A\*** through open air toward the solar collector (crown perch).
 - Solids block; path **around** the footprint.
 - **Always repath** when the wizard moves (e.g. Flight). “Committed” means they do **not** retreat or circle — they keep pressing the goal.
-- If **no path** exists (air fully boxed): move to / stay at the nearest approach and **attack the closest blocking room** with normal melee attack rules (same strength/cooldown as wizard contact). This is the first intentional **enemy → room HP** damage path; laborers already repair room HP.
+- If **no path** exists (air fully boxed): move to / stay at the nearest approach and **attack the closest blocking room** with normal melee attack rules (same strength/cooldown as collector contact). This is the first intentional **enemy → room HP** damage path; laborers already repair room HP.
 
 ### Spawn
 
 - From **open air at the sides of the screen** (left/right alternate, same as ground spawns).
-- Aim for a spawn that supports a **direct angled line** toward the wizard; if needed, clamp to **1–3 macro cells** off the tower at the band height.
-- **Crown-relative macro-row band** from Start Wave framing height (`flySpawnBandForCrown`): roughly crown−6 … crown+1 so air threats arrive near the wizard perch on tall towers and stay modest on short ones.
+- Aim for a spawn that supports a **direct angled line** toward the collector; if needed, clamp to **1–3 macro cells** off the tower at the band height.
+- **Crown-relative macro-row band** from Start Wave framing height (`flySpawnBandForCrown`): roughly crown−6 … crown+1 so air threats arrive near the collector perch on tall towers and stay modest on short ones.
 
 ### Combat (melee fliers)
 
-- Enter the wizard’s space (same macro-cell contact as crawlers) and melee.
-- Damage **wizard only** on normal contact (room damage only in the blocked-path case above).
+- Enter the collector’s space (same macro-cell contact as crawlers) and melee.
+- Damage **collector only** on normal contact (room damage only in the blocked-path case above).
 - **Ranged fliers** are future; not in this plan’s templates.
 
 ### Lifecycle
@@ -102,7 +102,7 @@ Apply everywhere (templates, renderer radii, tests).
 | HP | Lower than comparable crawlers |
 | Gold | Higher than comparable crawlers |
 | Movement | `fly` / `canFly: true` |
-| Attack | Melee on wizard contact |
+| Attack | Melee on collector contact |
 
 Early waves: rare tease (placeholder count 1–2). Later: small packs from the flier budget.
 
@@ -112,7 +112,7 @@ Early waves: rare tease (placeholder count 1–2). Later: small packs from the f
 |-------|--------|
 | Size | `small` |
 | Role | Burst contact threat |
-| Attack | On wizard (or valid target) **contact**: deal damage, then **remove** self |
+| Attack | On collector (or valid target) **contact**: deal damage, then **remove** self |
 | Pathing | Same air A\* rules |
 
 Standalone kamikazes use full air pathing with **no** 3-cell lifetime cap.
@@ -127,7 +127,7 @@ Starcraft-carrier fantasy: a tougher flier that **hovers in a range band** off t
 | Role | Force manual focus (carrier and/or launches) |
 | Movement | Flier; holds in a band a few cells off the tower |
 | Launch | Spawns **carrier-kamikazes** toward the wizard |
-| Carrier-kamikaze | Smaller/weaker than standalone kamikaze; air A\*; **die after 3 macro cells moved** regardless of reaching the wizard |
+| Carrier-kamikaze | Smaller/weaker than standalone kamikaze; air A\*; **die after 3 macro cells moved** regardless of reaching the collector |
 
 Killing either the carrier or the swarms should feel viable; player must respond somehow (not ignore).
 
@@ -142,7 +142,7 @@ Killing either the carrier or the swarms should feel viable; player must respond
 | **Wall of Flame** | Damages fliers **only if they occupy a flamed cell**. **Must be placeable in open air** (see below) so players can cut lanes |
 | **Steam turret** | Side-face cones; fliers often miss them when off-path. No smart evasion — if the path clips the cone, they take it |
 | **Magic turret / slots** | Hit normally if in range |
-| **Wand Strike** | Hits if in perch range |
+| **Wand Strike** | Hits if in wizard range |
 | **Gust** | Push **away from the gust center-point** (may be toward or away from the tower). May leave the viewport; **stay in play**, clamp/extend air grid as needed, then repath back |
 | **Air knock-off / forced landing** | No forced landing for intentional fliers; they remain air units but **are** affected by pushes |
 | **Future AA rooms** | Out of scope; existing ranged + spells are enough for this plan |
@@ -184,7 +184,7 @@ Today WoF requires same exterior **face** endpoints (`sameFaceEndpoints` in cast
 - Rename size tiers `small` / `medium` / `large`
 - Apply size→speed retune across existing templates
 - Air walkability: open air, never touching rooms; destroyed rooms flyable
-- Air A\*, repath-to-wizard, side spawn at height bands
+- Air A\*, repath-to-collector, side spawn at height bands
 - Workers/enemies layer rendering distinction for fliers
 - README world-danger note
 

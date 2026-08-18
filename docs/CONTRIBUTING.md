@@ -23,6 +23,10 @@ A replacement UI only needs `Store`, `Intent`, `Snapshot`, and `src/store/select
 
 ## Task recipes
 
+### Plan a feature (one-shot)
+
+Read [`.agents/skills/one-shot-plan/SKILL.md`](../.agents/skills/one-shot-plan/SKILL.md). Research, dump **one** numbered question list, wait, then lock a plan with no open questions. Invoke in Cursor with `/one-shot-plan` or Plan mode on a non-trivial feature.
+
 ### Add a spell
 
 See [`src/model/spells/README.md`](../src/model/spells/README.md).
@@ -107,3 +111,12 @@ npm run lint && npm test
 ```
 
 CI uses Node.js LTS (`.nvmrc`).
+
+### Change wizard movement / solar collector
+
+Design: [`PLAYER_MOVEMENT.md`](PLAYER_MOVEMENT.md).
+
+1. Walk graph: `src/calculations/wizardGraph.ts` + `wizardPathfinding.ts`.
+2. Runtime: `src/model/wizard/` (`stepWizard`, `setWizardDestination`).
+3. Enemy goal / lose: `src/model/tick.ts`, `flierCombat.ts` (`attackCollector`).
+4. Intent: `moveWizard` in `src/store/intents.ts` + `handlers/wizard.ts`.

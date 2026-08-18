@@ -33,3 +33,8 @@ spells/
 
 - Room blueprints → `model/blueprints.ts` + `model/rooms/`
 - Shared mana/wizard numbers → `config/`
+
+## Range and friendly fire
+
+Spell ranges and Wand Strike measure from the wizard **avatar** position. Friendly fire that hits the crown perch damages the **solar collector** (see `docs/PLAYER_MOVEMENT.md`).
+

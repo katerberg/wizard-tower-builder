@@ -1,5 +1,5 @@
 import { colors } from '@/view/theme';
-import { selectWizardPosition } from '@/store/selectors';
+import { getSolarCollectorPosition } from '@/model/wizard';
 import type { Snapshot } from '@/store/store';
 import { BOARD_WIDTH } from './camera';
 import { drawEnemies } from './layers/enemies';
@@ -10,6 +10,7 @@ import {
   drawGrid,
   drawGround,
   drawPaths,
+  drawSolarCollector,
   drawWizard,
 } from './layers/overlays';
 import { drawSpellFx } from './layers/spellFx';
@@ -49,12 +50,13 @@ export class Renderer {
     drawCastPreview(ctx, snapshot, scrollY, viewportHeight);
     drawSpellFx(ctx, snapshot, scrollY, viewportHeight);
     if (snapshot.game.devMode) drawPaths(ctx, snapshot, scrollY, viewportHeight);
-    const wizardPos = selectWizardPosition(snapshot);
-    drawEnemies(ctx, snapshot, wizardPos, scrollY, viewportHeight, 'climbers');
+    const collectorPos = getSolarCollectorPosition(snapshot.game);
+    drawEnemies(ctx, snapshot, collectorPos, scrollY, viewportHeight, 'climbers');
     if (snapshot.view.layerVisibility.workers) drawStaff(ctx, snapshot, scrollY, viewportHeight);
+    drawSolarCollector(ctx, snapshot, scrollY, viewportHeight);
     drawWizard(ctx, snapshot, scrollY, viewportHeight);
     drawCastAimLine(ctx, snapshot, scrollY, viewportHeight);
-    drawEnemies(ctx, snapshot, wizardPos, scrollY, viewportHeight, 'atWizard');
+    drawEnemies(ctx, snapshot, collectorPos, scrollY, viewportHeight, 'atWizard');
     if (snapshot.view.layerVisibility.rooms) drawTowerAlerts(ctx, snapshot, scrollY, viewportHeight);
   }
 }

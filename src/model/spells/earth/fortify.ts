@@ -34,17 +34,20 @@ export function tickFortify(state: GameState, dt: number): void {
   }
 }
 
-/** Incoming damage after Fortify mitigation. */
-export function mitigateWizardDamage(state: GameState, damage: number): number {
+/** Incoming damage after Fortify mitigation (solar collector). */
+export function mitigateCollectorDamage(state: GameState, damage: number): number {
   if (!isFortified(state)) return damage;
   return Math.max(1, Math.floor(damage * FORTIFY_DAMAGE_MULT));
 }
+
+/** @deprecated Use mitigateCollectorDamage */
+export const mitigateWizardDamage = mitigateCollectorDamage;
 
 export const fortify: SpellDef = {
   id: 'fortify',
   name: 'Fortify',
   glyph: 'O',
-  description: 'Concentrate: take 25% damage, gain Charge, cannot cast until you go.',
+  description: 'Concentrate: collector takes 25% damage, gain Charge, cannot cast until you go.',
   manaCost: 1,
   cooldown: 2,
   targeting: 'self',

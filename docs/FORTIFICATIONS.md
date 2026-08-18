@@ -253,7 +253,7 @@ Until Plan 6 merges, room-mod spikes remain as-is. Do not half-migrate.
 
 ## Climber smash & destruction summary
 
-Fortifications never seal topology. When **rooms/framing** leave climbers with no exterior path to the wizard, **all ground climbers** (not only demolishers) approach the closest smashable cell and melee **room then framing** (same damage/cascade path as demolisher overhang smash). Demolishers still smash overhang ceilings on their preferred path when the next underCeiling step is unwalkable for their real profile.
+Fortifications never seal topology. When **rooms/framing** leave climbers with no exterior path to the solar collector, **all ground climbers** (not only demolishers) approach the closest smashable cell and melee **room then framing** (same damage/cascade path as demolisher overhang smash). Demolishers still smash overhang ceilings on their preferred path when the next underCeiling step is unwalkable for their real profile.
 
 | Fortification | Smash target? | Devastation note |
 |---------------|---------------|------------------|

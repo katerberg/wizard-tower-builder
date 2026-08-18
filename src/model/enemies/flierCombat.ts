@@ -38,11 +38,11 @@ export function enemyTouchesRoom(enemy: Enemy, room: Room): boolean {
   return false;
 }
 
-export function attackWizard(
+export function attackCollector(
   state: GameState,
   enemy: Enemy,
   template: EnemyTemplate,
-  wizard: { hp: number; attack: number; defense: number; dexterity: number },
+  defenderStats: { attack: number; defense: number; dexterity: number },
   mitigate: (state: GameState, damage: number) => number,
   dt: number,
 ): void {
@@ -50,18 +50,22 @@ export function attackWizard(
   if (enemy.attackCooldown > 0) return;
 
   const defender: Combatant = {
-    attack: wizard.attack,
-    defense: wizard.defense,
-    dexterity: wizard.dexterity,
+    attack: defenderStats.attack,
+    defense: defenderStats.defense,
+    dexterity: defenderStats.dexterity,
   };
   const result = computeDamage(enemyCombatant(template), defender, state.rngState);
   state.rngState = result.rngState;
   if (result.dodged) {
-    addMessage(state, `The wizard dodges ${enemy.name} the ${template.type}.`, 'combat');
+    addMessage(state, `The solar collector shrugs off ${enemy.name} the ${template.type}.`, 'combat');
   } else {
     const dealt = mitigate(state, result.damage);
-    wizard.hp = Math.max(0, wizard.hp - dealt);
-    addMessage(state, `${enemy.name} the ${template.type} hits the wizard for ${dealt}.`, 'combat');
+    state.solarCollector.hp = Math.max(0, state.solarCollector.hp - dealt);
+    addMessage(
+      state,
+      `${enemy.name} the ${template.type} hits the solar collector for ${dealt}.`,
+      'combat',
+    );
   }
   enemy.attackCooldown = ENEMY_ATTACK_COOLDOWN;
 
@@ -69,6 +73,9 @@ export function attackWizard(
     enemy.currentHp = 0;
   }
 }
+
+/** @deprecated Use attackCollector */
+export const attackWizard = attackCollector;
 
 /** Normal melee against the closest blocking room when air path is cut off. */
 export function attackBlockingRoom(

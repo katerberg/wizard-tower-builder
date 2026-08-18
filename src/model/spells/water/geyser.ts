@@ -1,5 +1,5 @@
 import { macroCellOfNode } from '@/calculations/subGrid';
-import { getWizardPosition } from '@/model/tower';
+import { getSolarCollectorPosition } from '@/model/wizard';
 import type { Cell, GameState } from '@/model/types';
 import type { SpellCastContext, SpellDef } from '../types';
 import { GEYSER_DAMAGE, GEYSER_SOAK, GEYSER_UP_CELLS, GEYSER_WIZARD_DAMAGE } from './constants';
@@ -43,8 +43,8 @@ export function castGeyser(ctx: SpellCastContext, puddle: Cell): void {
     }
   }
 
-  const wizardMacro = macroCellOfNode(getWizardPosition(ctx.state.tower));
-  if (keys.has(`${wizardMacro.col},${wizardMacro.row}`)) {
+  const collectorMacro = macroCellOfNode(getSolarCollectorPosition(ctx.state));
+  if (keys.has(`${collectorMacro.col},${collectorMacro.row}`)) {
     ctx.damageWizard(GEYSER_WIZARD_DAMAGE);
   }
 

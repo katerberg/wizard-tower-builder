@@ -1,0 +1,14 @@
+---
+description: Plan mode uses the one-shot-plan skill (batch questions, then lock).
+globs: .cursor/plans/**/*.md, **/*.plan.md
+alwaysApply: false
+---
+
+# One-shot plans
+
+When writing or revising a plan for a non-trivial feature, **read and follow** `.agents/skills/one-shot-plan/SKILL.md`.
+
+- Research, then **one numbered question dump** (not 1–5 drips, not AskQuestion-as-primary).
+- **Do not** emit the implementation plan until answers (or “lock defaults”).
+- The plan itself has **no open questions** / TBDs / Option A vs B.
+- Docs are in-scope per `plans-include-docs.mdc`.

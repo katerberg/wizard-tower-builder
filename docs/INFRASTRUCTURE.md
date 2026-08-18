@@ -1,6 +1,6 @@
 # Infrastructure & logistics
 
-Developer-facing architecture for the tower’s **infrastructure layer** — the core of an economy/logistics tower-defense game. Mundane structures (housing, slots, stairs, pipes) are the primary defense scaling path; auto-turrets and the wizard are supplementary.
+Developer-facing architecture for the tower’s **infrastructure layer** — the core of an economy/logistics tower-defense game. Mundane structures (housing, slots, stairs, pipes) are the primary defense scaling path; auto-turrets and the mobile wizard firefighter are supplementary (see PLAYER_MOVEMENT.md).
 
 **Shipped:** Guardroom → slot soldier staffing over stairs; full housing for soldiers / magi / laborers — see [`HOUSING.md`](HOUSING.md). Pipes, boilers, mana springs, steam, forge fire — see [`PIPES.md`](PIPES.md).
 

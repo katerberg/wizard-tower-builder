@@ -58,7 +58,6 @@ export function createHud(root: HTMLElement, store: Store): () => void {
   return function render(): void {
     const snapshot = store.getSnapshot();
     const { game } = snapshot;
-    const { player } = game;
     const height = towerExtents(game.tower).maxOccupiedRow;
     const enemiesLeft = game.enemies.length + game.spawnQueue.length;
 
@@ -143,7 +142,7 @@ export function createHud(root: HTMLElement, store: Store): () => void {
       <div class="stat"><span>Metal</span><strong>${metalLabel}</strong></div>
       <div class="stat"><span>Stone</span><strong>${stoneLabel}</strong></div>
       <div class="stat"><span>Souls</span><strong>${soulsLabel}</strong></div>
-      <div class="stat"><span>Wizard HP</span><strong>${player.wizard.hp} / ${player.wizard.maxHp}</strong></div>
+      <div class="stat"><span>Collector HP</span><strong>${game.solarCollector.hp} / ${game.solarCollector.maxHp}</strong></div>
       ${attackInfo}
       ${prospectHtml}
       ${buildModeHint}

@@ -24,6 +24,7 @@ import {
 import { heightProgression, unlockEnemiesForHeight, WIN_HEIGHT } from './waves';
 import { buildSpawnQueue } from './waves';
 import { towerExtents } from './tower';
+import { snapWizardToPerch } from './wizard';
 import type { WaveDef } from './progression';
 import type { GameState } from './types';
 
@@ -80,6 +81,7 @@ export function beginWave(state: GameState, override?: WaveDef): void {
   assignSurplusLaborers(state);
   state.tower = lockPipeFluids(state.tower, maxWaterReachRow(state));
   initElevators(state);
+  snapWizardToPerch(state);
   refillMana(state);
   resetSpellCooldowns(state);
   resetFireState(state);
@@ -138,7 +140,7 @@ export function endWave(state: GameState): void {
 
 export function loseGame(state: GameState): void {
   state.scene = 'gameOver';
-  addMessage(state, 'The wizard has fallen. The tower is overrun.', 'combat');
+  addMessage(state, 'The solar collector is destroyed. The tower is overrun.', 'combat');
 }
 
 export function winGame(state: GameState): void {

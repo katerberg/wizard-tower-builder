@@ -7,6 +7,8 @@ alwaysApply: true
 
 Any **plan** created or revised for this project (Plan mode, `.cursor/plans/*.plan.md`, or an implementation checklist) must treat documentation as in-scope work—not a follow-up.
 
+Non-trivial designs also follow `.agents/skills/one-shot-plan/SKILL.md`: one numbered question dump, then a locked plan with no open questions.
+
 ## Required in every plan
 
 1. **Docs section or todo** — Name the exact files to create or update (e.g. `docs/FOO.md`, `README.md` “Where do I…?”, folder READMEs under `src/`).

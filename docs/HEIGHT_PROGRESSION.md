@@ -54,7 +54,7 @@ Document this in UI copy / help when the feature ships: the fantasy is **climb w
 
 If the tower loses height between waves, the next wave should feel like the world is **giving you a breather**: unlocks remain, but overall weight drops toward the new height. Players should want to keep going after a bad hit.
 
-**Enemy damage to framing** is implemented for **demolishers** (room then framing on overhang preferred paths) and for **any ground climber** when the exterior path to the wizard is empty (closest room then framing, same cascade). Mid-wave height drop still does not retune the spawn queue; dropping below 100 voids that wave’s win.
+**Enemy damage to framing** is implemented for **demolishers** (room then framing on overhang preferred paths) and for **any ground climber** when the exterior path to the solar collector is empty (closest room then framing, same cascade). Mid-wave height drop still does not retune the spawn queue; dropping below 100 voids that wave’s win.
 
 ---
 
@@ -66,7 +66,7 @@ If the tower loses height between waves, the next wave should feel like the worl
 | Run after win | **Over** for now (victory scene). No endless continue in v1. |
 | Minimum wave count | **None** — wave 1 at height 100 is a valid win if the tower holds. |
 | Stability | Tower must be **stable** to Start Wave (unchanged). |
-| Defeat | Unchanged: wizard HP ≤ 0. |
+| Defeat | Solar collector HP ≤ 0. |
 | Mid-wave height drop | Spawn difficulty stays **locked** from Start Wave. Dropping below 100 during the fight **voids that wave’s win** even if you clear it; you must clear a later wave while still ≥ 100. |
 
 ---

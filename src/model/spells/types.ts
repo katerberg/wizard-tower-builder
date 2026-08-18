@@ -35,6 +35,7 @@ export interface SpellCastContext {
   spellName: string;
   damageEnemy: (enemy: Enemy, damage: number, dexterity?: number) => void;
   damageWizard: (damage: number) => void;
+  damageCollector: (damage: number) => void;
   applyFireDamage: (enemy: Enemy, damage: number, dexterity?: number) => void;
   applyWindDamage: (enemy: Enemy, damage: number) => void;
   log: (text: string, kind?: GameMessageKind) => void;
