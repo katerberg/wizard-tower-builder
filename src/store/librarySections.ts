@@ -13,7 +13,7 @@ export interface LibrarySectionDef {
 }
 
 export const LIBRARY_SECTIONS: LibrarySectionDef[] = [
-  { id: 'structure', label: 'Spire & buttresses' },
+  { id: 'structure', label: 'Spire blocks' },
   { id: 'housing', label: 'Housing' },
   { id: 'generators', label: 'Generators' },
   { id: 'infrastructure', label: 'Infrastructure' },
@@ -24,8 +24,6 @@ export const LIBRARY_SECTIONS: LibrarySectionDef[] = [
 /** Blueprint id → library section. Unlisted ids are omitted from grouped view. */
 export const BLUEPRINT_LIBRARY_SECTION: Record<string, LibrarySectionId> = {
   stem: 'structure',
-  buttress2: 'structure',
-  buttress3: 'structure',
 
   guardroomRoom: 'housing',
   chamberRoom: 'housing',

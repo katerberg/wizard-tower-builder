@@ -16,5 +16,3 @@ export const MIN_VIEWPORT_ROWS = 3;
 export const VIEWPORT_AIR_ROWS = 8;
 
 export const MAX_OVERHANG_STEP = 1;
-/** Minimum width for a buttress room (spire blocks are always 1-wide). */
-export const MIN_BUTTRESS_WIDTH = 2;

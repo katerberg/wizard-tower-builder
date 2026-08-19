@@ -95,7 +95,7 @@ Keep **Build → Start Wave → Attack → Build**.
 
 | Encouraged | Discouraged |
 |------------|-------------|
-| Rebuild coverage, fix logistics, reshape buttresses at a plateau | Mandatory gold farm loops at a fixed height |
+| Rebuild coverage, fix logistics, reshape cantilever crowns at a plateau | Mandatory gold farm loops at a fixed height |
 | Dip in difficulty after a collapse, then climb again | Soft gates that require N clears before the next row is “safe” |
 | Multiple waves at mid height because fights are interesting | UI/systems that imply “seal at 21 — grind 20 first” |
 

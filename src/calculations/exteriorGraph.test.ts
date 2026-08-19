@@ -32,12 +32,13 @@ const attackOverhang: MovementProfile = {
   canTransferFaces: false,
 };
 
-// stem (5,0) -> stem (5,1) -> buttress3 (4,2): a T whose cap overhangs to cols 4 and 6.
+// stem (5,0) -> stem (5,1) -> stems (4,2) and (6,2): a T whose cap overhangs to cols 4 and 6.
 function tShape(): Tower {
   let tower = createTower();
   tower = placeStructure(tower, createStructure('a', getBlueprint('stem')!, { col: 5, row: 0 }));
   tower = placeStructure(tower, createStructure('b', getBlueprint('stem')!, { col: 5, row: 1 }));
-  tower = placeStructure(tower, createStructure('c', getBlueprint('buttress3')!, { col: 4, row: 2 }));
+  tower = placeStructure(tower, createStructure('c', getBlueprint('stem')!, { col: 4, row: 2 }));
+  tower = placeStructure(tower, createStructure('d', getBlueprint('stem')!, { col: 6, row: 2 }));
   return tower;
 }
 
@@ -168,13 +169,13 @@ describe('inAirBounds', () => {
 
 function gapTower(): Tower {
   let tower = createTower();
-  tower = placeStructure(tower, createStructure('left', getBlueprint('buttress2')!, { col: 5, row: 0 }));
-  tower = placeStructure(tower, createStructure('right', getBlueprint('buttress2')!, { col: 8, row: 0 }));
+  tower = placeStructure(tower, createStructure('left', getBlueprint('stem')!, { col: 5, row: 0 }));
+  tower = placeStructure(tower, createStructure('right', getBlueprint('stem')!, { col: 8, row: 0 }));
   return tower;
 }
 
 describe('sub-cell gap crossing', () => {
-  it('blocks unsupported air above a ground gap between buttresses', () => {
+  it('blocks unsupported air above a ground gap between spires', () => {
     const tower = gapTower();
     for (let subRow = 3; subRow <= 5; subRow++) {
       for (let subCol = 21; subCol <= 23; subCol++) {
@@ -192,10 +193,10 @@ describe('sub-cell gap crossing', () => {
 
   it('requires descending to cross from one side of a gap to the other', () => {
     const tower = gapTower();
-    const start = { col: 14, row: 2, face: 'right' as const };
-    const goal = { col: 30, row: 2, face: 'left' as const };
+    const start = { col: 14, row: 0, face: 'right' as const };
+    const goal = { col: 30, row: 0, face: 'left' as const };
     const path = findPath(tower, start, goal, underOverhang);
     expect(path.length).toBeGreaterThan(0);
-    expect(Math.min(...path.map((n) => n.row))).toBeLessThanOrEqual(2);
+    expect(Math.max(...path.map((n) => n.row))).toBeGreaterThan(0);
   });
 });

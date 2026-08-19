@@ -5,6 +5,7 @@ import { canAffordBuild } from '@/calculations/buildCost';
 import { formatResourceCost } from '@/calculations/resources';
 import { addMessage } from '@/model/messages';
 import { pruneHousingState, pruneOrphanStaffState, seedSpecialtyRoomDefaults } from '@/model/staff';
+import { isOverhangUnlocked } from '@/model/research';
 import {
   canPlace,
   createRoom,
@@ -54,7 +55,7 @@ function placeSelected(ctx: HandlerContext, cell: { col: number; row: number }):
   const blueprint = getBlueprint(id);
   if (!blueprint) return;
 
-  const result = canPlace(game.tower, blueprint, cell);
+  const result = canPlace(game.tower, blueprint, cell, { overhangUnlocked: isOverhangUnlocked(game) });
   if (!result.ok) {
     addMessage(game, `Cannot build here: ${result.reason.replace(/_/g, ' ')}.`, 'info');
     return;
@@ -62,7 +63,9 @@ function placeSelected(ctx: HandlerContext, cell: { col: number; row: number }):
 
   if (isStructureBlueprint(blueprint)) {
     const structure = createStructure(ctx.nextRoomId(), blueprint, cell);
-    const placed = placeStructureReplacing(game.tower, structure, blueprint);
+    const placed = placeStructureReplacing(game.tower, structure, blueprint, {
+      overhangUnlocked: isOverhangUnlocked(game),
+    });
     if (!placed.ok || !placed.tower) {
       addMessage(game, `Cannot build here: ${placed.reason.replace(/_/g, ' ')}.`, 'info');
       return;
@@ -82,7 +85,8 @@ function placeSelected(ctx: HandlerContext, cell: { col: number; row: number }):
 
   const room = createRoom(ctx.nextRoomId(), blueprint, cell);
   const structuresBefore = game.tower.structures?.length ?? 0;
-  const placed = placeRoomReplacing(game.tower, room, blueprint, () => ctx.nextRoomId());
+  const placementOptions = { overhangUnlocked: isOverhangUnlocked(game) };
+  const placed = placeRoomReplacing(game.tower, room, blueprint, () => ctx.nextRoomId(), placementOptions);
   if (!placed.ok || !placed.tower) {
     addMessage(game, `Cannot build here: ${placed.reason.replace(/_/g, ' ')}.`, 'info');
     return;

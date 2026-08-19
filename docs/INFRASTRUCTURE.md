@@ -22,7 +22,7 @@ Three tower layers (visibility toggles; workers use glyphs when the layer is on)
 
 | Layer | Contents | Edit trigger |
 |-------|----------|--------------|
-| **rooms** | Structure blueprints (spire, buttress, housing, slot, turret, …) | Select a structure blueprint |
+| **rooms** | Structure blueprints (spire, housing, slot, turret, …) | Select a structure blueprint |
 | **infra** | Stairs, pipes, elevators | Select an infra blueprint / tool |
 | **workers** | Staff positions during attack (build: allocation UI, not free movement) | Slot/spring headcount; auto-routing at wave start |
 

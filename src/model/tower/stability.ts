@@ -11,10 +11,47 @@ function structureKeys(tower: Tower): string[] {
   return Object.keys(tower.structureOccupancy ?? {});
 }
 
-/** Orthogonal neighbors among structure cells. */
-function structureComponents(tower: Tower): Set<string>[] {
+/** Orthogonal neighbors among structure cells, plus support links when overhang is unlocked. */
+export function structureComponents(tower: Tower, overhangUnlocked = false): Set<string>[] {
   const occupied = new Set(structureKeys(tower));
   if (occupied.size === 0) return [];
+
+  const adjacency = new Map<string, Set<string>>();
+  for (const key of occupied) {
+    adjacency.set(key, new Set());
+  }
+
+  const link = (a: string, b: string) => {
+    adjacency.get(a)!.add(b);
+    adjacency.get(b)!.add(a);
+  };
+
+  for (const key of occupied) {
+    const { col, row } = parseKey(key);
+    for (const n of [
+      cellKey(col + 1, row),
+      cellKey(col - 1, row),
+      cellKey(col, row + 1),
+      cellKey(col, row - 1),
+    ]) {
+      if (occupied.has(n)) link(key, n);
+    }
+  }
+
+  if (overhangUnlocked) {
+    const analysis = analyzeSupport(tower, true);
+    for (const key of occupied) {
+      const { col, row } = parseKey(key);
+      if (row === 0 || !analysis.supported.has(key)) continue;
+      for (const belowKey of occupied) {
+        const below = parseKey(belowKey);
+        if (below.row !== row - 1 || !analysis.supported.has(belowKey)) continue;
+        if (Math.abs(below.col - col) <= MAX_OVERHANG_STEP) {
+          link(key, belowKey);
+        }
+      }
+    }
+  }
 
   const seen = new Set<string>();
   const components: Set<string>[] = [];
@@ -28,15 +65,8 @@ function structureComponents(tower: Tower): Set<string>[] {
       if (component.has(key)) continue;
       component.add(key);
       seen.add(key);
-      const { col, row } = parseKey(key);
-      const neighbors = [
-        cellKey(col + 1, row),
-        cellKey(col - 1, row),
-        cellKey(col, row + 1),
-        cellKey(col, row - 1),
-      ];
-      for (const n of neighbors) {
-        if (occupied.has(n) && !component.has(n)) queue.push(n);
+      for (const n of adjacency.get(key) ?? []) {
+        if (!component.has(n)) queue.push(n);
       }
     }
     components.push(component);
@@ -45,13 +75,13 @@ function structureComponents(tower: Tower): Set<string>[] {
   return components;
 }
 
-export function isTowerConnected(tower: Tower): boolean {
-  return structureComponents(tower).length <= 1;
+export function isTowerConnected(tower: Tower, overhangUnlocked = false): boolean {
+  return structureComponents(tower, overhangUnlocked).length <= 1;
 }
 
 /** Structure ids in every component except the main (largest) one. */
-function disconnectedStructureIds(tower: Tower): Set<string> {
-  const components = structureComponents(tower);
+function disconnectedStructureIds(tower: Tower, overhangUnlocked = false): Set<string> {
+  const components = structureComponents(tower, overhangUnlocked);
   if (components.length <= 1) return new Set();
 
   const main = components.reduce((best, comp) => {
@@ -76,8 +106,9 @@ function disconnectedStructureIds(tower: Tower): Set<string> {
   return bad;
 }
 
-/** Spire cells above row 0 must have framing directly below. */
-function spireViolations(tower: Tower): Structure[] {
+/** Spire cells above row 0 must have framing directly below (unless overhang is unlocked). */
+function spireViolations(tower: Tower, overhangUnlocked: boolean): Structure[] {
+  if (overhangUnlocked) return [];
   const bad: Structure[] = [];
   for (const piece of tower.structures ?? []) {
     if (!isSpirePiece(piece.size)) continue;
@@ -98,10 +129,10 @@ export interface SupportAnalysis {
 }
 
 /**
- * Bottom-up support propagation over the structure layer. Buttresses may cantilever
- * at most one step beyond the supported span below. Spires need framing directly beneath.
+ * Bottom-up support propagation over the structure layer. When overhang is unlocked,
+ * spires may cantilever at most one step beyond the supported span below.
  */
-export function analyzeSupport(tower: Tower): SupportAnalysis {
+export function analyzeSupport(tower: Tower, overhangUnlocked = false): SupportAnalysis {
   const colsByRow = new Map<number, number[]>();
   let maxRow = 0;
   for (const key of structureKeys(tower)) {
@@ -125,17 +156,26 @@ export function analyzeSupport(tower: Tower): SupportAnalysis {
 
     const minBelow = Math.min(...belowSupported);
     const maxBelow = Math.max(...belowSupported);
-    const inRange = (c: number) => c >= minBelow - MAX_OVERHANG_STEP && c <= maxBelow + MAX_OVERHANG_STEP;
+    const inRange = (c: number) =>
+      overhangUnlocked && c >= minBelow - MAX_OVERHANG_STEP && c <= maxBelow + MAX_OVERHANG_STEP;
 
     const anchored = new Set<number>(cols.filter((c) => supported.has(cellKey(c, row - 1))));
-    let changed = true;
-    while (changed) {
-      changed = false;
+    if (overhangUnlocked) {
       for (const c of cols) {
-        if (anchored.has(c) || !inRange(c)) continue;
-        if (anchored.has(c - 1) || anchored.has(c + 1)) {
+        if (!inRange(c)) continue;
+        if (c <= minBelow + MAX_OVERHANG_STEP || c >= maxBelow - MAX_OVERHANG_STEP) {
           anchored.add(c);
-          changed = true;
+        }
+      }
+      let changed = true;
+      while (changed) {
+        changed = false;
+        for (const c of cols) {
+          if (anchored.has(c) || !inRange(c)) continue;
+          if (anchored.has(c - 1) || anchored.has(c + 1)) {
+            anchored.add(c);
+            changed = true;
+          }
         }
       }
     }
@@ -149,14 +189,18 @@ export function analyzeSupport(tower: Tower): SupportAnalysis {
 
 export interface TowerValidity {
   valid: boolean;
-  /** Structure ids that make the tower invalid (floating or breaking spire/buttress rules). */
+  /** Structure ids that make the tower invalid (floating or breaking spire support rules). */
   invalidStructureIds: Set<string>;
   /** @deprecated Prefer invalidStructureIds. */
   invalidRoomIds: Set<string>;
   reason: PlacementReason;
 }
 
-function validityFromAnalysis(tower: Tower, analysis: SupportAnalysis): TowerValidity {
+function validityFromAnalysis(
+  tower: Tower,
+  analysis: SupportAnalysis,
+  overhangUnlocked: boolean,
+): TowerValidity {
   const invalidStructureIds = new Set<string>();
 
   for (const piece of tower.structures ?? []) {
@@ -169,12 +213,12 @@ function validityFromAnalysis(tower: Tower, analysis: SupportAnalysis): TowerVal
   }
   let reason: PlacementReason = invalidStructureIds.size > 0 ? 'no_support' : 'ok';
 
-  for (const piece of spireViolations(tower)) {
+  for (const piece of spireViolations(tower, overhangUnlocked)) {
     invalidStructureIds.add(piece.id);
     if (reason === 'ok') reason = 'no_support';
   }
 
-  for (const structureId of disconnectedStructureIds(tower)) {
+  for (const structureId of disconnectedStructureIds(tower, overhangUnlocked)) {
     invalidStructureIds.add(structureId);
     if (reason === 'ok') reason = 'disconnected';
   }
@@ -187,12 +231,12 @@ function validityFromAnalysis(tower: Tower, analysis: SupportAnalysis): TowerVal
   };
 }
 
-export function validateTower(tower: Tower): TowerValidity {
-  return validityFromAnalysis(tower, analyzeSupport(tower));
+export function validateTower(tower: Tower, overhangUnlocked = false): TowerValidity {
+  return validityFromAnalysis(tower, analyzeSupport(tower, overhangUnlocked), overhangUnlocked);
 }
 
-export function getUnstableStructureIds(tower: Tower): Set<string> {
-  return validateTower(tower).invalidStructureIds;
+export function getUnstableStructureIds(tower: Tower, overhangUnlocked = false): Set<string> {
+  return validateTower(tower, overhangUnlocked).invalidStructureIds;
 }
 
 /** @deprecated Prefer getUnstableStructureIds. */
@@ -200,6 +244,6 @@ export function getUnstableRoomIds(tower: Tower): Set<string> {
   return getUnstableStructureIds(tower);
 }
 
-export function isTowerStable(tower: Tower): boolean {
-  return validateTower(tower).valid;
+export function isTowerStable(tower: Tower, overhangUnlocked = false): boolean {
+  return validateTower(tower, overhangUnlocked).valid;
 }

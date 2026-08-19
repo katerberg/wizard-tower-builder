@@ -9,6 +9,7 @@ export {
   instantUnlockResearch,
   isNodeCompleted,
   isNodeQueued,
+  isOverhangUnlocked,
   listFrontierNodes,
   prereqsMet,
   researchStartCost,

@@ -3,7 +3,7 @@ import { MAX_OVERHANG_STEP } from '@/config/constants';
 import { cellKey, inBounds, parseKey, roomCells } from '../../calculations/grid';
 import type { Blueprint, Cell, PlacementReason, PlacementResult, Room, Structure, Tower } from '../types';
 import { roomAt, structureAt, hasStructure } from './query';
-import { analyzeSupport, type SupportAnalysis } from './stability';
+import { analyzeSupport, structureComponents, type SupportAnalysis } from './stability';
 import { removeRoom, removeStructure } from './sell';
 import { reconcileShellAfterStructureEdit } from '../fortifications/shell';
 
@@ -30,6 +30,11 @@ export function createRoom(id: string, blueprint: Blueprint, origin: Cell): Room
 
 function fail(reason: PlacementReason): PlacementResult {
   return { ok: false, reason };
+}
+
+export interface StructurePlacementOptions {
+  /** When true, spire blocks may cantilever one step beyond support below. */
+  overhangUnlocked?: boolean;
 }
 
 const PLACEMENT_PROBE_ID = '__placement_probe__';
@@ -121,19 +126,20 @@ function structureKeys(tower: Tower): string[] {
   return Object.keys(tower.structureOccupancy ?? {});
 }
 
-function newCellsTouchStructure(tower: Tower, newCells: Cell[]): boolean {
-  if (structureKeys(tower).length === 0) return true;
-  const occupied = new Set(structureKeys(tower));
-  for (const c of newCells) {
-    const neighbors = [
-      cellKey(c.col + 1, c.row),
-      cellKey(c.col - 1, c.row),
-      cellKey(c.col, c.row + 1),
-      cellKey(c.col, c.row - 1),
-    ];
-    for (const n of neighbors) {
-      if (occupied.has(n)) return true;
-    }
+function connectsToExistingMass(
+  before: Tower,
+  candidate: Tower,
+  newCells: Cell[],
+  overhangUnlocked: boolean,
+): boolean {
+  const beforeKeys = new Set(structureKeys(before));
+  if (beforeKeys.size === 0) return true;
+  const components = structureComponents(candidate, overhangUnlocked);
+  const newKeys = new Set(newCells.map((c) => cellKey(c.col, c.row)));
+  for (const comp of components) {
+    const touchesNew = [...newKeys].some((k) => comp.has(k));
+    const touchesOld = [...beforeKeys].some((k) => comp.has(k));
+    if (touchesNew && touchesOld) return true;
   }
   return false;
 }
@@ -142,7 +148,7 @@ function validateNewStructurePlacement(
   candidate: Tower,
   newCells: Cell[],
   analysis: SupportAnalysis,
-  blueprint: Blueprint,
+  overhangUnlocked: boolean,
 ): PlacementReason | 'ok' {
   const unsupported = newCells
     .filter((c) => !analysis.supported.has(cellKey(c.col, c.row)))
@@ -162,7 +168,7 @@ function validateNewStructurePlacement(
     return 'no_support';
   }
 
-  if (blueprint.size.w === 1) {
+  if (!overhangUnlocked) {
     for (const c of newCells) {
       if (c.row > 0 && !hasStructure(candidate, c.col, c.row - 1)) {
         return 'no_support';
@@ -185,7 +191,13 @@ function supportedColsAt(tower: Tower, analysis: SupportAnalysis, row: number): 
   return cols;
 }
 
-export function canPlaceStructure(tower: Tower, blueprint: Blueprint, origin: Cell): PlacementResult {
+export function canPlaceStructure(
+  tower: Tower,
+  blueprint: Blueprint,
+  origin: Cell,
+  options: StructurePlacementOptions = {},
+): PlacementResult {
+  const overhangUnlocked = options.overhangUnlocked ?? false;
   if (!isStructureBlueprint(blueprint)) {
     return fail('overlap');
   }
@@ -195,17 +207,16 @@ export function canPlaceStructure(tower: Tower, blueprint: Blueprint, origin: Ce
     return fail(cleared.reason);
   }
 
-  if (!newCellsTouchStructure(cleared.tower, cells)) {
+  const candidate = placeStructure(cleared.tower, createStructure(PLACEMENT_PROBE_ID, blueprint, origin));
+  const analysis = analyzeSupport(candidate, overhangUnlocked);
+  const newPlacement = validateNewStructurePlacement(candidate, cells, analysis, overhangUnlocked);
+  if (newPlacement !== 'ok') {
+    return fail(newPlacement);
+  }
+  if (!connectsToExistingMass(cleared.tower, candidate, cells, overhangUnlocked)) {
     return fail('disconnected');
   }
-
-  const candidate = placeStructure(cleared.tower, createStructure(PLACEMENT_PROBE_ID, blueprint, origin));
-  const analysis = analyzeSupport(candidate);
-  const newPlacement = validateNewStructurePlacement(candidate, cells, analysis, blueprint);
-  if (newPlacement === 'ok') {
-    return { ok: true, reason: 'ok' };
-  }
-  return fail(newPlacement);
+  return { ok: true, reason: 'ok' };
 }
 
 export interface RoomPlacementPlan {
@@ -216,7 +227,12 @@ export interface RoomPlacementPlan {
 }
 
 /** Plan room placement: replace covered rooms, auto-stem missing framing. */
-export function planRoomPlacement(tower: Tower, blueprint: Blueprint, origin: Cell): RoomPlacementPlan {
+export function planRoomPlacement(
+  tower: Tower,
+  blueprint: Blueprint,
+  origin: Cell,
+  options: StructurePlacementOptions = {},
+): RoomPlacementPlan {
   if (isStructureBlueprint(blueprint) || blueprint.category === 'infra') {
     return { ok: false, reason: 'overlap', stemCells: [] };
   }
@@ -236,7 +252,7 @@ export function planRoomPlacement(tower: Tower, blueprint: Blueprint, origin: Ce
   const ordered = [...cells].sort((a, b) => a.row - b.row || a.col - b.col);
   for (const cell of ordered) {
     if (hasStructure(probe, cell.col, cell.row)) continue;
-    const stemResult = canPlaceStructure(probe, stem, cell);
+    const stemResult = canPlaceStructure(probe, stem, cell, options);
     if (!stemResult.ok) {
       return { ok: false, reason: stemResult.reason, stemCells: [] };
     }
@@ -247,8 +263,13 @@ export function planRoomPlacement(tower: Tower, blueprint: Blueprint, origin: Ce
   return { ok: true, reason: 'ok', stemCells };
 }
 
-export function canPlaceRoom(tower: Tower, blueprint: Blueprint, origin: Cell): PlacementResult {
-  const plan = planRoomPlacement(tower, blueprint, origin);
+export function canPlaceRoom(
+  tower: Tower,
+  blueprint: Blueprint,
+  origin: Cell,
+  options: StructurePlacementOptions = {},
+): PlacementResult {
+  const plan = planRoomPlacement(tower, blueprint, origin, options);
   return { ok: plan.ok, reason: plan.reason };
 }
 
@@ -256,11 +277,16 @@ export function canPlaceRoom(tower: Tower, blueprint: Blueprint, origin: Cell): 
  * Dispatch placement legality by blueprint category.
  * Structure blueprints use framing rules; rooms auto-stem as needed.
  */
-export function canPlace(tower: Tower, blueprint: Blueprint, origin: Cell): PlacementResult {
+export function canPlace(
+  tower: Tower,
+  blueprint: Blueprint,
+  origin: Cell,
+  options: StructurePlacementOptions = {},
+): PlacementResult {
   if (isStructureBlueprint(blueprint)) {
-    return canPlaceStructure(tower, blueprint, origin);
+    return canPlaceStructure(tower, blueprint, origin, options);
   }
-  return canPlaceRoom(tower, blueprint, origin);
+  return canPlaceRoom(tower, blueprint, origin, options);
 }
 
 export function placeStructure(tower: Tower, structure: Structure): Tower {
@@ -300,13 +326,14 @@ export function placeStructureReplacing(
   tower: Tower,
   structure: Structure,
   blueprint: Blueprint,
+  options: StructurePlacementOptions = {},
 ): PlacementResult & { tower?: Tower } {
   const cells = roomCells(structure.origin, structure.size);
   const cleared = clearReplaceableStructureFootprint(tower, cells);
   if (!cleared.ok) {
     return fail(cleared.reason);
   }
-  const legality = canPlaceStructure(cleared.tower, blueprint, structure.origin);
+  const legality = canPlaceStructure(cleared.tower, blueprint, structure.origin, options);
   if (!legality.ok) {
     return legality;
   }
@@ -323,8 +350,9 @@ export function placeRoomReplacing(
   room: Room,
   blueprint: Blueprint,
   nextId: () => string = () => PLACEMENT_PROBE_ID,
+  options: StructurePlacementOptions = {},
 ): PlacementResult & { tower?: Tower } {
-  const plan = planRoomPlacement(tower, blueprint, room.origin);
+  const plan = planRoomPlacement(tower, blueprint, room.origin, options);
   if (!plan.ok) {
     return fail(plan.reason);
   }

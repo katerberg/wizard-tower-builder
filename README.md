@@ -8,7 +8,7 @@ Stack: **TypeScript**, **Vite**, **HTML5 Canvas** (board), **DOM** (UI chrome). 
 
 The run alternates between two phases:
 
-1. **Build** — Spend **stone**, **metal**, and **souls** to place **framing** (spires / buttresses), **rooms**, and **infra**. Framing holds the tower up; rooms and infra sit on it (and auto-add Spire Blocks when needed). Paint **stairs** and **pipes**; recruit staff into housing (**gold** payroll); allocate slot/spring headcounts. Use the **Select** tool to inspect rooms (and bare framing). Right-click sells the room first (framing stays); click again to sell framing. When the tower is stable, start the wave.
+1. **Build** — Spend **stone**, **metal**, and **souls** to place **framing** (spire blocks), **rooms**, and **infra**. Framing holds the tower up; rooms and infra sit on it (and auto-add Spire Blocks when needed). Paint **stairs** and **pipes**; recruit staff into housing (**gold** payroll); allocate slot/spring headcounts. Use the **Select** tool to inspect rooms (and bare framing). Right-click sells the room first (framing stays); click again to sell framing. When the tower is stable, start the wave.
 2. **Attack** — Enemies spawn at the base and pathfind toward the **solar collector** on the crown. The wizard is a click-to-path **firefighter** on the interior (stairs/elevators; Flight for air) casting at close range — enemies do not aggro the wizard. Staff path on the **interior** (horizontal through framing / passable rooms; **stairs/elevators** to change floors) to slots, mana springs, and repair jobs. Surplus laborers **hand-pump** water and path into an **underground mine** for **stone**. Defenses: wizard **Wand Strike** (auto) plus a four-spell hotbar; **Turret** / **Steam Turret** / **Flame Turret** (+ **Forge** fire pipes) rooms; soldier **Slots**; **spikes** (modification). Stone-built mass weathers and takes climber abrasion. Survive the wave to earn **gold** (clear) and **souls** (kills) and return to build. Lose if the **solar collector’s HP** reaches zero. See [`docs/PLAYER_MOVEMENT.md`](docs/PLAYER_MOVEMENT.md).
 
 **Win** by clearing a wave while framing height is still **≥ 100**. Difficulty scales with tower height at Start Wave (plateaus + permanent enemy unlocks); see [`docs/HEIGHT_PROGRESSION.md`](docs/HEIGHT_PROGRESSION.md).
@@ -22,8 +22,8 @@ Mana powers the wizard’s hotbar (keys **1–4** to select, click to aim/cast d
 The tower has three layers on each cell: **structure** (framing), **room** (optional overlay), and **infra** (stairs / pipes / elevators). Physics and stability use the structure layer only.
 
 - **Ground** — Row 0 is the floor; framing can be placed directly on it.
-- **Spire blocks (1-wide)** — Framing that must sit on the ground or directly on framing below — no overhang.
-- **Buttress (2 or 3 wide)** — Wide framing; outer cells may cantilever at most **one step** beyond support below.
+- **Spire blocks (1-wide)** — Framing that must sit on the ground or directly on framing below until **Cantilever Framing** is researched.
+- **Overhangs (researched)** — After **Cantilever Framing**, spire blocks may cantilever at most **one step** beyond support below.
 - **Rooms** — Functional overlays (housing, generators, damagers). Every footprint cell needs framing; missing cells auto-place Spire Blocks when legal.
 - **Infra** — Same rule: must sit on framing; empty cells auto-place a Spire Block when legal.
 - **Single tower** — All framing must form **one connected mass** (4-way adjacency).

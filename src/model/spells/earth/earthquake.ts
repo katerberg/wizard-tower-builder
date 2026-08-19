@@ -1,6 +1,7 @@
 import { roomCells } from '@/calculations/grid';
 import { macroCellOfNode } from '@/calculations/subGrid';
 import { addMessage } from '@/model/messages';
+import { isOverhangUnlocked } from '@/model/research';
 import { computeStructureStats } from '@/calculations/combat';
 import { getBlueprint } from '@/model/blueprints';
 import { applyDestructionAftermath, mergeRemovalDeltas } from '@/model/staff/destruction';
@@ -185,7 +186,7 @@ export function castEarthquake(state: GameState, tipStructureId: string, ctx: Sp
     addMessage(state, `${name} collapses under the quake!`, 'combat');
   }
   if (quakeDelta.removedStructureIds.length > 0) {
-    const cascaded = cascadeUnsupportedStructures(state.tower);
+    const cascaded = cascadeUnsupportedStructures(state.tower, isOverhangUnlocked(state));
     state.tower = cascaded.tower;
     quakeDelta = mergeRemovalDeltas(quakeDelta, cascaded.delta);
     if (cascaded.delta.removedStructureIds.length > 0) {

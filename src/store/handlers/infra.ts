@@ -4,6 +4,7 @@ import { getInfraBlueprint, isInfraBlueprint } from '@/model/infraBlueprints';
 import { getInfraAt, removeInfraAt } from '@/model/infra';
 import { applyInfraPlacement, planInfraPlacement } from '@/model/infraPlacement';
 import { addMessage } from '@/model/messages';
+import { isOverhangUnlocked } from '@/model/research';
 import { roomAt } from '@/model/tower';
 import type { HandlerContext } from '../context';
 import type { Intent } from '../intents';
@@ -31,7 +32,8 @@ function placeInfraSelected(ctx: HandlerContext, cell: { col: number; row: numbe
   const blueprint = getInfraBlueprint(id);
   if (!blueprint?.infraKind) return;
 
-  const plan = planInfraPlacement(game.tower, blueprint, cell);
+  const placementOptions = { overhangUnlocked: isOverhangUnlocked(game) };
+  const plan = planInfraPlacement(game.tower, blueprint, cell, placementOptions);
   if (plan.isToggleOff) {
     ctx.recordBuildStep();
     game.tower = removeInfraAt(game.tower, cell.col, cell.row);

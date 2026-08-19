@@ -3,27 +3,29 @@ import { macroCenterSubCell } from './subGrid';
 import { ENEMY_TEMPLATES } from '../model/enemies';
 import { findPath } from './pathfinding';
 import { isWalkable, spawnNode } from './exteriorGraph';
-import { createRoom, createTower, getWizardPosition, placeRoom } from '../model/tower';
+import { createStructure, createTower, getWizardPosition, placeStructure } from '../model/tower';
 import { getBlueprint } from '../model/blueprints';
 import type { ExteriorNode, Tower } from '../model/types';
 
 const profile = ENEMY_TEMPLATES.swarm.movement;
+const stem = getBlueprint('stem')!;
 
-// stem (5,0) -> stem (5,1) -> buttress3 (4,2): cap overhangs cols 4 and 6.
+// stem (5,0) -> stem (5,1) -> stems (4,2) and (6,2): T cap with one-step overhangs.
 function buildTShapedTower(): Tower {
   let tower = createTower();
-  tower = placeRoom(tower, createRoom('a', getBlueprint('stem')!, { col: 5, row: 0 }));
-  tower = placeRoom(tower, createRoom('b', getBlueprint('stem')!, { col: 5, row: 1 }));
-  tower = placeRoom(tower, createRoom('c', getBlueprint('buttress3')!, { col: 4, row: 2 }));
+  tower = placeStructure(tower, createStructure('a', stem, { col: 5, row: 0 }));
+  tower = placeStructure(tower, createStructure('b', stem, { col: 5, row: 1 }));
+  tower = placeStructure(tower, createStructure('c', stem, { col: 4, row: 2 }));
+  tower = placeStructure(tower, createStructure('d', stem, { col: 6, row: 2 }));
   return tower;
 }
 
-// stem (5,0) -> buttress2 (5,1) -> buttress3 (4,2): a widening stepped tower.
+// stem (5,0) -> stem (5,1) -> stem (6,2): a widening stepped tower.
 function buildPyramid(): Tower {
   let tower = createTower();
-  tower = placeRoom(tower, createRoom('a', getBlueprint('stem')!, { col: 5, row: 0 }));
-  tower = placeRoom(tower, createRoom('b', getBlueprint('buttress2')!, { col: 5, row: 1 }));
-  tower = placeRoom(tower, createRoom('c', getBlueprint('buttress3')!, { col: 4, row: 2 }));
+  tower = placeStructure(tower, createStructure('a', stem, { col: 5, row: 0 }));
+  tower = placeStructure(tower, createStructure('b', stem, { col: 5, row: 1 }));
+  tower = placeStructure(tower, createStructure('c', stem, { col: 6, row: 2 }));
   return tower;
 }
 

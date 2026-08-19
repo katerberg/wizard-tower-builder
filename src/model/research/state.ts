@@ -1,4 +1,4 @@
-import { RESEARCH_CANCEL_REFUND_RATE, RESEARCH_QUEUE_CAP } from '@/config/research';
+import { OVERHANG_RESEARCH_ID, RESEARCH_CANCEL_REFUND_RATE, RESEARCH_QUEUE_CAP } from '@/config/research';
 import {
   addResources,
   asResources,
@@ -18,6 +18,10 @@ export function emptyResearchState(): PlayerResearchState {
 
 export function isNodeCompleted(state: GameState, nodeId: ResearchNodeId): boolean {
   return state.player.research.completedNodeIds.includes(nodeId);
+}
+
+export function isOverhangUnlocked(state: GameState): boolean {
+  return isNodeCompleted(state, OVERHANG_RESEARCH_ID);
 }
 
 export function isNodeQueued(state: GameState, nodeId: ResearchNodeId): boolean {

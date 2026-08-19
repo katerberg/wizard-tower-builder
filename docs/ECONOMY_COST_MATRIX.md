@@ -19,8 +19,6 @@ Wallet today: **gold · metal · stone · souls**. Planned: mine **iron → meta
 | Blueprint | id | stone | metal | souls | gold | Wear v1 |
 |-----------|-----|-------|-------|-------|------|---------|
 | Spire Block | `stem` | 3 | — | — | — | Yes |
-| Buttress (2) | `buttress2` | — | 6 | — | — | No |
-| Buttress (3) | `buttress3` | — | 8 | — | — | No |
 
 ---
 

@@ -6,13 +6,12 @@ import type { ResearchNode } from './types';
  */
 export const RESEARCH_NODES: ResearchNode[] = [
   {
-    id: 'bp-buttress3',
-    name: 'Wide Buttress',
-    description: 'Unlocks the 3-wide buttress for broader platforms.',
-    kind: 'blueprint',
-    unlocksBlueprints: ['buttress3'],
+    id: 'tech-overhang',
+    name: 'Cantilever Framing',
+    description: 'Spire blocks may overhang supported framing by one cell.',
+    kind: 'technology',
     requires: [],
-    startCost: { souls: 5 },
+    startCost: { souls: 5, metal: 4 },
     progressRequired: 20,
   },
   {

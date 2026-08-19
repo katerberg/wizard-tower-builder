@@ -2,7 +2,7 @@ import { getBlueprint } from './blueprints';
 import { canPlaceInfra, getInfraAt, placeInfra } from './infra';
 import { isBoilerFootprintCell, wouldMixFluids } from './pipes';
 import { reconcileShellAfterStructureEdit } from './fortifications/shell';
-import { canPlaceStructure, createStructure, hasStructure, placeStructure } from './tower';
+import { canPlaceStructure, createStructure, hasStructure, placeStructure, type StructurePlacementOptions } from './tower';
 import type { Blueprint, Cell, PlacementReason, Tower } from './types';
 
 export interface InfraPlacementPlan {
@@ -22,6 +22,7 @@ export function planInfraPlacement(
   tower: Tower,
   blueprint: Blueprint,
   cell: Cell,
+  options: StructurePlacementOptions = {},
 ): InfraPlacementPlan {
   if (blueprint.category !== 'infra' || !blueprint.infraKind) {
     return { ok: false, reason: 'overlap', needsStem: false, isToggleOff: false };
@@ -54,7 +55,7 @@ export function planInfraPlacement(
     return { ok: false, reason: 'no_support', needsStem: false, isToggleOff: false };
   }
 
-  const stemResult = canPlaceStructure(tower, stem, cell);
+  const stemResult = canPlaceStructure(tower, stem, cell, options);
   return {
     ok: stemResult.ok,
     reason: stemResult.reason,

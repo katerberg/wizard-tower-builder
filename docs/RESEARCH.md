@@ -138,7 +138,7 @@ Always available at run start (no research):
 
 | Ids | Role |
 |-----|------|
-| `stem`, `buttress2` | Framing |
+| `stem` | Framing |
 | `staircase` | Infra |
 | `quartersRoom`, `guardroomRoom`, `chamberRoom` | Housing |
 | `turretRoom` | Simple damager |
@@ -151,7 +151,7 @@ Source of truth: [`src/model/research/tree.ts`](../src/model/research/tree.ts).
 
 | Node id | Unlocks | Requires |
 |---------|---------|----------|
-| `bp-buttress3` | buttress3 | — |
+| `tech-overhang` | Cantilever Framing (one-step spire overhangs) | — |
 | `bp-pipe` | pipe | — |
 | `bp-elevator` | elevator | — |
 | `bp-slot` | slotRoom | — |
@@ -181,7 +181,7 @@ flowchart TB
     forge[bp-forge]
     slot[bp-slot]
     elev[bp-elevator]
-    butt3[bp-buttress3]
+    overhang[tech-overhang]
     moat[bp-moat]
     glacis[bp-glacis]
     parapet[bp-parapet]
