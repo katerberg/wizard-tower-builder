@@ -6,6 +6,7 @@ import { canAffordResources, subResources } from '@/calculations/resources';
 import { beginRun, createInitialState } from '@/model/game';
 import { addMessage } from '@/model/messages';
 import { beginWave } from '@/model/phases';
+import { isOverhangUnlocked } from '@/model/research';
 import { isTowerStable } from '@/model/tower';
 import { waveDefFromCounts } from '@/model/waves';
 import { resetToSelectMode } from '../viewState';
@@ -30,7 +31,7 @@ export function handleWaveIntent(ctx: HandlerContext, intent: Intent): void {
 function startWave(ctx: HandlerContext): void {
   const { game } = ctx;
   if (game.scene !== 'run' || game.phase !== 'build') return;
-  if (!isTowerStable(game.tower)) {
+  if (!isTowerStable(game.tower, isOverhangUnlocked(game))) {
     addMessage(game, 'The tower is unstable. Remove or support floating rooms first.', 'info');
     return;
   }

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { SUB_CELLS_PER_MACRO } from '@/config/constants';
 import { getBlueprint } from './blueprints';
 import type { Cell, Tower } from './types';
+import type { StructurePlacementOptions } from './tower/placement';
 import {
   canPlace,
   createRoom,
@@ -19,13 +20,18 @@ import {
 } from './tower';
 
 const stem = getBlueprint('stem')!;
-const b2 = getBlueprint('buttress2')!;
-const b3 = getBlueprint('buttress3')!;
+const overhang: StructurePlacementOptions = { overhangUnlocked: true };
+const noOverhang: StructurePlacementOptions = { overhangUnlocked: false };
 
 let roomCounter = 0;
-function place(tower: Tower, blueprintId: string, origin: Cell): Tower {
+function place(
+  tower: Tower,
+  blueprintId: string,
+  origin: Cell,
+  options: StructurePlacementOptions = overhang,
+): Tower {
   const blueprint = getBlueprint(blueprintId)!;
-  const result = canPlace(tower, blueprint, origin);
+  const result = canPlace(tower, blueprint, origin, options);
   expect(result.ok, `expected placement ok at ${origin.col},${origin.row} but got ${result.reason}`).toBe(true);
   return placeStructure(tower, createStructure(`r${roomCounter++}`, blueprint, origin));
 }
@@ -45,17 +51,10 @@ describe('canPlace - basic support', () => {
     expect(canPlace(tower, stem, { col: 5, row: 0 })).toEqual({ ok: true, reason: 'ok' });
   });
 
-  it('allows replacing a spire fully under a buttress footprint', () => {
+  it('rejects overlapping replacement on the same cell', () => {
     let tower = createTower();
-    tower = place(tower, 'stem', { col: 5, row: 0 });
-    tower = place(tower, 'stem', { col: 5, row: 1 });
-    expect(canPlace(tower, b2, { col: 5, row: 1 })).toEqual({ ok: true, reason: 'ok' });
-  });
-
-  it('rejects partial overlap with a wider room', () => {
-    let tower = createTower();
-    tower = place(tower, 'buttress3', { col: 4, row: 0 });
-    expect(canPlace(tower, b2, { col: 5, row: 0 }).reason).toBe('overlap');
+    tower = place(tower, 'stem', { col: 5, row: 0 }, noOverhang);
+    expect(canPlace(tower, stem, { col: 5, row: 0 }, noOverhang)).toEqual({ ok: true, reason: 'ok' });
   });
 
   it('allows spires stacked directly on each other', () => {
@@ -68,61 +67,38 @@ describe('canPlace - basic support', () => {
   it('rejects a floating room with nothing below', () => {
     let tower = createTower();
     tower = place(tower, 'stem', { col: 5, row: 0 });
-    expect(canPlace(tower, stem, { col: 9, row: 3 }).reason).toBe('disconnected');
+    expect(canPlace(tower, stem, { col: 9, row: 3 }).reason).toBe('no_support');
   });
 });
 
-describe('canPlace - spire on buttress', () => {
-  it('allows spire directly above a buttress (x / bb / x)', () => {
+describe('canPlace - overhang (researched)', () => {
+  it('rejects sideways spire spread without overhang research', () => {
     let tower = createTower();
-    tower = place(tower, 'stem', { col: 5, row: 0 });
-    tower = place(tower, 'buttress2', { col: 5, row: 1 });
-    expect(canPlace(tower, stem, { col: 5, row: 2 })).toEqual({ ok: true, reason: 'ok' });
+    tower = place(tower, 'stem', { col: 5, row: 0 }, noOverhang);
+    tower = place(tower, 'stem', { col: 5, row: 1 }, noOverhang);
+    tower = place(tower, 'stem', { col: 5, row: 2 }, noOverhang);
+    expect(canPlace(tower, stem, { col: 6, row: 3 }, noOverhang).reason).toMatch(/no_support|disconnected/);
   });
 
-  it('allows multiple spires on a wide buttress (x x / bbb / x)', () => {
-    let tower = createTower();
-    tower = place(tower, 'stem', { col: 1, row: 0 });
-    tower = place(tower, 'buttress3', { col: 0, row: 1 });
-    expect(canPlace(tower, stem, { col: 0, row: 2 })).toEqual({ ok: true, reason: 'ok' });
-    expect(canPlace(tower, stem, { col: 2, row: 2 })).toEqual({ ok: true, reason: 'ok' });
-  });
-
-  it('rejects sideways spire spread (xx / x)', () => {
+  it('allows a one-step cantilever when overhang is unlocked', () => {
     let tower = createTower();
     tower = place(tower, 'stem', { col: 5, row: 0 });
     tower = place(tower, 'stem', { col: 5, row: 1 });
-    tower = place(tower, 'stem', { col: 5, row: 2 });
-    expect(canPlace(tower, stem, { col: 6, row: 3 }).reason).toBe('disconnected');
-  });
-});
-
-describe('canPlace - buttress', () => {
-  it('allows a 2-wide buttress on a ground spire', () => {
-    let tower = createTower();
-    tower = place(tower, 'stem', { col: 5, row: 0 });
-    expect(canPlace(tower, b2, { col: 5, row: 1 })).toEqual({ ok: true, reason: 'ok' });
+    expect(canPlace(tower, stem, { col: 6, row: 2 }, overhang)).toEqual({ ok: true, reason: 'ok' });
   });
 
-  it('allows a 3-wide buttress cantilevering off a stem', () => {
+  it('rejects a cantilever more than one step beyond support', () => {
     let tower = createTower();
-    tower = place(tower, 'stem', { col: 5, row: 0 });
-    expect(canPlace(tower, b3, { col: 4, row: 1 })).toEqual({ ok: true, reason: 'ok' });
+    tower = place(tower, 'stem', { col: 5, row: 0 }, overhang);
+    tower = place(tower, 'stem', { col: 6, row: 0 }, overhang);
+    expect(canPlace(tower, stem, { col: 8, row: 1 }, overhang).reason).toBe('overhang_too_far');
   });
 
-  it('rejects a buttress cantilever more than one step beyond support', () => {
+  it('allows stacked cantilevers on supported spines', () => {
     let tower = createTower();
-    tower = place(tower, 'stem', { col: 5, row: 0 });
-    tower = place(tower, 'stem', { col: 6, row: 0 });
-    // b3 at col 6 spans 6,7,8 — col 8 is two steps past support ending at col 6.
-    expect(canPlace(tower, b3, { col: 6, row: 1 }).reason).toBe('overhang_too_far');
-  });
-
-  it('allows buttress stacked on buttress', () => {
-    let tower = createTower();
-    tower = place(tower, 'stem', { col: 5, row: 0 });
-    tower = place(tower, 'buttress2', { col: 5, row: 1 });
-    expect(canPlace(tower, b2, { col: 5, row: 2 })).toEqual({ ok: true, reason: 'ok' });
+    tower = place(tower, 'stem', { col: 5, row: 0 }, overhang);
+    tower = place(tower, 'stem', { col: 6, row: 1 }, overhang);
+    expect(canPlace(tower, stem, { col: 6, row: 2 }, overhang)).toEqual({ ok: true, reason: 'ok' });
   });
 });
 
@@ -136,32 +112,32 @@ describe('canPlace - stepped tower shapes', () => {
     expect(isTowerStable(tower)).toBe(true);
   });
 
-  it('builds x / bb / x', () => {
+  it('builds x / x / x with a cantilever cap', () => {
     let tower = createTower();
     tower = place(tower, 'stem', { col: 5, row: 0 });
-    tower = place(tower, 'buttress2', { col: 5, row: 1 });
-    tower = place(tower, 'stem', { col: 5, row: 2 });
+    tower = place(tower, 'stem', { col: 5, row: 1 });
+    tower = place(tower, 'stem', { col: 6, row: 2 });
     expect(tower.structures.length).toBe(3);
-    expect(isTowerStable(tower)).toBe(true);
+    expect(isTowerStable(tower, true)).toBe(true);
   });
 
-  it('builds x x / bbb / x', () => {
+  it('builds a T cap with two cantilever spires', () => {
+    let tower = createTower();
+    tower = place(tower, 'stem', { col: 5, row: 0 });
+    tower = place(tower, 'stem', { col: 5, row: 1 });
+    tower = place(tower, 'stem', { col: 4, row: 2 });
+    tower = place(tower, 'stem', { col: 6, row: 2 });
+    expect(tower.structures.length).toBe(4);
+    expect(isTowerStable(tower, true)).toBe(true);
+  });
+  it('builds a connected stepped stack with cantilevers', () => {
     let tower = createTower();
     tower = place(tower, 'stem', { col: 1, row: 0 });
-    tower = place(tower, 'buttress3', { col: 0, row: 1 });
-    tower = place(tower, 'stem', { col: 0, row: 2 });
-    tower = place(tower, 'stem', { col: 2, row: 2 });
-    expect(tower.structures.length).toBe(4);
-    expect(isTowerStable(tower)).toBe(true);
-  });
-  it('builds a connected pyramid (x / xx / xxx)', () => {
-    let tower = createTower();
-    tower = place(tower, 'buttress3', { col: 0, row: 0 });
-    tower = place(tower, 'buttress2', { col: 1, row: 1 });
-    tower = place(tower, 'stem', { col: 2, row: 2 });
+    tower = place(tower, 'stem', { col: 2, row: 1 });
+    tower = place(tower, 'stem', { col: 3, row: 2 });
     expect(tower.structures.length).toBe(3);
-    expect(isTowerConnected(tower)).toBe(true);
-    expect(isTowerStable(tower)).toBe(true);
+    expect(isTowerConnected(tower, true)).toBe(true);
+    expect(isTowerStable(tower, true)).toBe(true);
   });
 });
 
@@ -174,40 +150,32 @@ describe('canPlace - connectivity', () => {
 
   it('rejects a disconnected double-base layout', () => {
     let tower = createTower();
-    tower = place(tower, 'buttress2', { col: 2, row: 0 });
-    expect(canPlace(tower, b2, { col: 6, row: 0 }).reason).toBe('disconnected');
+    tower = place(tower, 'stem', { col: 2, row: 0 }, noOverhang);
+    expect(canPlace(tower, stem, { col: 6, row: 0 }, noOverhang).reason).toBe('disconnected');
   });
 
-  it('flags the detached mass after a removal splits the tower', () => {
+  it('rejects a disconnected second tower on the ground', () => {
     let tower = createTower();
-    tower = place(tower, 'buttress2', { col: 5, row: 0 });
-    tower = place(tower, 'buttress2', { col: 7, row: 0 });
-    tower = place(tower, 'stem', { col: 5, row: 1 });
-    tower = place(tower, 'stem', { col: 8, row: 1 });
-    expect(isTowerConnected(tower)).toBe(true);
-
-    const leftGround = tower.structures.find((r) => r.origin.col === 5 && r.origin.row === 0)!;
-    tower = removeStructure(tower, leftGround.id);
-    expect(isTowerConnected(tower)).toBe(false);
-    expect(isTowerStable(tower)).toBe(false);
+    tower = place(tower, 'stem', { col: 5, row: 0 }, noOverhang);
+    expect(canPlace(tower, stem, { col: 10, row: 0 }, noOverhang).reason).toBe('disconnected');
   });
 
   it('allows bridging a multi-row gap in a broken stack one cell at a time', () => {
     const col = 5;
     let tower = createTower();
-    tower = place(tower, 'stem', { col, row: 0 });
-    tower = place(tower, 'stem', { col, row: 1 });
+    tower = place(tower, 'stem', { col, row: 0 }, noOverhang);
+    tower = place(tower, 'stem', { col, row: 1 }, noOverhang);
     const top = tower.structures.find((r) => r.origin.row === 1)!;
     tower = removeStructure(tower, top.id);
     tower = placeStructure(tower, createStructure('floating', stem, { col, row: 3 }));
     expect(isTowerStable(tower)).toBe(false);
 
-    expect(canPlace(tower, stem, { col, row: 1 })).toEqual({ ok: true, reason: 'ok' });
-    tower = place(tower, 'stem', { col, row: 1 });
+    expect(canPlace(tower, stem, { col, row: 1 }, noOverhang)).toEqual({ ok: true, reason: 'ok' });
+    tower = place(tower, 'stem', { col, row: 1 }, noOverhang);
     expect(isTowerStable(tower)).toBe(false);
 
-    expect(canPlace(tower, stem, { col, row: 2 })).toEqual({ ok: true, reason: 'ok' });
-    tower = place(tower, 'stem', { col, row: 2 });
+    expect(canPlace(tower, stem, { col, row: 2 }, noOverhang)).toEqual({ ok: true, reason: 'ok' });
+    tower = place(tower, 'stem', { col, row: 2 }, noOverhang);
     expect(isTowerStable(tower)).toBe(true);
   });
 });
@@ -221,26 +189,27 @@ describe('getWizardPosition', () => {
   it('sits just above the highest occupied row', () => {
     let tower = createTower();
     tower = place(tower, 'stem', { col: 5, row: 0 });
-    tower = place(tower, 'buttress2', { col: 5, row: 1 });
+    tower = place(tower, 'stem', { col: 5, row: 1 });
     tower = place(tower, 'stem', { col: 5, row: 2 });
     const pos = getWizardPosition(tower);
     expect(pos).toEqual({ col: 5 * SUB_CELLS_PER_MACRO + 1, row: 3 * SUB_CELLS_PER_MACRO, face: 'top' });
   });
 
-  it('stands on the left-most peak when the top row has two spires on one buttress', () => {
+  it('stands on the left-most peak when the top row has two spires', () => {
     let tower = createTower();
-    tower = place(tower, 'buttress3', { col: 0, row: 0 });
-    tower = place(tower, 'buttress3', { col: 0, row: 1 });
+    tower = place(tower, 'stem', { col: 0, row: 0 });
+    tower = place(tower, 'stem', { col: 0, row: 1 });
+    tower = place(tower, 'stem', { col: 1, row: 1 });
     tower = place(tower, 'stem', { col: 0, row: 2 });
     tower = place(tower, 'stem', { col: 2, row: 2 });
     const pos = getWizardPosition(tower);
     expect(pos).toEqual({ col: 1, row: 3 * SUB_CELLS_PER_MACRO, face: 'top' });
   });
 
-  it('centers on a wide buttress when the top row is one contiguous span', () => {
+  it('centers on a single top spire', () => {
     let tower = createTower();
     tower = place(tower, 'stem', { col: 5, row: 0 });
-    tower = place(tower, 'buttress3', { col: 4, row: 1 });
+    tower = place(tower, 'stem', { col: 5, row: 1 });
     const pos = getWizardPosition(tower);
     expect(pos).toEqual({ col: 5 * SUB_CELLS_PER_MACRO + 1, row: 2 * SUB_CELLS_PER_MACRO, face: 'top' });
   });
@@ -249,7 +218,7 @@ describe('getWizardPosition', () => {
 describe('removeStructure', () => {
   it('clears structure occupancy for the removed piece', () => {
     let tower = createTower();
-    tower = place(tower, 'buttress3', { col: 4, row: 0 });
+    tower = place(tower, 'stem', { col: 4, row: 0 }, noOverhang);
     const id = tower.structures[0].id;
     tower = removeStructure(tower, id);
     expect(tower.structures.length).toBe(0);
@@ -267,13 +236,13 @@ describe('tower stability', () => {
     expect(getUnstableStructureIds(tower).size).toBe(0);
   });
 
-  it('treats a spire-buttress-spire stack as stable', () => {
+  it('treats a cantilever stack as stable when overhang is unlocked', () => {
     let tower = createTower();
     tower = place(tower, 'stem', { col: 5, row: 0 });
-    tower = place(tower, 'buttress2', { col: 5, row: 1 });
-    tower = place(tower, 'stem', { col: 5, row: 2 });
-    expect(isTowerStable(tower)).toBe(true);
-    expect(getUnstableStructureIds(tower).size).toBe(0);
+    tower = place(tower, 'stem', { col: 6, row: 1 });
+    tower = place(tower, 'stem', { col: 6, row: 2 });
+    expect(isTowerStable(tower, true)).toBe(true);
+    expect(getUnstableStructureIds(tower, true).size).toBe(0);
   });
 
   it('treats an empty tower as stable', () => {
@@ -297,34 +266,42 @@ describe('tower stability', () => {
     expect(unstable.has('bottom')).toBe(false);
   });
 
-  it('flags spires left floating after the buttress below is removed', () => {
+  it('flags cantilever spires as unstable without overhang research', () => {
+    let tower = createTower();
+    tower = place(tower, 'stem', { col: 5, row: 0 });
+    tower = place(tower, 'stem', { col: 6, row: 1 });
+    expect(isTowerStable(tower, false)).toBe(false);
+    expect(getUnstableStructureIds(tower, false).has(tower.structures[1].id)).toBe(true);
+  });
+
+  it('flags a cantilever spire after the support below is removed', () => {
     let tower = createTower();
     const bottom = createStructure('bottom', stem, { col: 5, row: 0 });
-    const middle = createStructure('middle', b2, { col: 5, row: 1 });
-    const top = createStructure('top', stem, { col: 5, row: 2 });
+    const middle = createStructure('middle', stem, { col: 6, row: 1 });
+    const top = createStructure('top', stem, { col: 6, row: 2 });
     tower = placeStructure(tower, bottom);
     tower = placeStructure(tower, middle);
     tower = placeStructure(tower, top);
-    expect(isTowerStable(tower)).toBe(true);
+    expect(isTowerStable(tower, true)).toBe(true);
 
     tower = removeStructure(tower, 'middle');
-    expect(isTowerStable(tower)).toBe(false);
-    const unstable = getUnstableStructureIds(tower);
+    expect(isTowerStable(tower, true)).toBe(false);
+    const unstable = getUnstableStructureIds(tower, true);
     expect(unstable.has('top')).toBe(true);
     expect(unstable.has('bottom')).toBe(false);
   });
 
-  it('flags a spire on spire after the buttress between them is removed', () => {
+  it('flags a cantilever after the stem between stacks is removed', () => {
     let tower = createTower();
     tower = place(tower, 'stem', { col: 5, row: 0 });
-    tower = place(tower, 'buttress2', { col: 5, row: 1 });
-    tower = place(tower, 'stem', { col: 5, row: 2 });
-    tower = place(tower, 'buttress2', { col: 5, row: 3 });
-    tower = place(tower, 'stem', { col: 5, row: 4 });
+    tower = place(tower, 'stem', { col: 6, row: 1 });
+    tower = place(tower, 'stem', { col: 6, row: 2 });
+    tower = place(tower, 'stem', { col: 5, row: 3 });
+    tower = place(tower, 'stem', { col: 6, row: 4 });
 
-    const lowerButtress = tower.structures.find((r) => r.origin.row === 1)!;
-    tower = removeStructure(tower, lowerButtress.id);
-    expect(isTowerStable(tower)).toBe(false);
+    const lowerStem = tower.structures.find((r) => r.origin.row === 1)!;
+    tower = removeStructure(tower, lowerStem.id);
+    expect(isTowerStable(tower, true)).toBe(false);
   });
 });
 

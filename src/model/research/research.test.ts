@@ -110,12 +110,19 @@ describe('research tech tree', () => {
     state.buildBaseline!.resources.metal = 500;
     state.buildBaseline!.resources.stone = 500;
     startResearch(state, 'bp-pipe');
-    const roots = ['bp-slot', 'bp-forge', 'bp-elevator', 'bp-buttress3', 'bp-moat', 'bp-glacis'];
+    const roots = ['bp-slot', 'bp-forge', 'bp-elevator', 'tech-overhang', 'bp-moat', 'bp-glacis'];
     for (let i = 0; i < RESEARCH_QUEUE_CAP; i++) {
       expect(enqueueResearch(state, roots[i]).ok).toBe(true);
     }
     expect(enqueueResearch(state, roots[RESEARCH_QUEUE_CAP]).ok).toBe(false);
     expect(state.player.research.queue).toHaveLength(RESEARCH_QUEUE_CAP);
+  });
+
+  it('unlocks overhang placement when Cantilever Framing completes', () => {
+    const state = createInitialState();
+    startResearch(state, 'tech-overhang');
+    addResearchProgress(state, getResearchNode('tech-overhang')!.progressRequired);
+    expect(state.player.research.completedNodeIds).toContain('tech-overhang');
   });
 
   it('cancels active research with half refund and clears progress', () => {

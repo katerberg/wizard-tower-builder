@@ -13,7 +13,7 @@ describe('extractFixtureFromState', () => {
     expect(fixture.recruits).toBeUndefined();
     expect(fixture.slotAllocations).toBeUndefined();
     expect(fixture.research).toBeUndefined();
-    expect(fixture.height).toBe(5);
+    expect(fixture.height).toBe(4);
     expect(fixture.seeds).toEqual(['first-wave-b']);
   });
 
@@ -23,14 +23,14 @@ describe('extractFixtureFromState', () => {
     store.dispatch({ type: 'selectBlueprint', blueprintId: 'guardroomRoom' });
     store.dispatch({ type: 'placeSelectedAt', cell: { col: 6, row: 0 } });
     store.dispatch({ type: 'selectBlueprint', blueprintId: 'turretRoom' });
-    store.dispatch({ type: 'placeSelectedAt', cell: { col: 6, row: 2 } });
+    store.dispatch({ type: 'placeSelectedAt', cell: { col: 8, row: 2 } });
 
     const game = store.getSnapshot().game;
     const fixture = extractFixtureFromState(game, 'first-wave-b');
 
     expect(fixture.placements).toHaveLength(2);
     expect(fixture.placements).toContainEqual({ blueprintId: 'guardroomRoom', cell: { col: 6, row: 0 } });
-    expect(fixture.placements).toContainEqual({ blueprintId: 'turretRoom', cell: { col: 6, row: 2 } });
+    expect(fixture.placements).toContainEqual({ blueprintId: 'turretRoom', cell: { col: 8, row: 2 } });
   });
 
   it('captures recruits beyond baseline', () => {
@@ -111,7 +111,7 @@ describe('round-trip', () => {
     store.dispatch({ type: 'selectBlueprint', blueprintId: 'guardroomRoom' });
     store.dispatch({ type: 'placeSelectedAt', cell: { col: 6, row: 0 } });
     store.dispatch({ type: 'selectBlueprint', blueprintId: 'turretRoom' });
-    store.dispatch({ type: 'placeSelectedAt', cell: { col: 6, row: 2 } });
+    store.dispatch({ type: 'placeSelectedAt', cell: { col: 8, row: 2 } });
 
     const originalGame = store.getSnapshot().game;
     const fixture = extractFixtureFromState(originalGame, 'first-wave-b');

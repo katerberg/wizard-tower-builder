@@ -114,28 +114,23 @@ describe('build-phase undo and revert', () => {
     expect(store.getSnapshot().game.player.resources.stone).toBe(STARTING_RESOURCES.stone);
   });
 
-  it('replaces a spire with a buttress in one step and undoes atomically', () => {
+  it('replaces a spire in one step and undoes atomically', () => {
     const store = new Store('replace');
     const baselineStructures = store.getSnapshot().game.tower.structures.length;
     placeStem(store, { col: EXT_COL, row: 0 });
     placeStem(store, { col: EXT_COL, row: 1 });
     expect(store.getSnapshot().game.tower.structures).toHaveLength(baselineStructures + 2);
 
-    store.dispatch({ type: 'selectBlueprint', blueprintId: 'buttress2' });
+    store.dispatch({ type: 'selectBlueprint', blueprintId: 'stem' });
     store.dispatch({ type: 'placeSelectedAt', cell: { col: EXT_COL, row: 1 } });
 
     const afterReplace = store.getSnapshot().game.tower;
     expect(afterReplace.structures).toHaveLength(baselineStructures + 2);
     expect(
       afterReplace.structures.some(
-        (r) => r.blueprintId === 'buttress2' && r.origin.col === EXT_COL && r.origin.row === 1,
+        (r) => r.blueprintId === 'stem' && r.origin.col === EXT_COL && r.origin.row === 1,
       ),
     ).toBe(true);
-    expect(
-      afterReplace.structures.some(
-        (r) => r.origin.row === 1 && r.origin.col === EXT_COL && r.blueprintId === 'stem',
-      ),
-    ).toBe(false);
 
     store.dispatch({ type: 'undoBuild' });
     const undone = store.getSnapshot().game.tower;
@@ -145,11 +140,6 @@ describe('build-phase undo and revert', () => {
         (r) => r.origin.row === 1 && r.origin.col === EXT_COL && r.blueprintId === 'stem',
       ),
     ).toBe(true);
-    expect(
-      undone.structures.some(
-        (r) => r.origin.col === EXT_COL && r.origin.row === 1 && r.blueprintId === 'buttress2',
-      ),
-    ).toBe(false);
   });
 });
 

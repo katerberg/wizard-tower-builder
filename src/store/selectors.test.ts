@@ -37,10 +37,10 @@ describe('selectLibraryBlueprints', () => {
 
   it('reflects selected blueprint from view state', () => {
     const store = new Store('lib2');
-    store.dispatch({ type: 'selectBlueprint', blueprintId: 'buttress2' });
+    store.dispatch({ type: 'selectBlueprint', blueprintId: 'stem' });
     const items = selectLibraryBlueprints(store.getSnapshot());
-    expect(items.find((b) => b.id === 'buttress2')?.selected).toBe(true);
-    expect(items.find((b) => b.id === 'stem')?.selected).toBe(false);
+    expect(items.find((b) => b.id === 'stem')?.selected).toBe(true);
+    expect(items.find((b) => b.id === 'guardroomRoom')?.selected).toBe(false);
   });
 
   it('assigns library sections for starter blueprints', () => {
@@ -218,7 +218,7 @@ describe('selectUiTooltip', () => {
     const tip = selectUiTooltip(store.getSnapshot(), { kind: 'blueprint', id: 'turretRoom' });
     expect(tip?.title).toBe('Turret Room');
     expect(tip?.stats.some((s) => s.label === 'Cost')).toBe(true);
-    expect(tip?.stats.some((s) => s.label === 'Effect' && s.value.includes('2 damage'))).toBe(true);
+    expect(tip?.stats.some((s) => s.label === 'Effect' && s.value.includes('4 damage'))).toBe(true);
   });
 
   it('describes fortification place rules and effect', () => {
@@ -277,7 +277,7 @@ describe('selectResearchDag layout', () => {
 
     const housing = dag.groups.find((g) => g.id === 'exp-group:housing');
     const barbican = dag.nodes.find((n) => n.id === 'bp-barbican');
-    const root = dag.nodes.find((n) => n.id === 'bp-buttress3');
+    const root = dag.nodes.find((n) => n.id === 'tech-overhang');
     expect(housing).toBeDefined();
     expect(housing?.collapsed).toBe(true);
     expect(housing?.status).toBe('available');

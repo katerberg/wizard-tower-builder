@@ -64,7 +64,7 @@ export interface InfraCell {
 /** A modification instance attached to a room (one per type, leveled in place). */
 export interface RoomModification { id: string; level: number }
 
-/** Load-bearing framing piece (spire / buttress). */
+/** Load-bearing framing piece (spire block). */
 export interface Structure {
   id: string;
   blueprintId: string;
@@ -88,7 +88,7 @@ export interface RoomStats { maxHp: number; attack: number; defense: number }
 export interface StructureStats { maxHp: number }
 
 export interface Tower {
-  /** Load-bearing framing (spires / buttresses). */
+  /** Load-bearing framing (spire blocks). */
   structures: Structure[];
   /** cellKey → structureId */
   structureOccupancy: Record<string, string>;

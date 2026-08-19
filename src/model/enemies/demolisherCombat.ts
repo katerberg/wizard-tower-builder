@@ -5,6 +5,7 @@ import { macroCol, macroRow, macroCellOfNode } from '@/calculations/subGrid';
 import { surfaceContacts } from '@/calculations/exteriorGraph';
 import { getBlueprint } from '../blueprints';
 import { addMessage } from '../messages';
+import { isOverhangUnlocked } from '../research';
 import { runEnemyAttackRoomEffects } from '../modifications/effects';
 import {
   applyDestructionAftermath,
@@ -199,7 +200,7 @@ export function attackSmashAtMacro(
       const removed = removeStructureDetailed(state.tower, live.id);
       state.tower = removed.tower;
       addMessage(state, `${bp?.name ?? 'Structure'} collapses under ${collapseVerb}!`, 'combat');
-      const cascaded = cascadeUnsupportedStructures(state.tower);
+      const cascaded = cascadeUnsupportedStructures(state.tower, isOverhangUnlocked(state));
       state.tower = cascaded.tower;
       const delta = mergeRemovalDeltas(removed.delta, cascaded.delta);
       if (cascaded.delta.removedStructureIds.length > 0) {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { STARTER_TOWER_PLACEMENTS } from '@/model/starterTower';
+import { STARTER_STRUCTURE_COUNT } from '@/model/starterTower';
 import { framingHeight } from '@/model/phases';
 import { BALANCE_BUILDS } from '@/test/balance/builds';
 import { assertCombatOutcome, assertSpawnComposition } from '@/test/balance/run';
@@ -57,7 +57,7 @@ describe('balance harness', () => {
     if (!build) throw new Error('scale-height-15 fixture missing');
 
     const driver = new PlayabilityDriver('first-wave-b');
-    expect(driver.store.getSnapshot().game.tower.structures).toHaveLength(STARTER_TOWER_PLACEMENTS.length);
+    expect(driver.store.getSnapshot().game.tower.structures).toHaveLength(STARTER_STRUCTURE_COUNT);
     driver.applyBuild(build);
     expect(framingHeight(driver.store.getSnapshot().game)).toBe(15);
 

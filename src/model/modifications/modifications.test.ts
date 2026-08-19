@@ -14,7 +14,7 @@ import {
 import type { Room } from '../types';
 
 function makeRoom(): Room {
-  return createRoom('r0', getBlueprint('buttress2')!, { col: 5, row: 0 });
+  return createRoom('r0', getBlueprint('turretRoom')!, { col: 5, row: 0 });
 }
 
 describe('modification economy', () => {
@@ -66,7 +66,7 @@ describe('modification rules', () => {
 
 describe('passive stat aggregation', () => {
   it('leaves room stats at the blueprint baseline when no modifications add stats', () => {
-    const blueprint = getBlueprint('buttress2')!;
+    const blueprint = getBlueprint('turretRoom')!;
     const room = makeRoom();
     room.modifications.push({ id: 'spikes', level: 3 });
 

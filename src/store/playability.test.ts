@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { STARTER_TOWER_PLACEMENTS } from '@/model/starterTower';
+import { STARTER_STRUCTURE_COUNT } from '@/model/starterTower';
 import { balanceBuildById } from '@/test/balance/builds';
 import { assertCombatOutcome } from '@/test/balance/run';
 import { PlayabilityDriver, runBalanceBuild } from '@/test/playability';
@@ -14,7 +14,7 @@ describe('first-wave playability', () => {
     const driver = new PlayabilityDriver(seed);
     const initial = driver.store.getSnapshot().game;
     expect(initial.phase).toBe('build');
-    expect(initial.tower.structures).toHaveLength(STARTER_TOWER_PLACEMENTS.length);
+    expect(initial.tower.structures).toHaveLength(STARTER_STRUCTURE_COUNT);
 
     const report = runBalanceBuild({ ...bare, maxSteps: FIRST_WAVE_MAX_STEPS }, seed);
     assertCombatOutcome(bare, report);

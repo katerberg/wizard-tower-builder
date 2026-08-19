@@ -47,7 +47,7 @@ The same `applyBuild` path works at height 5, 15, or 80. A later plateau is anot
 
 ## Wave-1 turret lock
 
-Idle magic-turret DPS is tuned so **one turret loses** wave 1 even on the covering shaft (`one-turret` at col 8) and **two turrets** (one per starter shaft) **clear** (`double-turret`). Knobs: `TURRET_DAMAGE` **2** / `TURRET_COOLDOWN` **2s** in `src/model/rooms/turret.ts`. Keep `bare-starter` losing.
+Idle magic-turret DPS is tuned so **one turret loses** wave 1 even on the covering shaft (`one-turret` at col 8) and **two turrets** (one per starter shaft) **clear** (`double-turret`). Knobs: `TURRET_DAMAGE` **4** / `TURRET_COOLDOWN` **2s** in `src/model/rooms/turret.ts`. Keep `bare-starter` losing.
 
 **Where to tweak** (do not put magic numbers in tests):
 

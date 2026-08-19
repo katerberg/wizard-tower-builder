@@ -1,7 +1,7 @@
 import type { Blueprint } from './types';
 import { WEAR_HP_SCALE } from '@/config/constants';
 
-/** Load-bearing framing blueprints (spires / buttresses). */
+/** Load-bearing framing blueprints (spire blocks). */
 export const STRUCTURE_BLUEPRINTS: Blueprint[] = [
   {
     id: 'stem',
@@ -13,29 +13,7 @@ export const STRUCTURE_BLUEPRINTS: Blueprint[] = [
     baseHp: 20 * WEAR_HP_SCALE,
     category: 'structure',
     description:
-      'A 1×1 framing block. Stack upward to reach the wizard perch. Must sit on ground or framing directly below — no overhang. Costs stone; subject to weathering and climber abrasion.',
-  },
-  {
-    id: 'buttress2',
-    name: 'Buttress (2)',
-    glyph: 'B',
-    color: '#8c6b5a',
-    size: { w: 2, h: 1 },
-    cost: { metal: 6 },
-    baseHp: 35,
-    category: 'structure',
-    description: 'A wide 2×1 framing platform. Can cantilever one step beyond support for flexible tower shapes. Costs metal.',
-  },
-  {
-    id: 'buttress3',
-    name: 'Buttress (3)',
-    glyph: 'B',
-    color: '#7a5a4a',
-    size: { w: 3, h: 1 },
-    cost: { metal: 8 },
-    baseHp: 45,
-    category: 'structure',
-    description: 'A wide 3×1 framing platform. Same cantilever rules as the smaller buttress, with more HP. Costs metal.',
+      'A 1×1 framing block. Stack upward to reach the wizard perch. Must sit on ground or framing directly below until Cantilever Framing is researched. Costs stone; subject to weathering and climber abrasion.',
   },
 ];
 
@@ -217,7 +195,6 @@ export const BLUEPRINTS: Blueprint[] = [...STRUCTURE_BLUEPRINTS, ...ROOM_BLUEPRI
  */
 export const STARTING_BLUEPRINT_IDS: string[] = [
   'stem',
-  'buttress2',
   'quartersRoom',
   'guardroomRoom',
   'chamberRoom',
@@ -254,8 +231,4 @@ export function isStructureBlueprint(blueprint: Blueprint): boolean {
 
 export function isRoomBlueprint(blueprint: Blueprint): boolean {
   return blueprint.category === 'room' || (!blueprint.category && !blueprint.infraKind);
-}
-
-export function isButtressBlueprint(blueprint: Blueprint): boolean {
-  return isStructureBlueprint(blueprint) && blueprint.size.w >= 2;
 }

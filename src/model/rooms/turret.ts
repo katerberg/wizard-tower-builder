@@ -3,7 +3,7 @@ import type { GameState, Room } from '../types';
 import type { RoomBehaviorDef } from './types';
 
 export const TURRET_RANGE = 3;
-export const TURRET_DAMAGE = 2;
+export const TURRET_DAMAGE = 4;
 export const TURRET_COOLDOWN = 2.0;
 
 function isTurretRoom(room: Room): boolean {

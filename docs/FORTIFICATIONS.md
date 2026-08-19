@@ -71,7 +71,7 @@ Rules:
 
 - Placement requires `hasStructure(col, row)` and **exterior exposure** (below).
 - Empty cells **auto-place a Spire Block** when that stem would be legal and the fortification would then pass face rules (same pattern as rooms / infra). Cost includes the stem via the planning wallet.
-- A 2×1 / 3×1 buttress may host **different** fortifications on different cells of its footprint.
+- A multi-cell room footprint may host **different** fortifications on different cells.
 - Selling / removing framing clears shell entries on those cells with the structure.
 - Build-phase undo / revert must cover shell place/remove and enclosure strips (same planning-wallet rules as other build edits).
 
@@ -93,7 +93,7 @@ Out-of-bounds / missing cells count as “lacks framing.” Ground row (`row ===
 
 This matches “exposes a crawler surface face”: an empty orthogonal neighbor is where `surfaceContacts` against this solid can include `leftWall` / `rightWall` / `onTop` / `underCeiling`.
 
-**Engine plan must** implement `isExteriorFramingCell(tower, col, row)` and unit-test enclosed cores vs shell edges (including buttress undersides).
+**Engine plan must** implement `isExteriorFramingCell(tower, col, row)` and unit-test enclosed cores vs shell edges (including overhang undersides).
 
 ### Strip-on-invalid
 

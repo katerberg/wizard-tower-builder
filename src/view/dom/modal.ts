@@ -365,7 +365,7 @@ function helpBody(): string {
   return `
     <h3>How to play</h3>
     <ul class="help-list">
-      <li>Build framing (spires / buttresses), then place rooms on top. Infra and rooms auto-add framing when needed.</li>
+      <li>Build framing (spire blocks), then place rooms on top. Infra and rooms auto-add framing when needed.</li>
       <li>Recruit staff in housing, allocate slots and mana springs, connect floors with stairs.</li>
       <li>Surplus laborers harvest stone underground — quarters need stairs or elevators to reach ground.</li>
       <li>Crawlers climb the outside of framing and rooms toward the solar collector; fliers pass through bare framing and only rooms block them. Protect the collector — lose if its HP hits zero.</li>

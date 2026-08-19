@@ -11,7 +11,7 @@ import {
 } from '../rooms/flameTurret';
 import { getRoomBehavior } from '../rooms';
 import { isKindled } from '../spells/fire/kindled';
-import { createRoom, placeRoom } from '../tower';
+import { createRoom, createTower, placeRoom } from '../tower';
 import { runEnemyStepEffects, runRoomEffects, runWaveClearedEffects } from './effects';
 import type { GameState } from '../types';
 import { makeTestEnemy, subAt } from '@/test/subCells';
@@ -26,6 +26,7 @@ function stateWithRoom(
   mod?: { id: string; level: number },
 ): GameState {
   const state = createInitialState(seed);
+  state.tower = createTower();
   const room = createRoom('r0', getBlueprint(blueprintId)!, { col: 8, row: 0 });
   if (mod) room.modifications.push(mod);
   state.tower = placeRoom(state.tower, room);
