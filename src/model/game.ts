@@ -78,6 +78,7 @@ export function createInitialState(seed: string | number = 'wizard'): GameState 
     boilerRuntime: {},
     steamTurretRuntime: {},
     flameTurretRuntime: {},
+    turretRuntime: {},
     elevators: [],
     mine: { entrance: { col: 0, row: -1 }, tunnels: {}, patches: [], unlockedDepth: 1 },
     waveHaul: emptyResources(),

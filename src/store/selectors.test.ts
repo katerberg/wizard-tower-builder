@@ -218,7 +218,7 @@ describe('selectUiTooltip', () => {
     const tip = selectUiTooltip(store.getSnapshot(), { kind: 'blueprint', id: 'turretRoom' });
     expect(tip?.title).toBe('Turret Room');
     expect(tip?.stats.some((s) => s.label === 'Cost')).toBe(true);
-    expect(tip?.stats.some((s) => s.label === 'Effect' && s.value.includes('5 damage'))).toBe(true);
+    expect(tip?.stats.some((s) => s.label === 'Effect' && s.value.includes('2 damage'))).toBe(true);
   });
 
   it('describes fortification place rules and effect', () => {

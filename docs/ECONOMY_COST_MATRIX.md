@@ -28,7 +28,7 @@ Wallet today: **gold · metal · stone · souls**. Planned: mine **iron → meta
 
 | Blueprint | id | stone | metal | souls | gold | Notes |
 |-----------|-----|-------|-------|-------|------|-------|
-| Turret Room | `turretRoom` | — | — | 10 | — | Mana per shot |
+| Turret Room | `turretRoom` | — | — | 10 | — | 5 mana reserved/wave |
 | Flame Turret | `flameTurretRoom` | — | — | 12 | — | Needs forge fire |
 | Forge | `forgeRoom` | — | 14 | — | — | |
 | Guardroom | `guardroomRoom` | 9 | — | — | — | Housing; wear |

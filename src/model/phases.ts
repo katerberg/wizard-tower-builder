@@ -3,6 +3,7 @@ import { prepareWaveNames } from './game';
 import { addMessage } from './messages';
 import { lockPipeFluids } from './pipes';
 import { resetRoomBehaviors } from './rooms';
+import { restoreTurretMana } from './rooms/turret';
 import { clearStaffAfterWave, deployStaffForWave } from './staff';
 import { assignSurplusLaborers, maxWaterReachRow } from './staff/harvest';
 import { rewardGold } from '../calculations/economy';
@@ -129,6 +130,7 @@ export function endWave(state: GameState): void {
   state.levelIndex += 1;
   state.waveIndex += 1;
   state.phase = 'build';
+  restoreTurretMana(state);
   clearStaffAfterWave(state);
   clearElevators(state);
   state.boilerRuntime = {};

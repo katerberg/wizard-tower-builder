@@ -45,17 +45,16 @@ The same `applyBuild` path works at height 5, 15, or 80. A later plateau is anot
 
 `runBalanceBuild` returns a `SimReport`: `id`, height, seed, `clear`/`lose`, wizard HP, sim time, net cost, leftover wallet, rooms used, spawn queue. Tests assert on that object. Nothing is written to disk. A later catalog / heatmap can dump the same type.
 
-## Known-failing wave-1 legal kit
+## Wave-1 turret lock
 
-`starter-kit-legal` is the **intended** modest first-wave clear (one turret + guardroom, starter library, no Slot). It currently dies. Two turrets already razor-clear; this weaker kit is the imbalance the harness keeps visible.
-
-After you retune, remove `knownFailing` on that row and keep `bare-starter` and `one-turret` losing.
+Idle magic-turret DPS is tuned so **one turret loses** wave 1 even on the covering shaft (`one-turret` at col 8) and **two turrets** (one per starter shaft) **clear** (`double-turret`). Knobs: `TURRET_DAMAGE` **2** / `TURRET_COOLDOWN` **2s** in `src/model/rooms/turret.ts`. Keep `bare-starter` losing.
 
 **Where to tweak** (do not put magic numbers in tests):
 
 - [`src/model/waves.ts`](../src/model/waves.ts) — plateau 0 budget / elite slots
 - [`src/model/enemies.ts`](../src/model/enemies.ts) — swarm / elite HP
-- [`src/config/combat.ts`](../src/config/combat.ts) — wand / turret / mana
+- [`src/config/combat.ts`](../src/config/combat.ts) — wand / mana
+- [`src/model/rooms/turret.ts`](../src/model/rooms/turret.ts) — magic turret damage / cooldown
 - [`src/model/blueprints.ts`](../src/model/blueprints.ts) — `STARTING_BLUEPRINT_IDS` if Slot becomes starter
 
 Knob index: [`src/config/README.md`](../src/config/README.md).

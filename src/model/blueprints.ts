@@ -50,7 +50,7 @@ export const ROOM_BLUEPRINTS: Blueprint[] = [
     cost: { souls: 10 },
     baseHp: 18,
     category: 'room',
-    description: 'Auto-fires at nearby climbers during attack. Costs 1 mana per shot. Costs souls.',
+    description: 'Auto-fires at nearby climbers during attack. Reserves 5 mana from pool cap per wave. Costs souls.',
   },
   {
     id: 'flameTurretRoom',

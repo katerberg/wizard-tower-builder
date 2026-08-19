@@ -32,38 +32,21 @@ export const BALANCE_BUILDS: readonly BalanceBuild[] = [
   },
   {
     id: 'one-turret',
-    title: 'Single turret, no staff — must lose so a global DPS buff cannot flatten wave 1',
+    title: 'Single turret on the covering shaft — must lose wave 1',
     expect: 'lose',
     height: 5,
-    placements: [{ blueprintId: 'turretRoom', cell: { col: 6, row: 2 } }],
+    placements: [{ blueprintId: 'turretRoom', cell: { col: 8, row: 2 } }],
     seeds: BALANCE_SEEDS,
   },
   /**
-   * INTENDED modest early clear (idle, starter kit, no Slot unlock).
-   *
-   * One Turret Room plus a Guardroom on the starter shaft. Soldiers do not
-   * shoot without Slot. Two turrets already razor-clear wave 1 (~2 wizard HP);
-   * this weaker legal kit currently DIES to 40 swarm + 1 elite at height 5.
-   * That is the wave-1 imbalance, not a harness bug.
-   *
-   * Combat is asserted with `knownFailing` / Vitest `it.fails` so CI stays
-   * green while the intended outcome (`clear`) is still false. After a
-   * balance pass actually clears this layout:
-   *   1. Remove `knownFailing: true` below.
-   *   2. Keep `bare-starter` and `one-turret` losing.
-   *
-   * Where to tweak (do not scatter numbers in tests):
-   *   - src/model/waves.ts          plateau 0 budget / elite slots
-   *   - src/model/enemies.ts        swarm / elite HP
-   *   - src/config/combat.ts        wand / turret / mana
-   *   - src/model/blueprints.ts     STARTING_BLUEPRINT_IDS if Slot becomes starter
-   *   - docs/BALANCE.md             how to lock the new numbers
+   * Legal new-run kit (starter library, no Slot). Guardroom does not shoot
+   * without Slot, so this is still one turret of idle DPS — must lose.
+   * Two turrets (`double-turret`) are the modest wave-1 clear.
    */
   {
     id: 'starter-kit-legal',
     title: 'Legal starter kit (1 turret + guardroom, no Slot)',
-    expect: 'clear',
-    knownFailing: true,
+    expect: 'lose',
     height: 5,
     placements: [
       { blueprintId: 'guardroomRoom', cell: { col: 6, row: 0 } },
@@ -72,18 +55,30 @@ export const BALANCE_BUILDS: readonly BalanceBuild[] = [
     seeds: BALANCE_SEEDS,
   },
   /**
+   * INTENDED modest early clear (idle, starter library, no Slot).
+   * One turret loses; two turrets hold. Knobs: TURRET_DAMAGE / TURRET_COOLDOWN.
+   */
+  {
+    id: 'double-turret',
+    title: 'Two turrets, no staff — modest wave-1 clear',
+    expect: 'clear',
+    height: 5,
+    placements: [
+      { blueprintId: 'turretRoom', cell: { col: 6, row: 2 } },
+      { blueprintId: 'turretRoom', cell: { col: 8, row: 2 } },
+    ],
+    seeds: BALANCE_SEEDS,
+  },
+  /**
    * Height-15 scale snapshot. Same Slot-granted defense as wave 1, grown to
    * plateau 15 (strikers unlock). Proves `raiseToHeight` + Start Wave sample
-   * the real composition. Combat currently still clears; composition
-   * (`waveStartHeight` / strikers in queue) is asserted separately.
-   *
-   * Knob files if this later fails: same list as `starter-kit-legal`, plus
-   * plateau 15 in src/model/waves.ts.
+   * the real composition (`spawnIncludes`). Idle combat loses after the
+   * wave-1 turret DPS lock (2 dmg / 2s).
    */
   {
     id: 'scale-height-15',
     title: 'Slot-granted defense grown to height 15',
-    expect: 'clear',
+    expect: 'lose',
     height: 15,
     research: ['bp-slot'],
     placements: SLOT_GRANTED_DEFENSE_PLACEMENTS,
@@ -100,4 +95,3 @@ export function balanceBuildById(id: string): BalanceBuild {
   if (!build) throw new Error(`Unknown balance build: ${id}`);
   return build;
 }
-

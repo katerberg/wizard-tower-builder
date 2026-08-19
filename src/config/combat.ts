@@ -42,4 +42,8 @@ export const WIZARD_DEFAULTS = {
 /** Shared mana pool cap (spells, boilers, springs/turrets). */
 export const MAX_MANA = 20;
 
+/** Mana reserved from max cap per magic turret at wave start. */
+export const TURRET_MANA_RESERVATION = 5;
+
+/** Mana cost for flame turret blasts (and other non-magic-turret consumers). */
 export const MAGIC_TURRET_MANA_COST = 1;

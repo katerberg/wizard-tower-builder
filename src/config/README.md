@@ -6,6 +6,7 @@
 | Starting wallet, wear, water band | `economy.ts` |
 | Mine depth / stone patch stock / harvest rate | `mines.ts` |
 | Spawn intervals, fliers, slot DPS, wizard, mana cap | `combat.ts` |
+| Magic turret damage / cooldown / range | `src/model/rooms/turret.ts` |
 | Housing capacity, recruit/upkeep, staff speeds | `staff.ts` |
 | Research room capacity / progress rates | `research.ts` |
 | Boilers, mana springs, steam turrets | `infra.ts` |

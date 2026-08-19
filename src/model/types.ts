@@ -506,6 +506,8 @@ export interface GameState {
   steamTurretRuntime: Record<string, SteamTurretRuntime>;
   /** Attack-phase flame turret charge state. */
   flameTurretRuntime: Record<string, FlameTurretRuntime>;
+  /** Attack-phase magic turret depower state. */
+  turretRuntime: Record<string, TurretRuntime>;
   /** Attack-phase elevator cars (one per shaft; cleared at wave end). */
   elevators: ElevatorCar[];
   /**
@@ -568,6 +570,10 @@ export interface SteamTurretRuntime {
 export interface FlameTurretRuntime {
   charge: number;
   chargeRate: number;
+}
+
+export interface TurretRuntime {
+  depowered: boolean;
 }
 
 export type PlacementReason =
