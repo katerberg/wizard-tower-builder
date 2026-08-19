@@ -9,6 +9,13 @@ export function addMessage(state: GameState, text: string, kind: GameMessageKind
   }
 }
 
+/** Like addMessage, but skips when the previous line is identical (avoids tick spam). */
+export function addMessageOnceInRow(state: GameState, text: string, kind: GameMessageKind = 'info'): void {
+  const last = state.messages[state.messages.length - 1];
+  if (last?.text === text) return;
+  addMessage(state, text, kind);
+}
+
 export function recentMessages(state: GameState, count: number): GameMessage[] {
   return state.messages.slice(-count);
 }

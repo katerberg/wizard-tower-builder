@@ -18,7 +18,7 @@ import {
   isMinePatchTarget,
   minePatchTargetId,
 } from '@/model/mines';
-import { addMessage } from '@/model/messages';
+import { addMessage, addMessageOnceInRow } from '@/model/messages';
 import type { Cell, GameState, MinePatch, Resources, Room, StaffUnit, Tower } from '@/model/types';
 
 const PUMP_TARGET = 'pump:hand';
@@ -29,7 +29,7 @@ function rewardHarvest(state: GameState, haul: Partial<Resources>, from?: Cell):
   if (physical.stone > 0 || physical.metal > 0) {
     const overflow = depositToStorage(state, physical, from);
     if (overflow.stone > 0 || overflow.metal > 0) {
-      addMessage(state, 'Storage full — excess materials wasted.', 'economy');
+      addMessageOnceInRow(state, 'Storage full — excess materials wasted.', 'economy');
     }
   }
   if (haul.gold && haul.gold > 0) {
