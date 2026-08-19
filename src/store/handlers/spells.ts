@@ -13,7 +13,7 @@ import type { Intent } from '../intents';
 export function handleSpellIntent(ctx: HandlerContext, intent: Intent): void {
   switch (intent.type) {
     case 'selectSpell':
-      if (ctx.game.phase === 'attack') {
+      if (ctx.game.phase === 'night') {
         if (intent.spellId) {
           const spell = getSpell(intent.spellId);
           if (spell?.targeting === 'self') {

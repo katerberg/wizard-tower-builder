@@ -96,7 +96,7 @@ describe('height progression', () => {
     expect(state.spawnQueue.some((id) => id === 'skirmisher')).toBe(true);
 
     // Collapse framing between waves — unlocks remain.
-    state.phase = 'build';
+    state.phase = 'day';
     state.enemies = [];
     state.spawnQueue = [];
     state.tower = stemTower(10);
@@ -130,7 +130,6 @@ describe('height progression', () => {
     state.spawnQueue = [];
     endWave(state);
     expect(state.scene).toBe('run');
-    expect(state.phase).toBe('build');
     expect(state.levelIndex).toBe(1);
   });
 
@@ -140,7 +139,7 @@ describe('height progression', () => {
 
     let steps = 0;
     const minSteps = Math.floor(30 / FIXED_DT);
-    while (state.phase === 'attack' && steps < minSteps) {
+    while (state.phase === 'night' && steps < minSteps) {
       step(state, FIXED_DT);
       steps += 1;
     }

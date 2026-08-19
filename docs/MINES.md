@@ -14,7 +14,7 @@ Complements [`HOUSING.md`](HOUSING.md) (laborer jobs), [`HEIGHT_PROGRESSION.md`]
 | Pathing | Interior graph treats mine tunnels as walkable; free vertical in/into mine |
 | Ground access | Quarters must path to the mine entrance via **stairs/elevators** (vertical); disconnected quarters warn and cannot mine |
 | Jobs | After repair + hand-pump reserve, surplus laborers who can reach ground path to stone patches |
-| Yield | **Stone** at `MINE_STONE_HARVEST_PER_SEC`; **metal/gold** with `RARE_PATCH_FALLOFF` (×0.5 per extra laborer); passive iron drip at `PASSIVE_IRON_FRACTION` (3%) |
+| Yield | **Stone** at `MINE_STONE_HARVEST_PER_SEC`; **metal/gold** with `RARE_PATCH_FALLOFF` (×0.5 per extra laborer); passive iron drip at `PASSIVE_IRON_FRACTION` (3%); haul deposits to **storage rooms** (not wallet) |
 | Patches | Finite; deplete; laborer retargets when empty |
 | Clear UX | Wave-clear **modal** + log line with gold + mine haul + **prospect result** (e.g. "Discovered depth 2 — mixed iron veins") |
 | Stay put | Mine/pump/prospect workers are not cleared by the repair retarget loop |
@@ -28,9 +28,9 @@ Knobs: [`src/config/mines.ts`](../src/config/mines.ts). Generation: [`src/model/
 
 ## Player fantasy
 
-During the **attack**, free laborers walk the **real grid** into an **underground mine** attached to the tower. Early stone is close and abundant. Deeper tiers take longer round-trips. **Prospecting** (labor allocated out of the normal wave pool) reveals the next depth tier. Rare yields (iron→metal, gems→gold) sit on finite veins with soft caps so dumping infinite bodies on one patch is weak.
+During the **night**, free laborers walk the **real grid** into an **underground mine** attached to the tower. Early stone is close and abundant. Deeper tiers take longer round-trips. **Prospecting** (labor allocated out of the normal wave pool) reveals the next depth tier. Rare yields (iron→metal, gems→gold) sit on finite veins with soft caps so dumping infinite bodies on one patch is weak.
 
-Construction stays **instant** in build. Pressure is **laborer-seconds and allocation**, not build timers.
+Construction stays **queued during day** — laborers haul from storage and build over real time. Pressure is **laborer-seconds, haul distance, and allocation**, not instant placement. See [`DAY_NIGHT.md`](DAY_NIGHT.md).
 
 Wave clear surfaces a short **haul tally** (“+stone / +metal / +gold from gems, vein found…”) so the fight ends with a clear “we accomplished something” beat without a separate harvest mini-game.
 
@@ -40,7 +40,7 @@ Wave clear surfaces a short **haul tally** (“+stone / +metal / +gold from gems
 
 | Topic | Decision |
 |-------|----------|
-| Timing | Harvest **during attack** at real mine sites (not a post-wave phase) |
+| Timing | Harvest **during night** at real mine sites (not a post-wave phase) |
 | Map | One **invisible but deterministic** underground map (not random each wave; player does not map the interior) |
 | Geometry | **Real grid**; mine **attaches to the tower** and may spread **below and sideways** |
 | Sites | **One** mine system (single dig with depth tiers / veins), not multiple named digs |

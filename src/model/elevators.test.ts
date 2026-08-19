@@ -96,7 +96,7 @@ describe('elevator runtime', () => {
     const state = towerWithElevatorShaft();
     state.housingRecruited.b1 = 1;
     state.slotAllocations.s1 = 1;
-    state.buildRecruitSpend = SOLDIER_RECRUIT_COST;
+    state.pendingRecruitSpend = SOLDIER_RECRUIT_COST;
     deployStaffForWave(state);
     initElevators(state);
 
@@ -111,7 +111,7 @@ describe('elevator runtime', () => {
     const state = towerWithElevatorShaft();
     state.housingRecruited.b1 = 1;
     state.slotAllocations.s1 = 1;
-    state.buildRecruitSpend = SOLDIER_RECRUIT_COST;
+    state.pendingRecruitSpend = SOLDIER_RECRUIT_COST;
     deployStaffForWave(state);
     initElevators(state);
 
@@ -154,7 +154,7 @@ describe('elevator runtime', () => {
       }
     }
     state.slotAllocations.s1 = 1;
-    state.buildRecruitSpend = SOLDIER_RECRUIT_COST * (ELEVATOR_CAPACITY + 1);
+    state.pendingRecruitSpend = SOLDIER_RECRUIT_COST * (ELEVATOR_CAPACITY + 1);
 
     deployStaffForWave(state);
     initElevators(state);
@@ -175,7 +175,7 @@ describe('elevator runtime', () => {
     const state = towerWithElevatorShaft();
     state.housingRecruited.b1 = 2;
     state.slotAllocations.s1 = 2;
-    state.buildRecruitSpend = SOLDIER_RECRUIT_COST * 2;
+    state.pendingRecruitSpend = SOLDIER_RECRUIT_COST * 2;
     deployStaffForWave(state);
     initElevators(state);
 

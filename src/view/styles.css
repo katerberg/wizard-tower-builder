@@ -45,6 +45,58 @@ body {
   padding: 16px;
   overflow: hidden;
   min-height: 0;
+  position: relative;
+}
+
+#side-job-rail {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 180px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.side-job-bubble {
+  padding: 8px 10px;
+  background: rgba(22, 27, 34, 0.92);
+  border: 1px solid #2d3748;
+  border-radius: 8px;
+  font-size: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+.side-job-bubble.side-job-success {
+  border-color: #48bb78;
+}
+
+.side-job-label {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--text);
+}
+
+.side-job-track {
+  height: 4px;
+  background: #2d3748;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.side-job-fill {
+  height: 100%;
+  background: var(--accent-bright);
+  transition: width 0.1s linear;
+}
+
+.side-job-time {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 11px;
 }
 
 #board {

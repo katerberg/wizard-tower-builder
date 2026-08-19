@@ -42,7 +42,7 @@ export function handleResearchIntent(ctx: HandlerContext, intent: Intent): void 
       break;
     }
     case 'openResearchModal':
-      if (ctx.game.scene !== 'run' || ctx.game.phase !== 'build') return;
+      if (ctx.game.scene !== 'run' || ctx.game.phase !== 'day') return;
       ctx.view.modal = { kind: 'research' };
       break;
     case 'selectResearchNode':

@@ -6,22 +6,22 @@ import {
   RESEARCH_ROOM_STAFF_CAPACITY,
   SOLDIER_RECRUIT_COST,
 } from '@/config/constants';
-import { canAffordBuild } from '@/calculations/buildCost';
+import { RECRUIT_SIDE_JOB_SEC } from '@/config/dayNight';
 import { addMessage } from '@/model/messages';
 import { isManaSpringRoom } from '@/model/pipes';
 import { isResearchRoom } from '@/model/research';
 import { getBlueprint } from '@/model/blueprints';
+import { enqueueSideJob } from '@/model/sideJobs';
 import {
   HOUSING_MIN_RECRUITED,
   canRecruitInHousing,
-  housingCapacity,
   housingKindOf,
   isHousingRoom,
   isSlotRoom,
   slotCapacity,
   staffKindForHousing,
 } from '@/model/staff/capacity';
-import type { StaffKind } from '@/model/types';
+import type { GameState, StaffKind } from '@/model/types';
 import type { HandlerContext } from '../context';
 import type { Intent } from '../intents';
 
@@ -72,7 +72,7 @@ export function handleStaffIntent(ctx: HandlerContext, intent: Intent): void {
 
 function recruitStaff(ctx: HandlerContext, housingRoomId: string): void {
   const { game } = ctx;
-  if (game.phase !== 'build' || !game.buildBaseline) return;
+  if (game.phase !== 'day') return;
 
   const room = game.tower.rooms.find((r) => r.id === housingRoomId);
   if (!room || !isHousingRoom(room)) return;
@@ -87,24 +87,28 @@ function recruitStaff(ctx: HandlerContext, housingRoomId: string): void {
   }
 
   const cost = recruitCost(kind);
-  if (!canAffordBuild(game.buildBaseline, game.tower, { gold: cost }, game.buildRecruitSpend)) {
+  if (game.player.resources.gold - game.pendingRecruitSpend < cost) {
     addMessage(game, `Not enough gold to recruit a ${staffLabel(kind)} (${cost}).`, 'economy');
     return;
   }
 
-  ctx.recordBuildStep();
-  game.buildRecruitSpend += cost;
-  game.housingRecruited[housingRoomId] = recruited + 1;
-  addMessage(
-    game,
-    `Recruited ${staffLabel(kind)} (${recruited + 1}/${housingCapacity(room)}).`,
-    'info',
-  );
+  enqueueSideJob(game, 'recruit', `Recruiting ${staffLabel(kind)}`, RECRUIT_SIDE_JOB_SEC, {
+    housingRoomId,
+    kind,
+    cost,
+    onComplete: (state: GameState, payload: Record<string, unknown>) => {
+      const id = payload.housingRoomId as string;
+      const c = payload.cost as number;
+      state.pendingRecruitSpend += c;
+      state.housingRecruited[id] = (state.housingRecruited[id] ?? 0) + 1;
+      addMessage(state, `Recruited ${staffLabel(payload.kind as StaffKind)}.`, 'info');
+    },
+  });
 }
 
 function unrecruitStaff(ctx: HandlerContext, housingRoomId: string): void {
   const { game } = ctx;
-  if (game.phase !== 'build' || !game.buildBaseline) return;
+  if (game.phase !== 'day') return;
 
   const room = game.tower.rooms.find((r) => r.id === housingRoomId);
   if (!room || !isHousingRoom(room)) return;
@@ -115,19 +119,19 @@ function unrecruitStaff(ctx: HandlerContext, housingRoomId: string): void {
     return;
   }
 
-  ctx.recordBuildStep();
-  game.housingRecruited[housingRoomId] = recruited - 1;
-  // No recruit-cost refund.
-  addMessage(
-    game,
-    `Unrecruited (${recruited - 1}/${housingCapacity(room)}). Upkeep saved next wave.`,
-    'info',
-  );
+  enqueueSideJob(game, 'unrecruit', 'Unrecruiting staff', RECRUIT_SIDE_JOB_SEC, {
+    housingRoomId,
+    onComplete: (state: GameState, payload: Record<string, unknown>) => {
+      const id = payload.housingRoomId as string;
+      state.housingRecruited[id] = (state.housingRecruited[id] ?? 0) - 1;
+      addMessage(state, 'Unrecruited staff member.', 'info');
+    },
+  });
 }
 
 function setSlotAllocation(ctx: HandlerContext, slotRoomId: string, count: number): void {
   const { game } = ctx;
-  if (game.phase !== 'build') return;
+  if (game.phase !== 'day') return;
 
   const room = game.tower.rooms.find((r) => r.id === slotRoomId);
   if (!room || !isSlotRoom(room)) return;
@@ -135,41 +139,37 @@ function setSlotAllocation(ctx: HandlerContext, slotRoomId: string, count: numbe
   const max = slotCapacity(room);
   const clamped = Math.max(0, Math.min(max, Math.floor(count)));
   if ((game.slotAllocations[slotRoomId] ?? 0) === clamped) return;
-  ctx.recordBuildStep();
   game.slotAllocations[slotRoomId] = clamped;
 }
 
 function setManaSpringAllocation(ctx: HandlerContext, springRoomId: string, count: number): void {
   const { game } = ctx;
-  if (game.phase !== 'build') return;
+  if (game.phase !== 'day') return;
 
   const room = game.tower.rooms.find((r) => r.id === springRoomId);
   if (!room || !isManaSpringRoom(room)) return;
 
   const clamped = Math.max(0, Math.min(MANA_SPRING_STAFF_CAPACITY, Math.floor(count)));
   if ((game.manaSpringAllocations[springRoomId] ?? 0) === clamped) return;
-  ctx.recordBuildStep();
   game.manaSpringAllocations[springRoomId] = clamped;
 }
 
 function setResearchAllocation(ctx: HandlerContext, researchRoomId: string, count: number): void {
   const { game } = ctx;
-  if (game.phase !== 'build') return;
+  if (game.phase !== 'day') return;
 
   const room = game.tower.rooms.find((r) => r.id === researchRoomId);
   if (!room || !isResearchRoom(room)) return;
 
   const clamped = Math.max(0, Math.min(RESEARCH_ROOM_STAFF_CAPACITY, Math.floor(count)));
   if ((game.researchRoomAllocations[researchRoomId] ?? 0) === clamped) return;
-  ctx.recordBuildStep();
   game.researchRoomAllocations[researchRoomId] = clamped;
 }
 
 function setProspectAllocation(ctx: HandlerContext, count: number): void {
   const { game } = ctx;
-  if (game.phase !== 'build') return;
+  if (game.phase !== 'day') return;
 
-  // Count total recruited laborers across all quarters.
   let totalLaborers = 0;
   for (const room of game.tower.rooms) {
     if (room.blueprintId !== 'quartersRoom') continue;
@@ -179,6 +179,5 @@ function setProspectAllocation(ctx: HandlerContext, count: number): void {
   const max = Math.min(PROSPECT_MAX_ALLOCATION, totalLaborers);
   const clamped = Math.max(0, Math.min(max, Math.floor(count)));
   if (game.prospectAllocation === clamped) return;
-  ctx.recordBuildStep();
   game.prospectAllocation = clamped;
 }

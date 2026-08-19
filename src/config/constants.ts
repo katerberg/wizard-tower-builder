@@ -8,3 +8,6 @@ export * from './fortifications';
 export * from './infra';
 export * from './research';
 export * from './mines';
+export * from './dayNight';
+export * from './storage';
+export * from './construction';

@@ -3,21 +3,21 @@ import { roomAt, structureAt } from '@/model/tower';
 import type { HandlerContext } from '../context';
 import type { Intent } from '../intents';
 
-function inBuildPhase(ctx: HandlerContext): boolean {
-  return ctx.game.scene === 'run' && ctx.game.phase === 'build';
+function inDayPhase(ctx: HandlerContext): boolean {
+  return ctx.game.scene === 'run' && ctx.game.phase === 'day';
 }
 
 export function handleInspectIntent(ctx: HandlerContext, intent: Intent): void {
   switch (intent.type) {
     case 'selectBlueprint':
-      if (!inBuildPhase(ctx)) return;
+      if (!inDayPhase(ctx)) return;
       ctx.view.selectedBlueprintId = intent.blueprintId;
       break;
     case 'hoverCell':
       ctx.view.hoveredCell = intent.cell;
       break;
     case 'inspectRoomAt': {
-      if (!inBuildPhase(ctx)) return;
+      if (!inDayPhase(ctx)) return;
       const room = roomAt(ctx.game.tower, intent.cell.col, intent.cell.row);
       if (room) {
         ctx.view.selectedBlueprintId = null;

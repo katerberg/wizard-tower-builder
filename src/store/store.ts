@@ -25,7 +25,7 @@ export class Store {
   private dirty = false;
   private renderAlpha = 1;
   private previousEnemyPositions = new Map<string, ExteriorNode>();
-  private lastPhase: Phase = 'build';
+  private lastPhase: Phase = 'day';
 
   constructor(seed?: string | number) {
     const game = createInitialState(seed);
@@ -85,9 +85,9 @@ export class Store {
     for (const listener of this.listeners) listener();
   }
 
-  /** Advance the simulation one fixed timestep (attack phase only). */
+  /** Advance the simulation one fixed timestep (day and night). */
   advance(dt: number): void {
-    if (this.refs.game.scene === 'run' && this.refs.game.phase === 'attack') {
+    if (this.refs.game.scene === 'run') {
       step(this.refs.game, dt);
       this.dirty = true;
     }
@@ -146,7 +146,7 @@ export class Store {
       slotAllocations: structuredClone(game.slotAllocations),
       manaSpringAllocations: structuredClone(game.manaSpringAllocations),
       researchRoomAllocations: structuredClone(game.researchRoomAllocations),
-      buildRecruitSpend: game.buildRecruitSpend,
+      pendingRecruitSpend: game.pendingRecruitSpend,
       prospectAllocation: game.prospectAllocation,
     });
   }
@@ -179,11 +179,11 @@ export class Store {
   private syncPhaseView(): void {
     const phase = this.refs.game.phase;
 
-    if (phase === 'attack') {
+    if (phase === 'night') {
       this.enforceAttackPhaseView();
     }
 
-    if (this.lastPhase === 'attack' && phase === 'build') {
+    if (this.lastPhase === 'night' && phase === 'day') {
       this.clearBuildHistory();
       resetToSelectMode(this.refs.view);
       const summary = this.refs.game.pendingWaveClear;
@@ -196,7 +196,7 @@ export class Store {
         };
       }
       this.dirty = true;
-    } else if (this.lastPhase === 'build' && phase === 'attack') {
+    } else if (this.lastPhase === 'day' && phase === 'night') {
       resetToSelectMode(this.refs.view);
       this.dirty = true;
     }

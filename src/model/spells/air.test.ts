@@ -82,7 +82,7 @@ describe('Gust', () => {
 
   it('rips a wall climber off and applies Discombobulated', () => {
     const state = towerWithStemStack(createInitialState('gust0'));
-    state.phase = 'attack';
+    state.phase = 'night';
     state.player.mana = 10;
     const enemy = makeTestEnemy(8, 1);
     enemy.pos = wallSubAt(8, 1, 'right');
@@ -96,7 +96,7 @@ describe('Gust', () => {
 
   it('deals fall damage after gust knock-off', () => {
     const state = towerWithStemTall(createInitialState('gustfall'));
-    state.phase = 'attack';
+    state.phase = 'night';
     state.player.mana = 10;
     const enemy = makeTestEnemy(8, 2);
     enemy.pos = wallSubAt(8, 2, 'right');
@@ -132,7 +132,7 @@ describe('Gust', () => {
 
   it('never places gust victims inside room tiles', () => {
     const state = towerWithStemStack(createInitialState('gustsafe'));
-    state.phase = 'attack';
+    state.phase = 'night';
     state.player.mana = 10;
     const enemy = makeTestEnemy(8, 1);
     enemy.pos = wallSubAt(8, 1, 'left');
@@ -147,7 +147,7 @@ describe('Gust', () => {
 describe('Fall gravity', () => {
   it('moves airborne enemies toward lower row numbers', () => {
     const state = towerWithStem(createInitialState('fall0'));
-    state.phase = 'attack';
+    state.phase = 'night';
     const enemy = makeEnemy(8, 2);
     enemy.airborne = true;
     enemy.pos = { ...enemy.pos, row: enemy.pos.row + 3 };
@@ -169,7 +169,7 @@ describe('Tornado', () => {
 
   it('blocks movement through its 2-high volume', () => {
     const state = towerWithStem(createInitialState('tor0'));
-    state.phase = 'attack';
+    state.phase = 'night';
     addTornadoSegment(state, {
       macroCells: [{ col: 6, row: 2 }],
       expiresAt: state.waveTimer + 5,
@@ -183,7 +183,7 @@ describe('Tornado', () => {
 describe('Flight', () => {
   it('levitates the wizard and allows casting while active', () => {
     const state = towerWithStem(createInitialState('flight0'));
-    state.phase = 'attack';
+    state.phase = 'night';
     state.player.mana = 20;
     state.activeSpellSchool = 'air';
     // Align avatar with the replaced tower crown before Flight.
@@ -203,7 +203,7 @@ describe('Flight', () => {
 describe('Blizzard', () => {
   it('doubles move cooldown while inside the zone', () => {
     const state = towerWithStem(createInitialState('bliz0'));
-    state.phase = 'attack';
+    state.phase = 'night';
     state.player.mana = 10;
     castSpell(state, 'blizzard', { kind: 'cell', cell: { col: 8, row: 2 } });
     const enemy = makeEnemy(8, 2);

@@ -43,7 +43,7 @@ describe('mana', () => {
 describe('fireball casting', () => {
   it('spends mana and starts cooldown on a valid cast', () => {
     const state = towerWithStem(createInitialState('fb0'));
-    state.phase = 'attack';
+    state.phase = 'night';
     const cell = { col: 8, row: 1 };
 
     const result = castSpell(state, 'fireball', { kind: 'cell', cell });
@@ -54,7 +54,7 @@ describe('fireball casting', () => {
 
   it('rejects cast when out of mana', () => {
     const state = towerWithStem(createInitialState('fb1'));
-    state.phase = 'attack';
+    state.phase = 'night';
     state.player.mana = 3;
 
     const result = castSpell(state, 'fireball', { kind: 'cell', cell: { col: 8, row: 1 } });
@@ -64,7 +64,7 @@ describe('fireball casting', () => {
 
   it('rejects cast when on cooldown', () => {
     const state = towerWithStem(createInitialState('fb2'));
-    state.phase = 'attack';
+    state.phase = 'night';
     state.spellCooldowns.fireball = 1.5;
 
     const result = canCastSpell(state, 'fireball', { kind: 'cell', cell: { col: 8, row: 1 } });
@@ -74,7 +74,7 @@ describe('fireball casting', () => {
 
   it('rejects cast when target is out of range', () => {
     const state = towerWithStem(createInitialState('fb3'));
-    state.phase = 'attack';
+    state.phase = 'night';
 
     const result = canCastSpell(state, 'fireball', { kind: 'cell', cell: { col: 0, row: 0 } });
     expect(result.ok).toBe(false);
@@ -83,7 +83,7 @@ describe('fireball casting', () => {
 
   it('damages enemies in the 3×3 blast', () => {
     const state = towerWithStem(createInitialState('fb4'));
-    state.phase = 'attack';
+    state.phase = 'night';
     const enemy = makeEnemy(8, 1);
     state.enemies = [enemy];
 
@@ -93,7 +93,7 @@ describe('fireball casting', () => {
 
   it('does not damage enemies outside the blast', () => {
     const state = towerWithStem(createInitialState('fb5'));
-    state.phase = 'attack';
+    state.phase = 'night';
     const far = makeEnemy(8, 5);
     state.enemies = [far];
 
@@ -103,7 +103,7 @@ describe('fireball casting', () => {
 
   it('damages the solar collector when the blast includes the perch', () => {
     const state = towerWithStem(createInitialState('fb6'));
-    state.phase = 'attack';
+    state.phase = 'night';
     const collectorHp = state.solarCollector.hp;
 
     castSpell(state, 'fireball', { kind: 'cell', cell: { col: 8, row: 1 } });

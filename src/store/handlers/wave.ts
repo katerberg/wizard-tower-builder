@@ -1,12 +1,8 @@
-import {
-  PROSPECT_EQUIP_COST,
-} from '@/config/constants';
-import { netBuildCost } from '@/calculations/buildCost';
+import { PROSPECT_EQUIP_COST } from '@/config/constants';
 import { canAffordResources, subResources } from '@/calculations/resources';
 import { beginRun, createInitialState } from '@/model/game';
 import { addMessage } from '@/model/messages';
-import { beginWave } from '@/model/phases';
-import { isTowerStable } from '@/model/tower';
+import { endDay } from '@/model/phases';
 import { waveDefFromCounts } from '@/model/waves';
 import { resetToSelectMode } from '../viewState';
 import type { HandlerContext } from '../context';
@@ -19,51 +15,41 @@ export function handleWaveIntent(ctx: HandlerContext, intent: Intent): void {
       ctx.clearBuildHistory();
       break;
     case 'startWave':
-      startWave(ctx);
+      skipToNight(ctx);
       break;
     case 'restart':
       restart(ctx);
       break;
+    case 'togglePhasePause':
+      ctx.game.phasePaused = !ctx.game.phasePaused;
+      break;
   }
 }
 
-function startWave(ctx: HandlerContext): void {
+/** Dev / skip: force night immediately. */
+function skipToNight(ctx: HandlerContext): void {
   const { game } = ctx;
-  if (game.scene !== 'run' || game.phase !== 'build') return;
-  if (!isTowerStable(game.tower)) {
-    addMessage(game, 'The tower is unstable. Remove or support floating rooms first.', 'info');
-    return;
-  }
-  if (game.buildBaseline) {
-    const net = netBuildCost(game.buildBaseline, game.tower);
-    game.player.resources = subResources(
-      subResources(game.buildBaseline.resources, net),
-      { gold: game.buildRecruitSpend },
-    );
-  }
+  if (game.scene !== 'run' || game.phase !== 'day') return;
 
-  // Charge prospect equip cost (stone + metal) when prospecting is active.
   if (game.prospectAllocation > 0) {
     const cost = PROSPECT_EQUIP_COST as import('@/model/types').ResourceCost;
     if (canAffordResources(game.player.resources, cost)) {
       game.player.resources = subResources(game.player.resources, cost);
     } else {
-      // Can't afford — cancel prospecting.
       game.prospectAllocation = 0;
       addMessage(game, 'Not enough resources for prospecting equipment.', 'economy');
     }
   }
 
-  // Reset prospect state for the new wave.
   game.prospectWorkElapsed = 0;
   game.prospectResolved = false;
-
+  game.phaseTimer = 0;
   ctx.clearBuildHistory();
   const useCustom = game.devMode && ctx.view.waveBuilder.open;
   if (useCustom) {
-    beginWave(game, waveDefFromCounts(ctx.view.waveBuilder.counts));
+    endDay(game, waveDefFromCounts(ctx.view.waveBuilder.counts));
   } else {
-    beginWave(game);
+    endDay(game);
   }
   resetToSelectMode(ctx.view);
 }

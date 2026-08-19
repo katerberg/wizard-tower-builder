@@ -6,3 +6,4 @@ export * from './hud';
 export * from './waveBuilder';
 export * from './research';
 export * from './researchDag';
+export * from './sideJobs';

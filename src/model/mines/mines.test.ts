@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { registerStorageSite } from '@/model/storage';
+import { STARTER_SUPPLY_CAPACITY } from '@/config/storage';
 import {
   MINE_SHALLOW_DEPTH,
   MINE_STONE_HARVEST_PER_SEC,
@@ -80,8 +82,14 @@ describe('mine stone harvest', () => {
     state.tower = placeStructure(state.tower, createStructure('g0', stem, { col: 7, row: 0 }));
     state.tower = placeRoom(state.tower, createRoom('q1', quarters, { col: 7, row: 0 }));
     state.mine = generateShallowMine(state.tower);
+    registerStorageSite(state, {
+      roomId: 'test-supply',
+      stockpile: { stone: 0, metal: 0 },
+      capacity: STARTER_SUPPLY_CAPACITY,
+      locked: false,
+    });
     const patch = state.mine.patches[0];
-    state.phase = 'attack';
+    state.phase = 'night';
     state.staff = [
       {
         id: 'L1',
@@ -100,16 +108,17 @@ describe('mine stone harvest', () => {
 
   it('yields stone + passive iron drip and depletes the patch', () => {
     const { state, patch } = stateWithLaborerAtPatch();
-    const beforeStone = state.player.resources.stone;
-    const beforeMetal = state.player.resources.metal;
+    const supply = state.storageSites['test-supply'];
+    if (!supply) throw new Error('missing test supply');
+    const beforeStone = supply.stockpile.stone;
+    const beforeMetal = supply.stockpile.metal;
     const beforeRemaining = patch.remaining;
 
     tickLaborerHarvestAndPump(state, 1);
 
-    expect(state.player.resources.stone).toBe(beforeStone + MINE_STONE_HARVEST_PER_SEC);
-    // Passive iron drip: 3% of stone harvest → metal.
+    expect(supply.stockpile.stone).toBe(beforeStone + MINE_STONE_HARVEST_PER_SEC);
     const expectedMetal = MINE_STONE_HARVEST_PER_SEC * 0.03;
-    expect(state.player.resources.metal).toBeCloseTo(beforeMetal + expectedMetal, 5);
+    expect(supply.stockpile.metal).toBeCloseTo(beforeMetal + expectedMetal, 5);
     expect(patch.remaining).toBe(beforeRemaining - MINE_STONE_HARVEST_PER_SEC);
   });
 
@@ -121,7 +130,7 @@ describe('mine stone harvest', () => {
     state.tower = placeStructure(state.tower, createStructure('g0', stem, { col: 7, row: 0 }));
     state.tower = placeRoom(state.tower, createRoom('q1', quarters, { col: 7, row: 0 }));
     state.mine = generateShallowMine(state.tower);
-    state.phase = 'attack';
+    state.phase = 'night';
     state.housingRecruited.q1 = 1;
     state.staff = [
       {
@@ -178,7 +187,7 @@ describe('mine stone harvest', () => {
     state.tower = placeStructure(state.tower, createStructure('g1', stem, { col: 7, row: 2 }));
     state.tower = placeRoom(state.tower, createRoom('q1', quarters, { col: 7, row: 2 }));
     state.mine = generateShallowMine(state.tower);
-    state.phase = 'attack';
+    state.phase = 'night';
     state.housingRecruited.q1 = 1;
     state.staff = [
       {
@@ -199,7 +208,7 @@ describe('mine stone harvest', () => {
     expect(state.staff[0].targetWorkplaceId).toBeNull();
     expect(state.staff[0].status).toBe('idle');
 
-    state.phase = 'build';
+    state.phase = 'day';
     const report = selectLogisticsReport(state);
     expect(report.warnings.some((w) => w.includes('for mining'))).toBe(true);
   });

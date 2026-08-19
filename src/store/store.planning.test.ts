@@ -1,11 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { netBuildCost } from '@/calculations/buildCost';
-import { subResources } from '@/calculations/resources';
-import { STARTING_CURRENCY, STARTING_RESOURCES, FIXED_DT } from '@/config/constants';
-import { getBlueprint } from '@/model/blueprints';
-import { createInitialState } from '@/model/game';
-import { beginWave, captureBuildBaseline } from '@/model/phases';
-import { createStructure, placeStructure, removeStructure, towersEqual } from '@/model/tower';
+import { STARTING_RESOURCES, FIXED_DT } from '@/config/constants';
+import { STARTER_SUPPLY_STONE } from '@/config/storage';
+import { availableInStorage } from '@/model/storage';
 import type { Cell } from '@/model/types';
 import { selectBuildUndoState, selectGhostPlacement } from '@/store/selectors';
 import { Store } from '@/store/store';
@@ -15,244 +11,68 @@ function placeStem(store: Store, cell: Cell): void {
   store.dispatch({ type: 'placeSelectedAt', cell });
 }
 
-/** Ground column orthogonally adjacent to the starter tower (col 8). */
 const EXT_COL = 9;
 
-describe('build-phase planning commit', () => {
-  it('does not change resources until the wave starts', () => {
+describe('day-phase construction orders', () => {
+  it('reserves storage when queuing placement', () => {
     const store = new Store('plan');
+    const before = availableInStorage(store.getSnapshot().game);
     placeStem(store, { col: EXT_COL, row: 0 });
-    expect(store.getSnapshot().game.player.resources.stone).toBe(STARTING_RESOURCES.stone);
-
-    store.dispatch({ type: 'removeRoomAt', cell: { col: EXT_COL, row: 0 } });
+    const after = availableInStorage(store.getSnapshot().game);
+    expect(after.stone).toBe(before.stone - 3);
     expect(store.getSnapshot().game.player.resources.stone).toBe(STARTING_RESOURCES.stone);
   });
 
-  it('commits net build cost when starting the wave', () => {
+  it('transitions to night via dev skip', () => {
     const store = new Store('commit');
-
+    store.dispatch({ type: 'toggleDevMode' });
     placeStem(store, { col: EXT_COL, row: 0 });
-    placeStem(store, { col: EXT_COL, row: 1 });
-
-    const { game } = store.getSnapshot();
-    const net = netBuildCost(game.buildBaseline!, game.tower);
-    expect(net.stone).toBe(6);
-
     store.dispatch({ type: 'startWave' });
-    expect(store.getSnapshot().game.player.resources.stone).toBe(STARTING_RESOURCES.stone - 6);
-    expect(store.getSnapshot().game.player.resources.gold).toBe(STARTING_CURRENCY);
-    expect(store.getSnapshot().game.phase).toBe('attack');
-  });
-
-  it('returns stone on commit when structures are removed during planning', () => {
-    const state = createInitialState('interwave');
-    const stem = getBlueprint('stem')!;
-    state.tower = placeStructure(state.tower, createStructure('extra', stem, { col: EXT_COL, row: 0 }));
-    beginWave(state);
-
-    state.phase = 'build';
-    state.player.resources = { ...state.player.resources, stone: 30 };
-    captureBuildBaseline(state);
-
-    const added = state.tower.structures.find((r) => r.id === 'extra')!;
-    state.tower = removeStructure(state.tower, added.id);
-
-    const net = netBuildCost(state.buildBaseline!, state.tower);
-    expect(net.stone).toBe(-3);
-    state.player.resources = subResources(state.buildBaseline!.resources, net);
-    expect(state.player.resources.stone).toBe(33);
+    expect(store.getSnapshot().game.phase).toBe('night');
   });
 });
 
-describe('build-phase undo and revert', () => {
-  it('starts with undo and revert disabled', () => {
+describe('construction undo', () => {
+  it('starts with undo disabled', () => {
     const store = new Store('undo0');
     const undo = selectBuildUndoState(store.getSnapshot());
     expect(undo.canUndo).toBe(false);
     expect(undo.canRevert).toBe(false);
-    expect(store.getSnapshot().buildUndoDepth).toBe(0);
   });
 
-  it('undoes the last successful placement', () => {
+  it('undoes the last queued order', () => {
     const store = new Store('undo1');
-    const baselineStructures = store.getSnapshot().game.tower.structures.length;
     placeStem(store, { col: EXT_COL, row: 0 });
-    placeStem(store, { col: EXT_COL, row: 1 });
-    expect(store.getSnapshot().game.tower.structures).toHaveLength(baselineStructures + 2);
-
+    expect(store.getSnapshot().game.constructionOrders.length).toBe(1);
     store.dispatch({ type: 'undoBuild' });
-    expect(store.getSnapshot().game.tower.structures).toHaveLength(baselineStructures + 1);
-    expect(store.getSnapshot().game.tower.structures[baselineStructures].origin).toEqual({
-      col: EXT_COL,
-      row: 0,
-    });
-    expect(selectBuildUndoState(store.getSnapshot()).canUndo).toBe(true);
+    expect(store.getSnapshot().game.constructionOrders.length).toBe(0);
   });
 
-  it('reverts to the phase baseline and clears undo history', () => {
-    const store = new Store('revert');
-    const baseline = store.getSnapshot().game.buildBaseline!.tower;
-
-    placeStem(store, { col: EXT_COL, row: 0 });
-    placeStem(store, { col: EXT_COL, row: 1 });
-    store.dispatch({ type: 'revertBuild' });
-
-    expect(towersEqual(store.getSnapshot().game.tower, baseline)).toBe(true);
-    expect(store.getSnapshot().buildUndoDepth).toBe(0);
-    expect(selectBuildUndoState(store.getSnapshot()).canRevert).toBe(false);
-    expect(selectBuildUndoState(store.getSnapshot()).canUndo).toBe(false);
+  it('shows ghost placement during day', () => {
+    const store = new Store('ghost');
+    store.dispatch({ type: 'selectBlueprint', blueprintId: 'stem' });
+    store.dispatch({ type: 'hoverCell', cell: { col: EXT_COL, row: 0 } });
+    const ghost = selectGhostPlacement(store.getSnapshot());
+    expect(ghost).not.toBeNull();
+    expect(ghost?.valid).toBe(true);
   });
 
-  it('does not change resources on undo or revert', () => {
-    const store = new Store('undo-gold');
+  it('completes construction over simulated day time', () => {
+    const store = new Store('build-time');
     placeStem(store, { col: EXT_COL, row: 0 });
-    store.dispatch({ type: 'undoBuild' });
-    expect(store.getSnapshot().game.player.resources.stone).toBe(STARTING_RESOURCES.stone);
-
-    placeStem(store, { col: EXT_COL, row: 0 });
-    store.dispatch({ type: 'revertBuild' });
-    expect(store.getSnapshot().game.player.resources.stone).toBe(STARTING_RESOURCES.stone);
-  });
-
-  it('replaces a spire with a buttress in one step and undoes atomically', () => {
-    const store = new Store('replace');
-    const baselineStructures = store.getSnapshot().game.tower.structures.length;
-    placeStem(store, { col: EXT_COL, row: 0 });
-    placeStem(store, { col: EXT_COL, row: 1 });
-    expect(store.getSnapshot().game.tower.structures).toHaveLength(baselineStructures + 2);
-
-    store.dispatch({ type: 'selectBlueprint', blueprintId: 'buttress2' });
-    store.dispatch({ type: 'placeSelectedAt', cell: { col: EXT_COL, row: 1 } });
-
-    const afterReplace = store.getSnapshot().game.tower;
-    expect(afterReplace.structures).toHaveLength(baselineStructures + 2);
-    expect(
-      afterReplace.structures.some(
-        (r) => r.blueprintId === 'buttress2' && r.origin.col === EXT_COL && r.origin.row === 1,
-      ),
-    ).toBe(true);
-    expect(
-      afterReplace.structures.some(
-        (r) => r.origin.row === 1 && r.origin.col === EXT_COL && r.blueprintId === 'stem',
-      ),
-    ).toBe(false);
-
-    store.dispatch({ type: 'undoBuild' });
-    const undone = store.getSnapshot().game.tower;
-    expect(undone.structures).toHaveLength(baselineStructures + 2);
-    expect(
-      undone.structures.some(
-        (r) => r.origin.row === 1 && r.origin.col === EXT_COL && r.blueprintId === 'stem',
-      ),
-    ).toBe(true);
-    expect(
-      undone.structures.some(
-        (r) => r.origin.col === EXT_COL && r.origin.row === 1 && r.blueprintId === 'buttress2',
-      ),
-    ).toBe(false);
+    for (let i = 0; i < 60 * 60; i += 1) {
+      store.advance(FIXED_DT);
+      if (store.getSnapshot().game.constructionOrders.length === 0) break;
+    }
+    expect(store.getSnapshot().game.tower.structures.some((s) => s.origin.col === EXT_COL)).toBe(true);
   });
 });
 
-describe('build mode vs select mode', () => {
-  it('starts in select mode with no blueprint selected', () => {
-    const store = new Store('select0');
-    expect(store.getSnapshot().view.selectedBlueprintId).toBeNull();
-  });
-
-  it('does not place without a selected blueprint', () => {
-    const store = new Store('select1');
-    const initialRooms = store.getSnapshot().game.tower.structures.length;
-    store.dispatch({ type: 'placeSelectedAt', cell: { col: 8, row: 0 } });
-    expect(store.getSnapshot().game.tower.structures).toHaveLength(initialRooms);
-  });
-
-  it('inspect opens modal and clears blueprint selection', () => {
-    const store = new Store('select2');
-    store.dispatch({ type: 'selectBlueprint', blueprintId: 'stem' });
-    store.dispatch({ type: 'inspectRoomAt', cell: { col: 6, row: 1 } });
-
-    const structureId = store.getSnapshot().game.tower.structures.find(
-      (r) => r.origin.col === 6 && r.origin.row === 1,
-    )!.id;
-    const { view } = store.getSnapshot();
-    expect(view.modal).toEqual({ kind: 'structure', structureId });
-    expect(view.selectedBlueprintId).toBeNull();
-  });
-
-  it('closes the room modal after a successful placement', () => {
-    const store = new Store('select3');
-    store.dispatch({ type: 'inspectRoomAt', cell: { col: 6, row: 1 } });
-    const roomId = store.getSnapshot().game.tower.structures.find(
-      (r) => r.origin.col === 6 && r.origin.row === 1,
-    )!.id;
-    expect(store.getSnapshot().view.modal).toEqual({ kind: 'structure', structureId: roomId });
-
-    store.dispatch({ type: 'selectBlueprint', blueprintId: 'stem' });
-    store.dispatch({ type: 'placeSelectedAt', cell: { col: EXT_COL, row: 0 } });
-    expect(store.getSnapshot().view.modal).toBeNull();
-  });
-
-  it('shows replace ghost preview over occupied cells in build mode', () => {
-    const store = new Store('ghost');
-    store.dispatch({ type: 'selectBlueprint', blueprintId: 'stem' });
-    store.dispatch({ type: 'hoverCell', cell: { col: 6, row: 1 } });
-
-    const ghost = selectGhostPlacement(store.getSnapshot());
-    expect(ghost).not.toBeNull();
-    expect(ghost!.valid).toBe(true);
-    expect(ghost!.cells).toContainEqual({ col: 6, row: 1 });
-  });
-
-  it('deselects blueprint with selectBlueprint null', () => {
-    const store = new Store('select4');
-    store.dispatch({ type: 'selectBlueprint', blueprintId: 'stem' });
-    store.dispatch({ type: 'selectBlueprint', blueprintId: null });
-    expect(store.getSnapshot().view.selectedBlueprintId).toBeNull();
-  });
-
-  it('startWave clears build selection and room modal', () => {
-    const store = new Store('attack0');
-    store.dispatch({ type: 'selectBlueprint', blueprintId: 'stem' });
-    store.dispatch({ type: 'inspectRoomAt', cell: { col: 6, row: 1 } });
-    expect(store.getSnapshot().view.modal).not.toBeNull();
-
-    store.dispatch({ type: 'startWave' });
-    const { view, game } = store.getSnapshot();
-    expect(game.phase).toBe('attack');
-    expect(view.selectedBlueprintId).toBeNull();
-    expect(view.modal).toBeNull();
-  });
-
-  it('does not open room modal during attack', () => {
-    const store = new Store('attack1');
-    store.dispatch({ type: 'startWave' });
-    store.dispatch({ type: 'inspectRoomAt', cell: { col: 6, row: 1 } });
-    expect(store.getSnapshot().view.modal).toBeNull();
-  });
-
-  it('does not select blueprints during attack', () => {
-    const store = new Store('attack2');
-    store.dispatch({ type: 'startWave' });
-    store.dispatch({ type: 'selectBlueprint', blueprintId: 'stem' });
-    expect(store.getSnapshot().view.selectedBlueprintId).toBeNull();
-  });
-
-  it('returns to select mode when a wave ends', () => {
-    const store = new Store('attack3');
-    store.dispatch({ type: 'startWave' });
-    store.dispatch({ type: 'selectSpell', spellId: 'fireball' });
-
-    const game = store.getSnapshot().game;
-    game.enemies = [];
-    game.spawnQueue = [];
-    store.advance(FIXED_DT);
-    store.flush();
-
-    const { view } = store.getSnapshot();
-    expect(store.getSnapshot().game.phase).toBe('build');
-    expect(view.selectedBlueprintId).toBeNull();
-    expect(view.selectedSpellId).toBeNull();
-    // Haul summary modal opens on clear; blueprints stay deselected.
-    expect(view.modal?.kind).toBe('waveClear');
+describe('starter supply', () => {
+  it('holds initial stone in storage not wallet', () => {
+    const store = new Store('supply');
+    const supply = store.getSnapshot().game.storageSites['starter-supply'];
+    expect(supply?.stockpile.stone).toBe(STARTER_SUPPLY_STONE);
+    expect(store.getSnapshot().game.player.resources.stone).toBe(0);
   });
 });

@@ -3,7 +3,7 @@ import type { Store } from '@/store/store';
 
 function renderSlot(
   slot: ReturnType<typeof selectSpellBar>[number],
-  inAttack: boolean,
+  inNight: boolean,
 ): string {
   const hotkey = `<span class="spell-hotkey">${slot.hotkey}</span>`;
 
@@ -11,7 +11,7 @@ function renderSlot(
     return `<div class="spell-slot empty">${hotkey}</div>`;
   }
 
-  if (!inAttack) {
+  if (!inNight) {
     return `
       <div class="spell-slot preview" data-tip-kind="spell" data-tip-id="${slot.id}">
         ${hotkey}
@@ -40,7 +40,7 @@ export function createSpellBar(root: HTMLElement, store: Store): () => void {
   root.addEventListener('pointerdown', (e) => {
     if (e.button !== 0) return;
     const { game } = store.getSnapshot();
-    if (game.phase !== 'attack') return;
+    if (game.phase !== 'night') return;
 
     const target =
       e.target instanceof HTMLElement ? e.target.closest<HTMLElement>('[data-spell]') : null;
@@ -67,12 +67,12 @@ export function createSpellBar(root: HTMLElement, store: Store): () => void {
     }
 
     root.hidden = false;
-    const inAttack = game.phase === 'attack';
+    const inNight = game.phase === 'night';
     const { current, max, label } = selectMana(snapshot);
     const slots = selectSpellBar(snapshot);
     const earth = game.activeSpellSchool === 'earth' ? selectEarthCharge(snapshot) : null;
     const water = game.activeSpellSchool === 'water';
-    const hint = inAttack
+    const hint = inNight
       ? earth
         ? 'Earth: Fault feeds Charge · Fortify to concentrate · Esc cancels Fortify'
         : water
@@ -96,7 +96,7 @@ export function createSpellBar(root: HTMLElement, store: Store): () => void {
         <span class="mana-text">${label}</span>
       </div>
       ${chargeBar}
-      <div class="spell-bar">${slots.map((slot) => renderSlot(slot, inAttack)).join('')}</div>
+      <div class="spell-bar">${slots.map((slot) => renderSlot(slot, inNight)).join('')}</div>
       <p class="hint">${hint}</p>`;
   };
 }

@@ -70,7 +70,7 @@ export function selectSpellBar(snapshot: Snapshot): SpellBarSlot[] {
   const { game, view } = snapshot;
   if (game.scene !== 'run') return [];
 
-  const inAttack = game.phase === 'attack';
+  const inNight = game.phase === 'night';
   const spells = listHotbarSpells(game);
   const slots: SpellBarSlot[] = [];
 
@@ -85,7 +85,7 @@ export function selectSpellBar(snapshot: Snapshot): SpellBarSlot[] {
       continue;
     }
 
-    if (!inAttack) {
+    if (!inNight) {
       slots.push({
         hotkey, id: spell.id, name: spell.name, glyph: spell.glyph, manaCost: spell.manaCost,
         cooldownRemaining: 0, selected: false, enabled: false, disabledReason: null, empty: false,
@@ -123,7 +123,7 @@ export interface CastPreview {
 
 export function selectCastPreview(snapshot: Snapshot): CastPreview | null {
   const { game, view } = snapshot;
-  if (game.scene !== 'run' || game.phase !== 'attack') return null;
+  if (game.scene !== 'run' || game.phase !== 'night') return null;
   const spellId = view.selectedSpellId;
   if (!spellId || !view.hoveredCell) return null;
 

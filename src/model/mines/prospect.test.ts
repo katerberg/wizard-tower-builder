@@ -19,6 +19,7 @@ import {
   tickLaborerHarvestAndPump,
   prospectFrontierCell,
 } from '@/model/staff/harvest';
+import { tickProspectWork, resolveProspectAtNightfall } from '@/model/staff/prospect';
 import { tickLaborerRepairs } from '@/model/staff/combat';
 import { endWave } from '@/model/phases';
 import { createRoom, createStructure, createTower, placeRoom, placeStructure } from '@/model/tower';
@@ -94,7 +95,7 @@ describe('prospect allocation', () => {
 describe('prospectors excluded from mine auto-fill', () => {
   it('does not assign prospectors to stone patches', () => {
     const state = setupMineState();
-    state.phase = 'attack';
+    state.phase = 'night';
     state.housingRecruited.q1 = 2;
     state.prospectAllocation = 1;
     state.staff = [
@@ -134,7 +135,7 @@ describe('prospectors excluded from mine auto-fill', () => {
 describe('rare patch falloff', () => {
   it('second laborer yields less than first on metal patch', () => {
     const state = setupMineState();
-    state.phase = 'attack';
+    state.phase = 'night';
     // Manually add a metal patch.
     state.mine.patches.push({
       id: 'metal-99',
@@ -183,7 +184,7 @@ describe('rare patch falloff', () => {
 describe('prospect job resolves and reveals tier', () => {
   it('completes work timer and calls generateDeepTier', () => {
     const state = setupMineState();
-    state.phase = 'attack';
+    state.phase = 'day';
     state.housingRecruited.q1 = 1;
     state.prospectAllocation = 1;
     const frontier = prospectFrontierCell(state);
@@ -205,7 +206,8 @@ describe('prospect job resolves and reveals tier', () => {
     const workTime = getProspectWorkTime(state.mine.unlockedDepth);
 
     expect(state.prospectResolved).toBe(false);
-    tickLaborerHarvestAndPump(state, workTime);
+    tickProspectWork(state, workTime);
+    resolveProspectAtNightfall(state);
     expect(state.prospectResolved).toBe(true);
     expect(state.mine.unlockedDepth).toBe(beforeDepth + 1);
   });
@@ -214,7 +216,7 @@ describe('prospect job resolves and reveals tier', () => {
 describe('prospectors stay put during repair retarget', () => {
   it('not peeled by tickLaborerRepairs', () => {
     const state = setupMineState();
-    state.phase = 'attack';
+    state.phase = 'night';
     state.prospectAllocation = 1;
     state.staff = [
       {
@@ -239,7 +241,7 @@ describe('prospectors stay put during repair retarget', () => {
 describe('wave clear modal with prospect note', () => {
   it('shows prospectNote when tier was revealed', () => {
     const state = setupMineState();
-    state.phase = 'attack';
+    state.phase = 'night';
     state.prospectAllocation = 1;
     state.prospectResolved = true;
     state.mine.unlockedDepth = 3;
@@ -254,7 +256,7 @@ describe('wave clear modal with prospect note', () => {
 
   it('prospectNote is null when no prospecting occurred', () => {
     const state = setupMineState();
-    state.phase = 'attack';
+    state.phase = 'night';
     state.prospectAllocation = 0;
     state.prospectResolved = false;
     state.waveHaul.stone = 3;

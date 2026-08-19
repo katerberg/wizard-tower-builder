@@ -23,7 +23,7 @@ function boilerSteamNetwork() {
   state.tower = placeInfra(state.tower, { col: 4, row: 0 }, 'pipe');
   state.tower = placeInfra(state.tower, { col: 4, row: 1 }, 'pipe');
   state.tower = placeInfra(state.tower, { col: 6, row: 1 }, 'pipe');
-  state.phase = 'attack';
+  state.phase = 'night';
   resetBoilerRuntime(state);
   resetSteamTurretRuntime(state);
   return state;
@@ -55,7 +55,7 @@ describe('tickBoilers', () => {
     state.tower = placeRoom(state.tower, createRoom('boiler', getBlueprint('boilerRoom')!, { col: 5, row: 0 }));
     state.tower = placeInfra(state.tower, { col: 4, row: 0 }, 'pipe');
     state.tower = placeInfra(state.tower, { col: 4, row: 1 }, 'pipe');
-    state.phase = 'attack';
+    state.phase = 'night';
     resetBoilerRuntime(state);
     const before = state.player.mana;
     tickBoilers(state, 1);

@@ -36,7 +36,7 @@ function makeEnemy(macroCol: number, macroRow: number, hp = 40) {
 describe('Kindled', () => {
   it('procs flat burst after normal fire damage and consumes the mark', () => {
     const state = towerWithStem(createInitialState('kindled0'));
-    state.phase = 'attack';
+    state.phase = 'night';
     const enemy = makeEnemy(8, 1);
     applyKindled(state, enemy);
     state.enemies = [enemy];
@@ -49,7 +49,7 @@ describe('Kindled', () => {
 
   it('refreshes Kindled timer when stepping a patch again', () => {
     const state = towerWithStem(createInitialState('kindled1'));
-    state.phase = 'attack';
+    state.phase = 'night';
     state.waveTimer = 5;
     const enemy = makeEnemy(8, 1);
     applyKindled(state, enemy);
@@ -65,7 +65,7 @@ describe('Kindled', () => {
 describe('Kindling patch', () => {
   it('marks enemies that step on the trap', () => {
     const state = towerWithStem(createInitialState('patch0'));
-    state.phase = 'attack';
+    state.phase = 'night';
     addKindlingPatch(state, { col: 8, row: 1 });
     const enemy = makeEnemy(8, 1);
     runKindlingPatchStepEffects(state, enemy);
@@ -82,7 +82,7 @@ describe('Kindling patch', () => {
 describe('Immolate', () => {
   it('ticks fire damage while the enemy stays on a wall', () => {
     const state = towerWithStem(createInitialState('imm0'));
-    state.phase = 'attack';
+    state.phase = 'night';
     const enemy = makeEnemy(8, 1);
     state.enemies = [enemy];
     startImmolate(state, enemy);
@@ -94,7 +94,7 @@ describe('Immolate', () => {
 
   it('ends when the enemy leaves the wall surface', () => {
     const state = towerWithStem(createInitialState('imm1'));
-    state.phase = 'attack';
+    state.phase = 'night';
     const enemy = makeEnemy(8, 1);
     startImmolate(state, enemy);
     enemy.pos = { ...subAt(12, 4), face: 'top' };
@@ -121,7 +121,7 @@ describe('Wall of Flame', () => {
 
   it('creates a timed segment on cast', () => {
     const state = towerWithStem(createInitialState('wall1'));
-    state.phase = 'attack';
+    state.phase = 'night';
     beginWave(state);
     const result = castSpell(state, 'wallOfFlame', {
       kind: 'segment',
@@ -137,7 +137,7 @@ describe('Wall of Flame', () => {
 describe('fire hotbar kit', () => {
   it('casts kindling on a valid adjacent cell', () => {
     const state = towerWithStem(createInitialState('kit0'));
-    state.phase = 'attack';
+    state.phase = 'night';
     const result = castSpell(state, 'kindling', { kind: 'cell', cell: { col: 8, row: 1 } });
     expect(result.ok).toBe(true);
     expect(state.kindlingPatches.length).toBe(1);
@@ -145,7 +145,7 @@ describe('fire hotbar kit', () => {
 
   it('casts immolate on a clicked enemy', () => {
     const state = towerWithStem(createInitialState('kit1'));
-    state.phase = 'attack';
+    state.phase = 'night';
     const enemy = makeEnemy(8, 1);
     state.enemies = [enemy];
     const result = castSpell(state, 'immolate', { kind: 'enemy', enemyId: enemy.id });

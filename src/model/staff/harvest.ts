@@ -8,21 +8,37 @@ import {
   RARE_PATCH_FALLOFF,
 } from '@/config/constants';
 import { reward } from '@/calculations/economy';
+import { depositToStorage, stockpileFromCost } from '@/model/storage';
 import { findInteriorPath } from '@/calculations/interiorPathfinding';
 import { cellDistance, roomAnchorCell } from '@/calculations/interiorGraph';
 import {
   findMinePatchByTarget,
   formatProspectNote,
   generateDeepTier,
-  getProspectWorkTime,
   isMinePatchTarget,
-  isProspectTarget,
   minePatchTargetId,
 } from '@/model/mines';
 import { addMessage } from '@/model/messages';
-import type { Cell, GameState, MinePatch, Room, StaffUnit, Tower } from '@/model/types';
+import type { Cell, GameState, MinePatch, Resources, Room, StaffUnit, Tower } from '@/model/types';
 
 const PUMP_TARGET = 'pump:hand';
+
+/** Credit harvest to storage rooms; track wave haul for modal. */
+function rewardHarvest(state: GameState, haul: Partial<Resources>, from?: Cell): void {
+  const physical = stockpileFromCost(haul);
+  if (physical.stone > 0 || physical.metal > 0) {
+    const overflow = depositToStorage(state, physical, from);
+    if (overflow.stone > 0 || overflow.metal > 0) {
+      addMessage(state, 'Storage full — excess materials wasted.', 'economy');
+    }
+  }
+  if (haul.gold && haul.gold > 0) {
+    reward(state, { gold: haul.gold });
+  }
+  if (haul.stone) state.waveHaul.stone += haul.stone;
+  if (haul.metal) state.waveHaul.metal += haul.metal;
+  if (haul.gold) state.waveHaul.gold += haul.gold ?? 0;
+}
 
 export function isPumpTarget(id: string | null | undefined): boolean {
   return id === PUMP_TARGET;
@@ -76,7 +92,7 @@ export function maxWaterReachRow(state: GameState): number {
   ).length;
   const reserve = handPumpReserveNeeded(state);
 
-  if (state.phase === 'build') {
+  if (state.phase === 'day') {
     const canHand = reserve > 0 && recruitedLaborers(state) >= reserve;
     if (!canHand && pumps <= 0) return GROUND_WATER_MAX_ROW;
     const base = canHand || pumps > 0 ? HAND_PUMP_MAX_WATER_ROW : GROUND_WATER_MAX_ROW;
@@ -208,21 +224,9 @@ export function resolveProspect(state: GameState): void {
   addMessage(state, note, 'economy');
 }
 
-/** Tick prospect job progress and mine harvest for laborers. */
+/** Tick mine harvest and hand-pump for laborers (night only). */
 export function tickLaborerHarvestAndPump(state: GameState, dt: number): void {
-  // Prospect job: accumulate work time when prospectors are working.
-  const prospectors = state.staff.filter(
-    (s) => s.kind === 'laborer' && isProspectTarget(s.targetWorkplaceId) && s.status === 'working',
-  );
-  if (prospectors.length > 0 && !state.prospectResolved) {
-    const workTime = getProspectWorkTime(state.mine.unlockedDepth);
-    state.prospectWorkElapsed += dt;
-    if (state.prospectWorkElapsed >= workTime) {
-      // Resolve: reveal next tier.
-      state.prospectResolved = true;
-      resolveProspect(state);
-    }
-  }
+  if (state.phase !== 'night') return;
 
   for (const unit of state.staff) {
     if (unit.kind !== 'laborer' || unit.status !== 'working') continue;
@@ -244,14 +248,10 @@ export function tickLaborerHarvestAndPump(state: GameState, dt: number): void {
       const gained = Math.min(want, patch.remaining);
       if (gained <= 0) continue;
       patch.remaining -= gained;
-      reward(state, { stone: gained });
-      state.waveHaul.stone += gained;
-
-      // Passive iron drip.
+      rewardHarvest(state, { stone: gained }, patch.cell);
       const ironDrip = gained * PASSIVE_IRON_FRACTION;
       if (ironDrip > 0) {
-        reward(state, { metal: ironDrip });
-        state.waveHaul.metal += ironDrip;
+        rewardHarvest(state, { metal: ironDrip }, patch.cell);
       }
     } else {
       // Metal / gold: diminishing returns per extra laborer on same patch.
@@ -268,8 +268,11 @@ export function tickLaborerHarvestAndPump(state: GameState, dt: number): void {
       const gained = Math.min(want, patch.remaining);
       if (gained <= 0) continue;
       patch.remaining -= gained;
-      reward(state, { [patch.resource]: gained });
-      state.waveHaul[patch.resource] += gained;
+      if (patch.resource === 'gold') {
+        rewardHarvest(state, { gold: gained }, patch.cell);
+      } else {
+        rewardHarvest(state, { metal: gained }, patch.cell);
+      }
     }
 
     if (patch.remaining <= 0) {

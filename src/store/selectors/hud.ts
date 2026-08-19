@@ -51,7 +51,7 @@ function selectSpellTooltip(snapshot: Snapshot, spellId: string): UiTooltipConte
   if (!spell || spell.autoCast) return null;
 
   const { game } = snapshot;
-  const inAttack = game.scene === 'run' && game.phase === 'attack';
+  const inNight = game.scene === 'run' && game.phase === 'night';
   const hotkey = listHotbarSpells(game).findIndex((s) => s.id === spellId) + 1;
   const stats: UiTooltipStat[] = [
     { label: 'Mana', value: String(spell.manaCost), accent: true },
@@ -70,7 +70,7 @@ function selectSpellTooltip(snapshot: Snapshot, spellId: string): UiTooltipConte
   stats.push({ label: 'Targeting', value: 'Click grid cell' });
 
   let footer: string | undefined;
-  if (!inAttack) {
+  if (!inNight) {
     footer = 'Available during attack · mana refills each wave';
   } else if (spellCooldownRemaining(game, spellId) > 0) {
     footer = `On cooldown (${spellCooldownRemaining(game, spellId).toFixed(1)}s)`;

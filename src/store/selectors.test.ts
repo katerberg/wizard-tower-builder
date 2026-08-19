@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { getBlueprint } from '@/model/blueprints';
 import { createRoom, createStructure, placeRoom, placeStructure } from '@/model/tower';
 import { Store } from '@/store/store';
+import { completeConstruction } from '@/test/construction';
 import {
   RESEARCH_DAG_NODE_SIZE,
   selectLibraryBlueprints,
@@ -17,12 +18,13 @@ import {
 function placeStem(store: Store, cell: { col: number; row: number }): void {
   store.dispatch({ type: 'selectBlueprint', blueprintId: 'stem' });
   store.dispatch({ type: 'placeSelectedAt', cell });
+  completeConstruction(store);
 }
 
 function placeTurretOnStem(store: Store, cell: { col: number; row: number }): string {
-  placeStem(store, cell);
   store.dispatch({ type: 'selectBlueprint', blueprintId: 'turretRoom' });
   store.dispatch({ type: 'placeSelectedAt', cell });
+  completeConstruction(store);
   return store.getSnapshot().game.tower.rooms.find((r) => r.origin.col === cell.col && r.origin.row === cell.row)!.id;
 }
 
@@ -94,9 +96,9 @@ describe('selectRoomBuildAlerts', () => {
     const guardroomBp = getBlueprint('guardroomRoom')!;
     const slotBp = getBlueprint('slotRoom')!;
     game.tower = placeStructure(game.tower, createStructure('sb1', stem, { col: 4, row: 0 }));
-    game.tower = placeStructure(game.tower, createStructure('ss1', stem, { col: 10, row: 0 }));
+    game.tower = placeStructure(game.tower, createStructure('ss1', stem, { col: 10, row: 3 }));
     game.tower = placeRoom(game.tower, createRoom('b1', guardroomBp, { col: 4, row: 0 }));
-    game.tower = placeRoom(game.tower, createRoom('s1', slotBp, { col: 10, row: 0 }));
+    game.tower = placeRoom(game.tower, createRoom('s1', slotBp, { col: 10, row: 3 }));
     game.housingRecruited.b1 = 1;
     game.slotAllocations.s1 = 1;
 
@@ -119,13 +121,15 @@ describe('selectRoomBuildAlerts', () => {
   it('seeds defaults when placing guardrooms and slots', () => {
     const store = new Store('seed-place');
     store.dispatch({ type: 'selectBlueprint', blueprintId: 'guardroomRoom' });
-    store.dispatch({ type: 'placeSelectedAt', cell: { col: 5, row: 0 } });
+    store.dispatch({ type: 'placeSelectedAt', cell: { col: 6, row: 1 } });
+    completeConstruction(store);
     store.dispatch({ type: 'selectBlueprint', blueprintId: 'slotRoom' });
-    store.dispatch({ type: 'placeSelectedAt', cell: { col: 9, row: 0 } });
+    store.dispatch({ type: 'placeSelectedAt', cell: { col: 8, row: 1 } });
+    completeConstruction(store);
 
     const { game } = store.getSnapshot();
-    const guardroom = game.tower.rooms.find((r) => r.blueprintId === 'guardroomRoom')!;
-    const slot = game.tower.rooms.find((r) => r.blueprintId === 'slotRoom')!;
+    const guardroom = game.tower.rooms.find((r) => r.origin.col === 6 && r.origin.row === 1)!;
+    const slot = game.tower.rooms.find((r) => r.origin.col === 8 && r.origin.row === 1)!;
     expect(game.housingRecruited[guardroom.id]).toBe(1);
     expect(game.slotAllocations[slot.id]).toBe(1);
   });
@@ -144,7 +148,7 @@ describe('selectRoomInspector', () => {
 
   it('exposes add affordance for unmodified spikes in build phase', () => {
     const store = new Store('insp1');
-    const roomId = placeTurretOnStem(store, { col: 8, row: 0 });
+    const roomId = placeTurretOnStem(store, { col: 6, row: 2 });
     const inspector = selectRoomInspector(store.getSnapshot(), roomId);
     expect(inspector).not.toBeNull();
     const spikes = inspector!.modifications.find((m) => m.id === 'spikes');
@@ -156,7 +160,7 @@ describe('selectRoomInspector', () => {
 
   it('disables modification actions outside build phase', () => {
     const store = new Store('insp2');
-    const roomId = placeTurretOnStem(store, { col: 8, row: 0 });
+    const roomId = placeTurretOnStem(store, { col: 6, row: 2 });
     store.dispatch({ type: 'startWave' });
     const inspector = selectRoomInspector(store.getSnapshot(), roomId);
     expect(inspector?.isBuildPhase).toBe(false);
@@ -168,7 +172,7 @@ describe('selectRoomInspector', () => {
 describe('selectSpellBar', () => {
   it('shows four fire spells on hotkeys 1–4 during attack', () => {
     const store = new Store('spell0');
-    placeStem(store, { col: 8, row: 0 });
+    placeStem(store, { col: 4, row: 0 });
     store.dispatch({ type: 'startWave' });
     const bar = selectSpellBar(store.getSnapshot());
     expect(bar).toHaveLength(6);
@@ -182,7 +186,7 @@ describe('selectSpellBar', () => {
 
   it('disables fireball when out of mana', () => {
     const store = new Store('spell1');
-    placeStem(store, { col: 8, row: 0 });
+    placeStem(store, { col: 4, row: 0 });
     store.dispatch({ type: 'startWave' });
     store.getSnapshot().game.player.mana = 3;
     const bar = selectSpellBar(store.getSnapshot());
@@ -192,7 +196,7 @@ describe('selectSpellBar', () => {
 
   it('shows equipped spells during build without enabling them', () => {
     const store = new Store('spell2');
-    placeStem(store, { col: 8, row: 0 });
+    placeStem(store, { col: 4, row: 0 });
     const bar = selectSpellBar(store.getSnapshot());
     expect(bar).toHaveLength(6);
     expect(bar[0].id).toBe('fireball');
@@ -204,7 +208,7 @@ describe('selectSpellBar', () => {
 describe('selectUiTooltip', () => {
   it('describes fireball stats and range', () => {
     const store = new Store('tip0');
-    placeStem(store, { col: 8, row: 0 });
+    placeStem(store, { col: 4, row: 0 });
     store.dispatch({ type: 'startWave' });
     const tip = selectUiTooltip(store.getSnapshot(), { kind: 'spell', id: 'fireball' });
     expect(tip?.title).toBe('Fireball');

@@ -33,6 +33,7 @@ export type Intent =
   | { type: 'closeModal' }
   | { type: 'startWave' }
   | { type: 'restart' }
+  | { type: 'togglePhasePause' }
   | { type: 'toggleDevMode' }
   | { type: 'devAddCurrency' }
   | { type: 'devSkipWave' }

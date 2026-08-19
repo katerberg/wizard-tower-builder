@@ -54,7 +54,7 @@ describe('flier wave budget', () => {
 describe('carrier kamikaze lifetime', () => {
   it('self-destructs after the configured macro cells', () => {
     const state = createInitialState('fly-carrier');
-    state.phase = 'attack';
+    state.phase = 'night';
     const drone = makeTestEnemy(2, 4, { templateId: 'carrierKamikaze', hp: 1 });
     drone.lifetimeMacroCells = CARRIER_KAMIKAZE_LIFETIME_MACRO;
     drone.macroCellsMoved = 0;
@@ -72,7 +72,7 @@ describe('carrier kamikaze lifetime', () => {
 describe('Wall of Flame open air', () => {
   it('allows a segment entirely in open air', () => {
     const state = createInitialState('wof-air');
-    state.phase = 'attack';
+    state.phase = 'night';
     state.player.mana = 20;
     const result = castSpell(state, 'wallOfFlame', {
       kind: 'segment',
@@ -88,7 +88,7 @@ describe('Wall of Flame open air', () => {
 describe('gust pushes fliers from center', () => {
   it('shoves a flier away from the gust cell', () => {
     const state = createInitialState('gust-fly');
-    state.phase = 'attack';
+    state.phase = 'night';
     state.player.mana = 20;
     // Place in open air near the starter perch so gust is in range.
     const flier = makeTestEnemy(7, 1, { templateId: 'striker', hp: 3, face: 'air' });
@@ -110,7 +110,7 @@ describe('flier spawn in wave', () => {
         createRoom(`s${r}`, getBlueprint('stem')!, { col: 7, row: r }),
       );
     }
-    state.phase = 'attack';
+    state.phase = 'night';
     state.waveStartHeight = 8;
     state.spawnQueue = ['striker'];
     state.spawnTimer = 0;

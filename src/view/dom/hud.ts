@@ -1,14 +1,14 @@
 import { formatResourceAmount } from '@/calculations/resources';
 import { WIN_HEIGHT } from '@/model/waves';
-import { towerExtents } from '@/model/tower';
+import { completedTowerExtents } from '@/model/tower';
 import {
   selectBuildEconomy,
   selectBuildUndoState,
+  selectPhaseInfo,
   selectLogisticsReport,
   selectMana,
   selectProspectAllocation,
   selectSelectedBlueprint,
-  selectTowerStability,
 } from '@/store/selectors';
 import type { Intent } from '@/store/intents';
 import type { Store } from '@/store/store';
@@ -36,19 +36,14 @@ export function createHud(root: HTMLElement, store: Store): () => void {
       store.dispatch({ type: 'setProspectAllocation', count });
       return;
     }
-    // All other data-action values are valid intent types.
     store.dispatch({ type: action as Intent['type'] } as Intent);
   }
 
-  // Use pointerdown, not click: during the attack phase the HUD re-renders every
-  // frame, so a button is replaced between a click's mousedown and mouseup and
-  // the click never fires. pointerdown runs on press, before the next re-render.
   root.addEventListener('pointerdown', (e) => {
     if (e.button !== 0) return;
     dispatchFromTarget(e.target);
   });
 
-  // Keep keyboard activation working for focused buttons.
   root.addEventListener('keydown', (e) => {
     if (e.key !== 'Enter' && e.key !== ' ') return;
     e.preventDefault();
@@ -58,19 +53,19 @@ export function createHud(root: HTMLElement, store: Store): () => void {
   return function render(): void {
     const snapshot = store.getSnapshot();
     const { game } = snapshot;
-    const height = towerExtents(game.tower).maxOccupiedRow;
+    const height = completedTowerExtents(game.tower).maxOccupiedRow;
     const enemiesLeft = game.enemies.length + game.spawnQueue.length;
+    const phaseInfo = selectPhaseInfo(snapshot);
 
-    const inBuild = game.scene === 'run' && game.phase === 'build';
-    const stability = selectTowerStability(snapshot);
+    const inDay = game.scene === 'run' && game.phase === 'day';
     const economy = selectBuildEconomy(snapshot);
     const undoState = selectBuildUndoState(snapshot);
     const selectedBlueprint = selectSelectedBlueprint(snapshot);
     const buildModeHint =
-      inBuild && selectedBlueprint
+      inDay && selectedBlueprint
         ? `<p class="mode-hint">Placing: ${selectedBlueprint.name}</p>`
-        : inBuild
-          ? '<p class="mode-hint">Select rooms to modify</p>'
+        : inDay
+          ? '<p class="mode-hint">Paint construction plans</p>'
           : '';
     const r = economy.remaining;
     const committed = economy.committed;
@@ -85,24 +80,26 @@ export function createHud(root: HTMLElement, store: Store): () => void {
     const metalLabel = fmt(r.metal, committed.metal);
     const stoneLabel = fmt(r.stone, committed.stone);
     const soulsLabel = fmt(r.souls, committed.souls);
-    const logistics = inBuild ? selectLogisticsReport(snapshot.game) : null;
+    const logistics = inDay ? selectLogisticsReport(snapshot.game) : null;
     const logisticsHtml =
       logistics && logistics.warnings.length > 0
-        ? `<p class="warning">${logistics.warnings[0]}${logistics.warnings.length > 1 ? ` (+${logistics.warnings.length - 1} more)` : ''
-        }</p>`
+        ? `<p class="warning">${logistics.warnings[0]}${logistics.warnings.length > 1 ? ` (+${logistics.warnings.length - 1} more)` : ''}</p>`
         : '';
 
-    const phaseControls = inBuild
+    const timerSec = Math.max(0, Math.ceil(phaseInfo.phaseTimer));
+    const cycleIcon = phaseInfo.phase === 'day' ? '☀' : '☾';
+    const cycleLabel = phaseInfo.phase === 'day' ? 'Day' : 'Night';
+
+    const phaseControls = inDay
       ? `<div class="build-undo-row">
            <button data-action="undoBuild" ${undoState.canUndo ? '' : 'disabled'}>Undo</button>
-           <button data-action="revertBuild" ${undoState.canRevert ? '' : 'disabled'}>Revert all</button>
+           <button data-action="revertBuild" ${undoState.canRevert ? '' : 'disabled'}>Cancel all</button>
          </div>
-         ${logisticsHtml}
-         <button class="primary" data-action="startWave" ${stability.stable ? '' : 'disabled'}>Start Wave</button>`
+         ${logisticsHtml}`
       : '';
 
     const attackInfo =
-      game.scene === 'run' && game.phase === 'attack'
+      game.scene === 'run' && game.phase === 'night'
         ? `<div class="stat"><span>Enemies</span><strong>${enemiesLeft}</strong></div>
            <div class="stat"><span>Mana</span><strong>${selectMana(snapshot).label}</strong></div>`
         : '';
@@ -116,6 +113,7 @@ export function createHud(root: HTMLElement, store: Store): () => void {
          </div>
          <div class="dev-row">
            <button data-action="toggleWaveBuilder">${waveBuilderOpen ? 'Wave builder: on' : 'Wave builder'}</button>
+           <button data-action="startWave">Skip to night</button>
          </div>
          <div class="dev-row">
            <button data-action="devSetSpellSchool" data-school="fire" ${game.activeSpellSchool === 'fire' ? 'disabled' : ''}>Fire school</button>
@@ -125,8 +123,8 @@ export function createHud(root: HTMLElement, store: Store): () => void {
          </div>`
       : '';
 
-    const prospect = inBuild ? selectProspectAllocation(snapshot) : null;
-    const prospectHtml = inBuild
+    const prospect = inDay ? selectProspectAllocation(snapshot) : null;
+    const prospectHtml = inDay
       ? `<div class="stat"><span>Prospectors</span><strong>${prospect?.current ?? 0} / ${prospect?.max ?? 0}</strong></div>
          <div class="slot-stepper">
            <button class="stepper-btn ${prospect && prospect.current <= 0 ? 'disabled' : ''}" data-action="prospectMinus">−</button>
@@ -136,7 +134,7 @@ export function createHud(root: HTMLElement, store: Store): () => void {
 
     root.innerHTML = `
       <h1>Wizard Tower</h1>
-      <div class="stat"><span>Phase</span><strong>${labelPhase(game.scene, game.phase)}</strong></div>
+      <div class="stat"><span>${cycleIcon} ${cycleLabel} ${phaseInfo.dayIndex}</span><strong>${timerSec}s</strong></div>
       <div class="stat"><span>Height</span><strong>${height} / ${WIN_HEIGHT}</strong></div>
       <div class="stat"><span>Gold</span><strong>${goldLabel}</strong></div>
       <div class="stat"><span>Metal</span><strong>${metalLabel}</strong></div>
@@ -153,11 +151,4 @@ export function createHud(root: HTMLElement, store: Store): () => void {
       ${devControls}
     `;
   };
-}
-
-function labelPhase(scene: string, phase: string): string {
-  if (scene === 'menu') return 'Menu';
-  if (scene === 'gameOver') return 'Defeated';
-  if (scene === 'victory') return 'Victory';
-  return phase === 'build' ? 'Building' : 'Under Attack';
 }

@@ -47,7 +47,7 @@ export function attachInput(
     if (!isDragging) return;
 
     const { game, view } = store.getSnapshot();
-    if (game.phase !== 'build' || !view.selectedBlueprintId) return;
+    if (game.phase !== 'day' || !view.selectedBlueprintId) return;
 
     const cell = cellFromEvent(e);
     if (lastDragCell?.col === cell.col && lastDragCell.row === cell.row) return;
@@ -74,13 +74,13 @@ export function attachInput(
     const cell = cellFromEvent(e);
     if (dragStart && !isDragging) {
       const { game, view } = store.getSnapshot();
-      if (game.phase === 'attack' && view.selectedSpellId) {
+      if (game.phase === 'night' && view.selectedSpellId) {
         store.dispatch({ type: 'castSpellAt', spellId: view.selectedSpellId, cell });
-      } else if (game.phase === 'attack') {
+      } else if (game.phase === 'night') {
         store.dispatch({ type: 'moveWizard', cell });
-      } else if (game.phase === 'build' && view.selectedBlueprintId) {
+      } else if (game.phase === 'day' && view.selectedBlueprintId) {
         store.dispatch({ type: 'placeSelectedAt', cell });
-      } else if (game.phase === 'build' && roomAt(game.tower, cell.col, cell.row)) {
+      } else if (game.phase === 'day' && roomAt(game.tower, cell.col, cell.row)) {
         store.dispatch({ type: 'inspectRoomAt', cell });
       }
     }
@@ -96,7 +96,7 @@ export function attachInput(
   canvas.addEventListener('contextmenu', (e) => {
     e.preventDefault();
     const { game } = store.getSnapshot();
-    if (game.phase !== 'build') return;
+    if (game.phase !== 'day') return;
     const cell = cellFromEvent(e);
     if (roomAt(game.tower, cell.col, cell.row)) {
       store.dispatch({ type: 'removeRoomAt', cell });
@@ -119,7 +119,7 @@ export function attachInput(
     const { game, view } = snapshot;
 
     if (e.key >= '1' && e.key <= '6') {
-      if (game.scene !== 'run' || game.phase !== 'attack') return;
+      if (game.scene !== 'run' || game.phase !== 'night') return;
       const slot = selectSpellBar(snapshot)[Number(e.key) - 1];
       if (!slot?.id || !slot.enabled) return;
       e.preventDefault();

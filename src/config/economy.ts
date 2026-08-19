@@ -1,11 +1,11 @@
 /** @deprecated Prefer STARTING_RESOURCES.gold */
 export const STARTING_CURRENCY = 48;
 
-/** Starting wallet for a new run (provisional balance). */
+/** Starting wallet for a new run (provisional balance). Stone/metal live in storage rooms. */
 export const STARTING_RESOURCES = {
   gold: 48,
-  metal: 40,
-  stone: 60,
+  metal: 0,
+  stone: 0,
   souls: 30,
 } as const;
 

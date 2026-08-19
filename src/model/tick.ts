@@ -29,7 +29,10 @@ import {
   shouldStubDiscombobulatedStep, soakSlowMultiplier, tickAirEffects, tickEarthEffects,
   tickFireEffects, tickSpellCooldowns, tickWaterEffects,
 } from './spells';
-import { endWave, loseGame } from './phases';
+import { endWave, loseGame, tickPhaseTimer } from './phases';
+import { tickDayConstruction } from './construction';
+import { tickSideJobs } from './sideJobs';
+import { tickProspectWork } from './staff/prospect';
 import { shuffle } from '../calculations/rng';
 import { goblinNames, bruteNames, wispNames } from './names';
 import { spawnIntervalFor } from './waves';
@@ -42,6 +45,7 @@ let waveNamePools: Record<string, string[]> = {};
 export function resetTickState(): void {
   enemyCounter = 0;
   waveNamePools = {};
+  waveEndedThisNight = false;
   resetStaffCounter();
 }
 
@@ -135,9 +139,29 @@ function trackMacroMovement(enemy: Enemy, state: GameState, canFly: boolean): vo
   if (enemy.lifetimeMacroCells !== undefined && (enemy.macroCellsMoved ?? 0) >= enemy.lifetimeMacroCells) enemy.currentHp = 0;
 }
 
-/** Advance one fixed timestep. Only meaningful during the attack phase. */
+/** Advance one fixed timestep during day or night. */
 export function step(state: GameState, dt: number): void {
-  if (state.scene !== 'run' || state.phase !== 'attack') return;
+  if (state.scene !== 'run') return;
+
+  tickPhaseTimer(state, dt);
+
+  if (state.phase === 'day') {
+    tickDay(state, dt);
+    return;
+  }
+  tickNight(state, dt);
+}
+
+function tickDay(state: GameState, dt: number): void {
+  tickSideJobs(state, dt);
+  tickProspectWork(state, dt);
+  tickDayConstruction(state, dt);
+}
+
+let waveEndedThisNight = false;
+
+function tickNight(state: GameState, dt: number): void {
+  if (state.phase !== 'night') return;
   state.waveTimer += dt;
   const collectorPos = getSolarCollectorPosition(state);
   const wizard = state.player.wizard;
@@ -244,5 +268,8 @@ export function step(state: GameState, dt: number): void {
   }
   state.enemies = survivors;
   if (state.solarCollector.hp <= 0) { loseGame(state); return; }
-  if (state.spawnQueue.length === 0 && state.enemies.length === 0) endWave(state);
+  if (state.spawnQueue.length === 0 && state.enemies.length === 0 && !waveEndedThisNight) {
+    endWave(state);
+    waveEndedThisNight = true;
+  }
 }

@@ -153,7 +153,7 @@ export function selectRoomInspector(snapshot: Snapshot, roomId: string): RoomIns
   if (!blueprint) return null;
 
   const { game } = snapshot;
-  const isBuildPhase = game.scene === 'run' && game.phase === 'build';
+  const isBuildPhase = game.scene === 'run' && game.phase === 'day';
   const { remaining } = selectBuildEconomy(snapshot);
   const stats = computeRoomStats(room, blueprint);
 
@@ -291,7 +291,7 @@ export function selectStructureInspector(
   if (!structure) return null;
   const blueprint = getBlueprint(structure.blueprintId);
   if (!blueprint) return null;
-  const isBuildPhase = snapshot.game.scene === 'run' && snapshot.game.phase === 'build';
+  const isBuildPhase = snapshot.game.scene === 'run' && snapshot.game.phase === 'day';
   const shellEntries: StructureInspector['shellEntries'] = [];
   for (const cell of roomCells(structure.origin, structure.size)) {
     const kind = snapshot.game.tower.shell?.[`${cell.col},${cell.row}`]?.kind;

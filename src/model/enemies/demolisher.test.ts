@@ -93,7 +93,7 @@ describe('preferred-path overhang smash', () => {
     tower = placeRoom(tower, createRoom('capRoom', roomBp, { col: 4, row: 2 }));
     // Cap room sits on buttress cell (4,2); also need rooms only on one cell of buttress.
     const state = createInitialState('demo-smash');
-    state.phase = 'attack';
+    state.phase = 'night';
     state.tower = tower;
 
     const under = { col: 12, row: 5 };
@@ -178,7 +178,7 @@ describe('pipe re-lock on destruction', () => {
     expect(tower.infra['4,1']?.fluid).toBe('steam');
 
     const state = createInitialState('pipe-break');
-    state.phase = 'attack';
+    state.phase = 'night';
     state.tower = tower;
     const delta = roomRemovalDelta(state, 'turret');
     state.tower = {
@@ -196,7 +196,7 @@ describe('pipe re-lock on destruction', () => {
 describe('staff destruction aftermath', () => {
   it('kills staff on destroyed cells and rehomes when spare capacity exists', () => {
     const state = createInitialState('staff-demo');
-    state.phase = 'attack';
+    state.phase = 'night';
     const stem = getBlueprint('stem')!;
     const quarters = getBlueprint('quartersRoom')!;
     state.tower = createTower();
@@ -251,7 +251,7 @@ describe('staff destruction aftermath', () => {
 
   it('leaves homeless staff until clearStaffAfterWave', () => {
     const state = createInitialState('staff-homeless');
-    state.phase = 'attack';
+    state.phase = 'night';
     const stem = getBlueprint('stem')!;
     const quarters = getBlueprint('quartersRoom')!;
     state.tower = createTower();
@@ -292,7 +292,7 @@ describe('spikes on room attack', () => {
     room.modifications = [{ id: 'spikes', level: 1 }];
     tower = placeRoom(tower, room);
     const state = createInitialState('spike-smash');
-    state.phase = 'attack';
+    state.phase = 'night';
     state.tower = tower;
     const enemy = makeDemolisher({ col: 12, row: 5 }, 'demolisherBrute');
     const hpBefore = enemy.currentHp;
@@ -334,7 +334,7 @@ describe('demolisher wave pressure', () => {
 describe('demolisher tick integration', () => {
   it('idles when preferred path is empty rather than crawling under', () => {
     const state = createInitialState('demo-idle');
-    state.phase = 'attack';
+    state.phase = 'night';
     // Isolated stem with no path graph connectivity for a weird start — use overhang cell
     // with empty path so the demolisher branch idles.
     state.tower = tCapTower();

@@ -59,7 +59,7 @@ describe('soldier deployment', () => {
     const state = towerWithStairShaft();
     state.housingRecruited.b1 = 2;
     state.slotAllocations.s1 = 1;
-    state.buildRecruitSpend = SOLDIER_RECRUIT_COST * 2;
+    state.pendingRecruitSpend = SOLDIER_RECRUIT_COST * 2;
     const before = state.player.resources.gold;
 
     deployStaffForWave(state);
@@ -80,7 +80,7 @@ describe('staff stair queuing', () => {
     const state = towerWithStairShaft();
     state.housingRecruited.b1 = 2;
     state.slotAllocations.s1 = 2;
-    state.buildRecruitSpend = SOLDIER_RECRUIT_COST * 2;
+    state.pendingRecruitSpend = SOLDIER_RECRUIT_COST * 2;
 
     deployStaffForWave(state);
     const soldiers = state.staff.filter((s) => s.kind === 'soldier');
@@ -116,7 +116,7 @@ describe('staff stair queuing', () => {
     const state = towerWithStairShaft();
     state.housingRecruited.b1 = 2;
     state.slotAllocations.s1 = 2;
-    state.buildRecruitSpend = SOLDIER_RECRUIT_COST * 2;
+    state.pendingRecruitSpend = SOLDIER_RECRUIT_COST * 2;
     deployStaffForWave(state);
 
     for (let i = 0; i < 20; i++) {

@@ -1,4 +1,5 @@
-import { canAffordBuild } from '@/calculations/buildCost';
+import { canAffordPhysical, stockpileFromCost, findStorageForReservation, reserveStorage, consumeReservation } from '@/model/storage';
+import { spend } from '@/calculations/economy';
 import { formatResourceCost } from '@/calculations/resources';
 import { getInfraBlueprint, isInfraBlueprint } from '@/model/infraBlueprints';
 import { getInfraAt, removeInfraAt } from '@/model/infra';
@@ -22,9 +23,27 @@ export function handleInfraIntent(ctx: HandlerContext, intent: Intent): void {
   }
 }
 
+function spendPhysicalCost(ctx: HandlerContext, cell: { col: number; row: number }, cost: import('@/model/types').ResourceCost): boolean {
+  const { game } = ctx;
+  const physical = stockpileFromCost(cost);
+  if (!canAffordPhysical(game, cost)) {
+    return false;
+  }
+  const storageId = findStorageForReservation(game, physical, cell);
+  if (!storageId && (physical.stone > 0 || physical.metal > 0)) return false;
+  const orderId = `infra-spend-${Date.now()}`;
+  if (storageId) {
+    reserveStorage(game, orderId, storageId, physical);
+    consumeReservation(game, orderId);
+  }
+  if (cost.souls) spend(game, { souls: cost.souls });
+  if (cost.gold) spend(game, { gold: cost.gold });
+  return true;
+}
+
 function placeInfraSelected(ctx: HandlerContext, cell: { col: number; row: number }): void {
   const { game, view } = ctx;
-  if (game.phase !== 'build' || !game.buildBaseline) return;
+  if (game.phase !== 'day') return;
   const id = view.selectedBlueprintId;
   if (!id || !isInfraBlueprint(id)) return;
 
@@ -33,7 +52,6 @@ function placeInfraSelected(ctx: HandlerContext, cell: { col: number; row: numbe
 
   const plan = planInfraPlacement(game.tower, blueprint, cell);
   if (plan.isToggleOff) {
-    ctx.recordBuildStep();
     game.tower = removeInfraAt(game.tower, cell.col, cell.row);
     addMessage(game, `Removed ${blueprint.name}.`, 'info');
     return;
@@ -50,14 +68,12 @@ function placeInfraSelected(ctx: HandlerContext, cell: { col: number; row: numbe
     return;
   }
 
-  const nextTower = applyInfraPlacement(game.tower, blueprint, cell, ctx.nextRoomId(), plan);
-  if (!canAffordBuild(game.buildBaseline, nextTower, {}, game.buildRecruitSpend)) {
+  if (!spendPhysicalCost(ctx, cell, blueprint.cost)) {
     addMessage(game, `Not enough resources for ${blueprint.name} (${formatResourceCost(blueprint.cost)}).`, 'economy');
     return;
   }
 
-  ctx.recordBuildStep();
-  game.tower = nextTower;
+  game.tower = applyInfraPlacement(game.tower, blueprint, cell, ctx.nextRoomId(), plan);
   if (plan.needsStem) {
     addMessage(game, `Placed Spire Block and ${blueprint.name}.`, 'info');
   } else {
@@ -67,11 +83,10 @@ function placeInfraSelected(ctx: HandlerContext, cell: { col: number; row: numbe
 
 function removeInfraAtCell(ctx: HandlerContext, cell: { col: number; row: number }): void {
   const { game } = ctx;
-  if (game.phase !== 'build' || !game.buildBaseline) return;
+  if (game.phase !== 'day') return;
   if (roomAt(game.tower, cell.col, cell.row)) return;
   if (!getInfraAt(game.tower, cell.col, cell.row)) return;
 
-  ctx.recordBuildStep();
   game.tower = removeInfraAt(game.tower, cell.col, cell.row);
   addMessage(game, 'Removed infrastructure.', 'info');
 }

@@ -4,6 +4,7 @@ import {
   STARTING_RESOURCES,
   WIZARD_DEFAULTS,
 } from '@/config/constants';
+import { DAY_DURATION } from '@/config/dayNight';
 import { cloneResources, emptyResources } from '@/calculations/resources';
 import {
   STARTING_BLUEPRINT_IDS,
@@ -11,11 +12,13 @@ import {
   STARTING_MODIFICATION_IDS,
 } from './blueprints';
 import { emptyResearchState } from './research';
-import { startRun, captureBuildBaseline } from './phases';
+import { startRun } from './phases';
+import { createStarterTower, initStarterFacilities } from './starterTower';
+import { resetTickState } from './tick';
+import { resetConstructionCounter } from './construction';
+import { resetSideJobCounter } from './sideJobs';
 import { seedFrom } from '../calculations/rng';
 import { generateShallowMine } from './mines';
-import { createStarterTower } from './starterTower';
-import { resetTickState } from './tick';
 import { createWizardAvatarAtPerch } from './wizard';
 import type { GameState, SimSpeed } from './types';
 
@@ -23,9 +26,11 @@ const DEFAULT_SIM_SPEED: SimSpeed = 1;
 
 export function createInitialState(seed: string | number = 'wizard'): GameState {
   resetTickState();
+  resetConstructionCounter();
+  resetSideJobCounter();
   const state: GameState = {
     scene: 'run',
-    phase: 'build',
+    phase: 'day',
     progressionMode: 'height',
     levelIndex: 0,
     waveIndex: 0,
@@ -56,8 +61,15 @@ export function createInitialState(seed: string | number = 'wizard'): GameState 
     slotAllocations: {},
     manaSpringAllocations: {},
     researchRoomAllocations: {},
-    buildRecruitSpend: 0,
     prospectAllocation: 0,
+    dayIndex: 1,
+    phaseTimer: DAY_DURATION,
+    phasePaused: false,
+    storageSites: {},
+    storageReservations: [],
+    constructionOrders: [],
+    sideJobs: [],
+    pendingRecruitSpend: 0,
     spellCooldowns: {},
     kindlingPatches: [],
     wallOfFlameSegments: [],
@@ -81,7 +93,6 @@ export function createInitialState(seed: string | number = 'wizard'): GameState 
     mine: { entrance: { col: 0, row: -1 }, tunnels: {}, patches: [], unlockedDepth: 1 },
     waveHaul: emptyResources(),
     pendingWaveClear: null,
-    buildBaseline: null,
     solarCollector: {
       hp: SOLAR_COLLECTOR_DEFAULTS.maxHp,
       maxHp: SOLAR_COLLECTOR_DEFAULTS.maxHp,
@@ -101,7 +112,8 @@ export function createInitialState(seed: string | number = 'wizard'): GameState 
   };
   state.mine = generateShallowMine(state.tower);
   state.wizardAvatar = createWizardAvatarAtPerch(state);
-  captureBuildBaseline(state);
+  initStarterFacilities(state);
+  startRun(state);
   return state;
 }
 
@@ -109,8 +121,8 @@ function loadSimSpeed(): SimSpeed {
   if (typeof localStorage === 'undefined') return DEFAULT_SIM_SPEED;
   const raw = localStorage.getItem('wizard-tower-sim-speed');
   const parsed = Number(raw);
-  if (parsed === 2 || parsed === 5 || parsed === 10) return parsed;
-  // Migrate legacy 4× preference to the nearest current rung.
+  if (parsed === 2 || parsed === 5) return parsed;
+  if (parsed === 10) return 5;
   if (parsed === 4) return 5;
   return DEFAULT_SIM_SPEED;
 }

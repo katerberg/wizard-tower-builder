@@ -4,7 +4,7 @@ import type { Store } from '@/store/store';
 export function createLibrary(root: HTMLElement, store: Store): () => void {
   root.addEventListener('click', (e) => {
     const snapshot = store.getSnapshot();
-    if (snapshot.game.phase !== 'build') return;
+    if (snapshot.game.phase !== 'day') return;
 
     const target =
       e.target instanceof HTMLElement ? e.target.closest<HTMLElement>('[data-tool]') : null;
@@ -30,9 +30,9 @@ export function createLibrary(root: HTMLElement, store: Store): () => void {
   return function render(): void {
     const snapshot = store.getSnapshot();
     const { game } = snapshot;
-    const inBuild = game.scene === 'run' && game.phase === 'build';
+    const inDay = game.scene === 'run' && game.phase === 'day';
 
-    if (!inBuild) {
+    if (!inDay) {
       root.innerHTML = '';
       root.hidden = true;
       return;

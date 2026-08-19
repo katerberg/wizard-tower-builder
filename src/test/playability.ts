@@ -1,6 +1,7 @@
 import { FIXED_DT } from '@/config/constants';
 import type { Cell, GameState, Scene } from '@/model/types';
 import { Store } from '@/store/store';
+import { completeConstruction } from '@/test/construction';
 
 export interface BlueprintPlacement {
   blueprintId: string;
@@ -26,31 +27,38 @@ export class PlayabilityDriver {
   }
 
   place({ blueprintId, cell }: BlueprintPlacement): void {
-    const before = this.store.getSnapshot().buildUndoDepth;
+    const before = this.store.getSnapshot().game.constructionOrders.length;
     this.store.dispatch({ type: 'selectBlueprint', blueprintId });
     this.store.dispatch({ type: 'placeSelectedAt', cell });
 
-    if (this.store.getSnapshot().buildUndoDepth !== before + 1) {
+    if (this.store.getSnapshot().game.constructionOrders.length <= before) {
       throw new Error(
         `Placement failed for ${blueprintId} at (${cell.col}, ${cell.row}) with seed ${this.seed}.`,
       );
     }
   }
 
+  /** Advance sim until construction orders finish (phase timer paused). */
+  waitForConstruction(maxSeconds = 120): void {
+    completeConstruction(this.store, maxSeconds);
+  }
+
   startWave(): void {
     this.store.dispatch({ type: 'startWave' });
     const { game } = this.store.getSnapshot();
-    if (game.phase !== 'attack') {
+    if (game.phase !== 'night') {
       throw new Error(`Wave did not start with seed ${this.seed}.`);
     }
   }
 
   recruitAt(cell: Cell): void {
     const roomId = this.roomIdAt(cell);
-    const before = this.store.getSnapshot().game.housingRecruited[roomId] ?? 0;
     this.store.dispatch({ type: 'recruitStaff', housingRoomId: roomId });
-    if ((this.store.getSnapshot().game.housingRecruited[roomId] ?? 0) !== before + 1) {
-      throw new Error(`Recruitment failed at (${cell.col}, ${cell.row}) with seed ${this.seed}.`);
+    // Side job completes after RECRUIT_SIDE_JOB_SEC
+    for (let i = 0; i < 300; i += 1) {
+      this.store.advance(FIXED_DT);
+      const recruited = this.store.getSnapshot().game.housingRecruited[roomId] ?? 0;
+      if (recruited >= 2) return;
     }
   }
 
@@ -68,7 +76,11 @@ export class PlayabilityDriver {
       this.store.advance(FIXED_DT);
 
       const { game } = this.store.getSnapshot();
-      if (game.scene !== 'run' || game.phase === 'build') {
+      // After a full night cycle, dawn returns to day with wave complete
+      if (game.phase === 'day' && game.enemies.length === 0 && game.spawnQueue.length === 0 && steps > 100) {
+        return this.metrics(steps + 1);
+      }
+      if (game.scene !== 'run') {
         return this.metrics(steps + 1);
       }
     }

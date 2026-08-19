@@ -1,5 +1,4 @@
 import { reward } from '@/calculations/economy';
-import { addResources } from '@/calculations/resources';
 import { addMessage } from '@/model/messages';
 import { framingHeight } from '@/model/phases';
 import { unlockAllResearch } from '@/model/research';
@@ -25,14 +24,16 @@ export function handleDevIntent(ctx: HandlerContext, intent: Intent): void {
       if (ctx.game.devMode) {
         const grant = { gold: 50, metal: 50, stone: 50, souls: 50 };
         reward(ctx.game, grant);
-        if (ctx.game.buildBaseline) {
-          ctx.game.buildBaseline.resources = addResources(ctx.game.buildBaseline.resources, grant);
+        const supply = Object.values(ctx.game.storageSites)[0];
+        if (supply) {
+          supply.stockpile.stone += 50;
+          supply.stockpile.metal += 50;
         }
         addMessage(ctx.game, 'Dev: +50 to each resource.', 'economy');
       }
       break;
     case 'devSkipWave':
-      if (ctx.game.devMode && ctx.game.phase === 'attack') {
+      if (ctx.game.devMode && ctx.game.phase === 'night') {
         ctx.game.enemies = [];
         ctx.game.spawnQueue = [];
         addMessage(ctx.game, 'Dev: wave skipped.', 'info');

@@ -127,6 +127,12 @@ export interface StaffUnit {
   elevatorExitRow?: number;
   /** Path index of the exit cell once unloaded. */
   elevatorExitPathIndex?: number;
+  /** Storage room id when hauling materials. */
+  carry?: Stockpile;
+  /** Storage room id for pickup target. */
+  carryFromStorageId?: string;
+  /** Construction order id when hauling to/from site. */
+  carryOrderId?: string;
   /** Seconds spent waiting for a car (call priority tie-break). */
   elevatorWaitElapsed?: number;
 }
@@ -159,7 +165,68 @@ export type Soldier = StaffUnit;
 /** @deprecated Prefer StaffStatus. */
 export type SoldierStatus = StaffStatus;
 
-/** Snapshot of tower + resources at the start of a build phase (planning baseline). */
+/** Physical resources held in storage rooms (stone + metal). */
+export interface Stockpile {
+  stone: number;
+  metal: number;
+}
+
+export interface StorageSite {
+  roomId: string;
+  stockpile: Stockpile;
+  /** Flat cap on stone + metal combined. */
+  capacity: number;
+  /** Starter supply — cannot be sold. */
+  locked: boolean;
+}
+
+export interface StorageReservation {
+  orderId: string;
+  storageRoomId: string;
+  reserved: Stockpile;
+}
+
+export type ConstructionKind = 'build' | 'teardown';
+
+export type ConstructionStatus =
+  | 'planned'
+  | 'delivering'
+  | 'scaffold'
+  | 'building'
+  | 'teardown';
+
+export interface ConstructionOrder {
+  id: string;
+  kind: ConstructionKind;
+  blueprintId: string;
+  origin: Cell;
+  /** Existing room/structure id when tearing down or replacing. */
+  targetId?: string;
+  status: ConstructionStatus;
+  /** Materials still needed on-site before build timer starts. */
+  deliverRemaining: Stockpile;
+  onSiteMaterials: Stockpile;
+  /** 0..1 after all materials delivered. */
+  buildProgress: number;
+  /** Total work units (footprint cells × BUILD_WORK_PER_CELL). */
+  buildWorkRequired: number;
+  /** Reserved souls (deducted from wallet at paint time). */
+  soulsReserved: number;
+}
+
+export type SideJobKind = 'recruit' | 'unrecruit' | 'applyMod' | 'researchEnqueue';
+
+export interface SideJob {
+  id: string;
+  kind: SideJobKind;
+  label: string;
+  duration: number;
+  elapsed: number;
+  payload: Record<string, unknown>;
+  status: 'running' | 'success';
+}
+
+/** @deprecated Build baseline removed — use storage reservations. */
 export interface BuildBaseline {
   tower: Tower;
   resources: Resources;
@@ -177,7 +244,7 @@ export interface BuildDraftSnapshot {
   slotAllocations: Record<string, number>;
   manaSpringAllocations: Record<string, number>;
   researchRoomAllocations: Record<string, number>;
-  buildRecruitSpend: number;
+  pendingRecruitSpend: number;
   prospectAllocation: number;
 }
 
@@ -329,7 +396,7 @@ export interface Player {
 
 export type ProgressionMode = 'height' | 'branching';
 
-export type Phase = 'build' | 'attack';
+export type Phase = 'day' | 'night';
 
 export type Scene = 'menu' | 'run' | 'gameOver' | 'victory';
 
@@ -416,7 +483,7 @@ export interface ActiveWaterfall {
 
 export type SpellSchool = 'fire' | 'air' | 'earth' | 'water';
 
-export const SIM_SPEEDS = [1, 2, 5, 10] as const;
+export const SIM_SPEEDS = [1, 2, 5] as const;
 export type SimSpeed = (typeof SIM_SPEEDS)[number];
 
 export function isSimSpeed(value: number): value is SimSpeed {
@@ -451,18 +518,32 @@ export interface GameState {
   roomEffectTimers: Record<string, number>;
   /** Attack-phase staff entities (cleared at wave end; rosters persist). */
   staff: StaffUnit[];
-  /** Recruited count per housing room (build phase). */
+  /** Recruited count per housing room (day phase). */
   housingRecruited: Record<string, number>;
-  /** Headcount allocated per slot room for the upcoming wave (build phase). */
+  /** Headcount allocated per slot room for the upcoming night (day phase). */
   slotAllocations: Record<string, number>;
   /** Desired magi headcount per mana spring (0..MANA_SPRING_STAFF_CAPACITY). */
   manaSpringAllocations: Record<string, number>;
   /** Desired magi headcount per research room. */
   researchRoomAllocations: Record<string, number>;
-  /** Gold spent recruiting staff this build phase (commits on wave start). */
-  buildRecruitSpend: number;
-  /** Laborers assigned to prospecting this wave (build-phase allocation). */
+  /** Laborers assigned to prospecting (day work; excluded from night harvest/repair). */
   prospectAllocation: number;
+  /** 1-based day counter; increments at each dawn. */
+  dayIndex: number;
+  /** Seconds remaining in the current day or night phase. */
+  phaseTimer: number;
+  /** When true, phase timer does not decrement. */
+  phasePaused: boolean;
+  /** Stockpiles keyed by storage room id. */
+  storageSites: Record<string, StorageSite>;
+  /** Materials reserved from storage for construction orders. */
+  storageReservations: StorageReservation[];
+  /** Active construction / teardown orders (persist across days). */
+  constructionOrders: ConstructionOrder[];
+  /** Timed non-tower jobs (recruit, mods, research queue). */
+  sideJobs: SideJob[];
+  /** Gold spent recruiting staff this day (commits at night deploy). */
+  pendingRecruitSpend: number;
   /** Seconds remaining before each spell can be cast again. */
   spellCooldowns: Record<string, number>;
   /** Active Kindling trap patches (fire school). */
@@ -518,11 +599,9 @@ export interface GameState {
    * Null while attacking or after dismiss.
    */
   pendingWaveClear: WaveClearSummary | null;
-  /** Tower + gold at build-phase start; edits commit on wave start. */
-  buildBaseline: BuildBaseline | null;
-  /** Seconds accumulated on the prospect job this wave (0 until prospect starts). */
+  /** Seconds accumulated on the prospect job (day work; resolves at nightfall). */
   prospectWorkElapsed: number;
-  /** True once the prospect job has been resolved this wave (tier revealed). */
+  /** True once the prospect job has been resolved this cycle (tier revealed). */
   prospectResolved: boolean;
 }
 

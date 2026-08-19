@@ -8,6 +8,7 @@ import {
   subResources,
 } from '@/calculations/resources';
 import { addMessage } from '@/model/messages';
+import { refundToNearestStorage, spendPhysicalFromStorage, stockpileFromCost } from '@/model/storage';
 import type { GameState, ResourceCost, Resources } from '@/model/types';
 import { getResearchNode, listResearchNodes, RESEARCH_NODES } from './tree';
 import type { PlayerResearchState, ResearchNode, ResearchNodeId } from './types';
@@ -59,26 +60,36 @@ function spendResearchCost(
   cost: Resources,
   label: string,
 ): { ok: true } | { ok: false; reason: string } {
-  if (state.buildBaseline) {
-    if (!canAffordResources(state.buildBaseline.resources, cost)) {
-      return { ok: false, reason: `Not enough resources (${label}).` };
-    }
-    state.buildBaseline.resources = subResources(state.buildBaseline.resources, cost);
-    return { ok: true };
-  }
-  if (!canAffordResources(state.player.resources, cost)) {
+  const physical = stockpileFromCost(cost);
+  const walletCost: Resources = {
+    gold: cost.gold ?? 0,
+    souls: cost.souls ?? 0,
+    stone: 0,
+    metal: 0,
+  };
+  if (!canAffordResources(state.player.resources, walletCost)) {
     return { ok: false, reason: `Not enough resources (${label}).` };
   }
-  state.player.resources = subResources(state.player.resources, cost);
+  if (physical.stone > 0 || physical.metal > 0) {
+    if (!spendPhysicalFromStorage(state, physical)) {
+      return { ok: false, reason: `Not enough stone or metal in storage (${label}).` };
+    }
+  }
+  state.player.resources = subResources(state.player.resources, walletCost);
   return { ok: true };
 }
 
 function refundResearchCost(state: GameState, cost: Resources): void {
-  if (state.buildBaseline) {
-    state.buildBaseline.resources = addResources(state.buildBaseline.resources, cost);
-  } else {
-    state.player.resources = addResources(state.player.resources, cost);
+  const physical = stockpileFromCost(cost);
+  if (physical.stone > 0 || physical.metal > 0) {
+    refundToNearestStorage(state, physical, { col: 7, row: 0 });
   }
+  state.player.resources = addResources(state.player.resources, {
+    gold: cost.gold ?? 0,
+    souls: cost.souls ?? 0,
+    stone: 0,
+    metal: 0,
+  });
 }
 
 function floorResources(r: Resources): Resources {
@@ -130,7 +141,7 @@ export function startResearch(
   state: GameState,
   nodeId: ResearchNodeId,
 ): { ok: true } | { ok: false; reason: string } {
-  if (state.scene !== 'run' || state.phase !== 'build') {
+  if (state.scene !== 'run' || state.phase !== 'day') {
     return { ok: false, reason: 'Research can only start during build phase.' };
   }
   if (state.player.research.active) {
@@ -162,7 +173,7 @@ export function enqueueResearch(
   state: GameState,
   nodeId: ResearchNodeId,
 ): { ok: true } | { ok: false; reason: string } {
-  if (state.scene !== 'run' || state.phase !== 'build') {
+  if (state.scene !== 'run' || state.phase !== 'day') {
     return { ok: false, reason: 'Research can only enqueue during build phase.' };
   }
   if (!state.player.research.active) {
@@ -200,7 +211,7 @@ export function dequeueResearch(
   state: GameState,
   nodeId: ResearchNodeId,
 ): { ok: true } | { ok: false; reason: string } {
-  if (state.scene !== 'run' || state.phase !== 'build') {
+  if (state.scene !== 'run' || state.phase !== 'day') {
     return { ok: false, reason: 'Can only adjust the queue during build phase.' };
   }
   if (!isNodeQueued(state, nodeId)) {
@@ -221,7 +232,7 @@ export function dequeueResearch(
 export function cancelActiveResearch(
   state: GameState,
 ): { ok: true } | { ok: false; reason: string } {
-  if (state.scene !== 'run' || state.phase !== 'build') {
+  if (state.scene !== 'run' || state.phase !== 'day') {
     return { ok: false, reason: 'Can only cancel research during build phase.' };
   }
   const active = state.player.research.active;

@@ -20,7 +20,7 @@ export function drawTower(ctx: CanvasRenderingContext2D, snapshot: Snapshot, scr
 
 export function drawInfra(ctx: CanvasRenderingContext2D, snapshot: Snapshot, scrollY: number, viewportHeight: number): void {
   const { minRow, maxRow } = visibleRowRange(scrollY, viewportHeight);
-  const phase = snapshot.game.phase === 'attack' ? 'attack' : 'build';
+  const phase = snapshot.game.phase === 'night' ? 'night' : 'day';
   const pipeFluids = resolvePipeFluids(snapshot.game.tower, phase);
   const tower = snapshot.game.tower;
   for (const [key, cell] of Object.entries(tower.infra)) {
@@ -61,11 +61,22 @@ function drawStructures(ctx: CanvasRenderingContext2D, snapshot: Snapshot, scrol
     if (maxStructureRow < minRow || structure.origin.row > maxRow) continue;
     if (roomCells(structure.origin, structure.size).every((c) => snapshot.game.tower.rooms.some((room) => roomCells(room.origin, room.size).some((rc) => rc.col === c.col && rc.row === c.row)))) continue;
     const blueprint = getBlueprint(structure.blueprintId);
+    const isScaffold = structure.blueprintId === 'scaffold';
     const isInvalid = unstable.has(structure.id);
     const { x, y } = cellTopLeft(structure.origin.col, maxStructureRow, scrollY, viewportHeight);
     const w = structure.size.w * CELL_SIZE;
     const h = structure.size.h * CELL_SIZE;
-    ctx.globalAlpha = 0.55; ctx.fillStyle = blueprint?.color ?? colors.room; ctx.fillRect(x + 3, y + 3, w - 6, h - 6); ctx.globalAlpha = 1;
+    ctx.globalAlpha = isScaffold ? 0.75 : 0.55;
+    ctx.fillStyle = isScaffold ? '#a0aec0' : blueprint?.color ?? colors.room;
+    ctx.fillRect(x + 3, y + 3, w - 6, h - 6);
+    ctx.globalAlpha = 1;
+    if (isScaffold) {
+      ctx.setLineDash([3, 3]);
+      ctx.strokeStyle = '#cbd5e0';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x + 3, y + 3, w - 6, h - 6);
+      ctx.setLineDash([]);
+    }
     if (isInvalid) { ctx.globalAlpha = 0.35; ctx.fillStyle = colors.ghostInvalid; ctx.fillRect(x + 3, y + 3, w - 6, h - 6); ctx.globalAlpha = 1; }
     ctx.strokeStyle = isInvalid ? colors.ghostInvalid : colors.roomStroke; ctx.lineWidth = 1; ctx.strokeRect(x + 3, y + 3, w - 6, h - 6);
     ctx.globalAlpha = 0.7; ctx.fillStyle = colors.text; ctx.font = `${Math.floor(CELL_SIZE * 0.4)}px monospace`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(blueprint?.glyph ?? 'I', x + w / 2, y + h / 2); ctx.globalAlpha = 1;

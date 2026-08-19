@@ -52,7 +52,7 @@ function stateWithFlameTurret(seed: string): GameState {
   );
   state.tower = placeInfra(state.tower, { col: 6, row: 1 }, 'pipe');
   state.tower = placeInfra(state.tower, { col: 7, row: 1 }, 'pipe');
-  state.phase = 'attack';
+  state.phase = 'night';
   resetFlameTurretRuntime(state);
   return state;
 }
@@ -157,7 +157,7 @@ describe('flame turret room effect', () => {
 
   it('does not charge without a fire-connected Forge', () => {
     const state = stateWithRoom('flame-turret-forge', 'flameTurretRoom');
-    state.phase = 'attack';
+    state.phase = 'night';
     resetFlameTurretRuntime(state);
     const brute = makeEnemy('brute', 9, 0, 55);
     state.enemies = [brute];

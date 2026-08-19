@@ -1,4 +1,4 @@
-import { netBuildCost, remainingBuildResources } from '@/calculations/buildCost';
+import { availableInStorage, stockpileFromCost, totalReserved } from '@/model/storage';
 import {
   addResources,
   asResources,
@@ -13,12 +13,13 @@ import {
   getFortificationBlueprint,
   isFortificationBlueprint,
 } from '@/model/fortificationBlueprints';
+import { totalOrderCost } from '@/model/construction';
 import { planFortificationPlacement } from '@/model/fortificationPlacement';
 import { planInfraPlacement } from '@/model/infraPlacement';
 import { selectPipeConnectivityReport } from '@/model/pipes';
 import { selectLogisticsReport } from '@/model/staff/connectivity';
 import { housingKindOf, staffKindForHousing } from '@/model/staff/capacity';
-import { canPlace, getUnstableStructureIds, planRoomPlacement, towersEqual } from '@/model/tower';
+import { canPlace, getUnstableStructureIds, planRoomPlacement } from '@/model/tower';
 import {
   LIBRARY_SECTIONS,
   librarySectionFor,
@@ -38,41 +39,52 @@ export interface BuildEconomy {
   remaining: Resources;
   committed: Resources;
   budget: Resources;
-  /** @deprecated Prefer remaining.gold */
   remainingGold: number;
-  /** @deprecated Prefer committed.gold */
   committedGold: number;
-  /** @deprecated Prefer budget.gold */
   budgetGold: number;
+  /** Stone+metal available in storage (unreserved). */
+  storageAvailable: { stone: number; metal: number };
 }
 
 export function selectBuildEconomy(snapshot: Snapshot): BuildEconomy {
   const { game } = snapshot;
-  const baseline = game.buildBaseline;
-  if (game.scene !== 'run' || game.phase !== 'build' || !baseline) {
-    const r = game.player.resources;
-    return {
-      isPlanning: false,
-      remaining: r,
-      committed: asResources({}),
-      budget: r,
-      remainingGold: r.gold,
-      committedGold: 0,
-      budgetGold: r.gold,
-    };
-  }
-  const net = netBuildCost(baseline, game.tower);
-  const committed = addResources(net, { gold: game.buildRecruitSpend });
-  const remaining = remainingBuildResources(baseline, game.tower, game.buildRecruitSpend);
+  const wallet = game.player.resources;
+  const storage = availableInStorage(game);
+  const reserved = totalReserved(game);
+
+  const remaining: Resources = {
+    gold: wallet.gold - game.pendingRecruitSpend,
+    souls: wallet.souls,
+    stone: storage.stone,
+    metal: storage.metal,
+  };
+  const committed = addResources(asResources(reserved), { gold: game.pendingRecruitSpend });
+  const budget = addResources(
+    { ...wallet, stone: storage.stone + reserved.stone, metal: storage.metal + reserved.metal },
+    { gold: game.pendingRecruitSpend },
+  );
+
   return {
-    isPlanning: true,
+    isPlanning: game.scene === 'run' && game.phase === 'day',
     remaining,
     committed,
-    budget: baseline.resources,
+    budget,
     remainingGold: remaining.gold,
     committedGold: committed.gold,
-    budgetGold: baseline.resources.gold,
+    budgetGold: budget.gold,
+    storageAvailable: storage,
   };
+}
+
+export function canAffordOrder(snapshot: Snapshot, blueprintId: string, origin: Cell): boolean {
+  const { game } = snapshot;
+  const cost = totalOrderCost(blueprintId, game.tower, origin);
+  const physical = stockpileFromCost(cost);
+  const avail = availableInStorage(game);
+  if (avail.stone < physical.stone || avail.metal < physical.metal) return false;
+  if ((cost.souls ?? 0) > game.player.resources.souls) return false;
+  if ((cost.gold ?? 0) > game.player.resources.gold - game.pendingRecruitSpend) return false;
+  return true;
 }
 
 export interface BuildUndoState {
@@ -82,22 +94,11 @@ export interface BuildUndoState {
 
 export function selectBuildUndoState(snapshot: Snapshot): BuildUndoState {
   const { game } = snapshot;
-  const baseline = game.buildBaseline;
-  const inBuild = game.scene === 'run' && game.phase === 'build';
-  if (!inBuild || !baseline) {
-    return { canUndo: false, canRevert: false };
-  }
-  const staffChanged =
-    JSON.stringify(game.housingRecruited) !== JSON.stringify(baseline.housingRecruited) ||
-    JSON.stringify(game.slotAllocations) !== JSON.stringify(baseline.slotAllocations) ||
-    JSON.stringify(game.manaSpringAllocations) !== JSON.stringify(baseline.manaSpringAllocations) ||
-    JSON.stringify(game.researchRoomAllocations) !==
-    JSON.stringify(baseline.researchRoomAllocations) ||
-    game.buildRecruitSpend !== 0 ||
-    game.prospectAllocation !== baseline.prospectAllocation;
+  const inDay = game.scene === 'run' && game.phase === 'day';
+  if (!inDay) return { canUndo: false, canRevert: false };
   return {
-    canUndo: snapshot.buildUndoDepth > 0,
-    canRevert: !towersEqual(game.tower, baseline.tower) || staffChanged,
+    canUndo: game.constructionOrders.length > 0,
+    canRevert: game.constructionOrders.length > 0,
   };
 }
 
@@ -111,17 +112,14 @@ export interface GhostPlacement {
   cells: Cell[];
   valid: boolean;
   reason: PlacementReason;
-  /** When set, ghost renders as a thin infra line instead of a room fill. */
   infraKind?: InfraKind;
-  /** When true, also preview the auto-placed Spire Block under empty cells. */
   needsStem?: boolean;
-  /** Extra framing cells previewed when placing a room on empty cells. */
   stemCells?: Cell[];
 }
 
 export function selectGhostPlacement(snapshot: Snapshot): GhostPlacement | null {
   const { game, view } = snapshot;
-  if (game.scene !== 'run' || game.phase !== 'build') return null;
+  if (game.scene !== 'run' || game.phase !== 'day') return null;
   const id = view.selectedBlueprintId;
   if (!id || !view.hoveredCell) return null;
 
@@ -131,7 +129,7 @@ export function selectGhostPlacement(snapshot: Snapshot): GhostPlacement | null 
     const plan = planInfraPlacement(game.tower, blueprint, view.hoveredCell);
     return {
       cells: [view.hoveredCell],
-      valid: plan.ok,
+      valid: plan.ok && canAffordOrder(snapshot, id, view.hoveredCell),
       reason: plan.reason,
       infraKind: blueprint.infraKind,
       needsStem: plan.needsStem,
@@ -146,7 +144,7 @@ export function selectGhostPlacement(snapshot: Snapshot): GhostPlacement | null 
     const plan = planFortificationPlacement(game.tower, kind, view.hoveredCell);
     return {
       cells: [view.hoveredCell],
-      valid: plan.ok || plan.isToggleOff,
+      valid: (plan.ok || plan.isToggleOff) && canAffordOrder(snapshot, id, view.hoveredCell),
       reason: plan.isToggleOff ? 'ok' : plan.reason,
       needsStem: plan.needsStem,
       stemCells: plan.needsStem ? [view.hoveredCell] : [],
@@ -160,7 +158,7 @@ export function selectGhostPlacement(snapshot: Snapshot): GhostPlacement | null 
     const result = canPlace(game.tower, blueprint, view.hoveredCell);
     return {
       cells: roomCells(view.hoveredCell, blueprint.size),
-      valid: result.ok,
+      valid: result.ok && canAffordOrder(snapshot, id, view.hoveredCell),
       reason: result.reason,
     };
   }
@@ -168,7 +166,7 @@ export function selectGhostPlacement(snapshot: Snapshot): GhostPlacement | null 
   const plan = planRoomPlacement(game.tower, blueprint, view.hoveredCell);
   return {
     cells: roomCells(view.hoveredCell, blueprint.size),
-    valid: plan.ok,
+    valid: plan.ok && canAffordOrder(snapshot, id, view.hoveredCell),
     reason: plan.reason,
     needsStem: plan.stemCells.length > 0,
     stemCells: plan.stemCells,
@@ -204,6 +202,7 @@ function toLibraryItem(
 ): LibraryBlueprintItem | null {
   const section = librarySectionFor(b.id);
   if (!section) return null;
+  if (b.id === 'supplyRoom' || b.id === 'scaffold') return null;
   return {
     id: b.id,
     name: b.name,
@@ -244,7 +243,6 @@ export function selectLibraryBlueprints(snapshot: Snapshot): LibraryBlueprintIte
   return [...framing, ...rooms, ...infra, ...forts];
 }
 
-/** Blueprints grouped into sidebar sections (empty sections omitted). */
 export function selectLibrarySections(snapshot: Snapshot): LibrarySection[] {
   const items = selectLibraryBlueprints(snapshot);
   return LIBRARY_SECTIONS.map((def) => ({
@@ -264,7 +262,6 @@ export interface StructureBuildAlert {
   message: string;
 }
 
-/** Prospect allocation info for the HUD stepper. */
 export interface ProspectAllocationInfo {
   current: number;
   max: number;
@@ -281,10 +278,9 @@ export function selectProspectAllocation(snapshot: Snapshot): ProspectAllocation
   return { current: game.prospectAllocation, max };
 }
 
-/** Per-room build-phase warnings for canvas/modal (replaces a single HUD dump). */
 export function selectRoomBuildAlerts(snapshot: Snapshot): RoomBuildAlert[] {
   const { game } = snapshot;
-  if (game.scene !== 'run' || game.phase !== 'build') return [];
+  if (game.scene !== 'run' || game.phase !== 'day') return [];
 
   const alerts: RoomBuildAlert[] = [];
 
@@ -292,8 +288,7 @@ export function selectRoomBuildAlerts(snapshot: Snapshot): RoomBuildAlert[] {
     const housing = housingKindOf(room);
     if (housing && (game.housingRecruited[room.id] ?? 0) < 1) {
       const kind = staffKindForHousing(housing);
-      const label =
-        kind === 'soldier' ? 'Soldier' : kind === 'mage' ? 'Mage' : 'Laborer';
+      const label = kind === 'soldier' ? 'Soldier' : kind === 'mage' ? 'Mage' : 'Laborer';
       alerts.push({ roomId: room.id, message: `${label} deserted — recruit a replacement` });
     }
   }
@@ -314,9 +309,23 @@ export function selectRoomBuildAlerts(snapshot: Snapshot): RoomBuildAlert[] {
 
 export function selectStructureBuildAlerts(snapshot: Snapshot): StructureBuildAlert[] {
   const { game } = snapshot;
-  if (game.scene !== 'run' || game.phase !== 'build') return [];
+  if (game.scene !== 'run' || game.phase !== 'day') return [];
   return [...getUnstableStructureIds(game.tower)].map((structureId) => ({
     structureId,
     message: 'Needs support',
   }));
+}
+
+export function selectConstructionOrders(snapshot: Snapshot) {
+  return snapshot.game.constructionOrders;
+}
+
+export function selectPhaseInfo(snapshot: Snapshot) {
+  const { game } = snapshot;
+  return {
+    phase: game.phase,
+    dayIndex: game.dayIndex,
+    phaseTimer: game.phaseTimer,
+    phasePaused: game.phasePaused,
+  };
 }

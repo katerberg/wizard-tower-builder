@@ -1,3 +1,4 @@
+import { SCAFFOLD_BLUEPRINT_ID } from '@/config/construction';
 import { infraEqual } from '../infra';
 import { shellEqual } from '../fortifications/shell';
 import { GRID_COLS, SUB_CELLS_PER_MACRO } from '@/config/constants';
@@ -37,6 +38,28 @@ export function structureAt(tower: Tower, col: number, row: number): Structure |
 
 function structureKeys(tower: Tower): string[] {
   return Object.keys(tower.structureOccupancy ?? {});
+}
+
+/** Framing cells that count toward height (excludes scaffold). */
+export function completedStructureKeys(tower: Tower): string[] {
+  return structureKeys(tower).filter((key) => {
+    const id = tower.structureOccupancy?.[key];
+    const piece = (tower.structures ?? []).find((s) => s.id === id);
+    return piece && piece.blueprintId !== SCAFFOLD_BLUEPRINT_ID;
+  });
+}
+
+export function completedTowerExtents(tower: Tower): TowerExtents {
+  const keys = completedStructureKeys(tower);
+  if (keys.length === 0) {
+    return { maxOccupiedRow: -1, wizardRow: 0 };
+  }
+  let maxOccupiedRow = 0;
+  for (const key of keys) {
+    const { row } = parseKey(key);
+    if (row > maxOccupiedRow) maxOccupiedRow = row;
+  }
+  return { maxOccupiedRow, wizardRow: maxOccupiedRow + 1 };
 }
 
 function topRowSpans(tower: Tower, topRow: number): { min: number; max: number }[] {

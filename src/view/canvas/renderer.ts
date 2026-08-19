@@ -6,6 +6,7 @@ import { drawEnemies } from './layers/enemies';
 import {
   drawCastAimLine,
   drawCastPreview,
+  drawConstructionOrders,
   drawGhost,
   drawGrid,
   drawGround,
@@ -46,6 +47,7 @@ export class Renderer {
     drawGround(ctx, scrollY, viewportHeight);
     if (snapshot.view.layerVisibility.rooms) drawTower(ctx, snapshot, scrollY, viewportHeight);
     if (snapshot.view.layerVisibility.infra) drawInfra(ctx, snapshot, scrollY, viewportHeight);
+    drawConstructionOrders(ctx, snapshot, scrollY, viewportHeight);
     drawGhost(ctx, snapshot, scrollY, viewportHeight);
     drawCastPreview(ctx, snapshot, scrollY, viewportHeight);
     drawSpellFx(ctx, snapshot, scrollY, viewportHeight);

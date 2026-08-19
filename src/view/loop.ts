@@ -22,8 +22,7 @@ export function planSimSteps(
 }
 
 /**
- * Fixed-timestep loop with sim-speed multiplier during attack so longer waves
- * can be fast-forwarded. Positions interpolate between steps.
+ * Fixed-timestep loop with sim-speed multiplier during run (day and night).
  */
 export function startLoop(store: Store, render: () => void): void {
   let accumulator = 0;
@@ -34,8 +33,8 @@ export function startLoop(store: Store, render: () => void): void {
     last = now;
 
     const { game } = store.getSnapshot();
-    const inAttack = game.scene === 'run' && game.phase === 'attack';
-    const simSpeed = inAttack ? store.getSimSpeed() : 1;
+    const inRun = game.scene === 'run';
+    const simSpeed = inRun ? store.getSimSpeed() : 1;
     const planned = planSimSteps(accumulator, frameTime, simSpeed);
     accumulator = planned.accumulator;
 

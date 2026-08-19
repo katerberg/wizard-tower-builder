@@ -23,8 +23,8 @@ Shared rules:
 - Place anywhere; all **1×1**, **passable**, available from run start
 - Place housing → **1 free occupant** seeded; hard-capped at capacity
 - **Unrecruit** floor is **1** (no recruit-cost refund). Upkeep desertion **can** leave roster at **0**
-- Recruit in build phase; upkeep every wave for **every** rostered occupant (idle or assigned)
-- Attack-only movement; spawn from housing at wave start; clear runtime entities at wave end (roster + allocations persist)
+- Recruit in **day** phase; upkeep every **night** deploy for **every** rostered occupant (idle or assigned)
+- **Night-only** combat movement; spawn from housing at nightfall; clear runtime entities at dawn (roster + allocations persist)
 - Auto-assign to workplaces; path via stairs between levels
 - Stair shafts: **one staffer per cell** en route (queues down the column; destination workplaces may stack)
 - Elevator shafts: shared car (cap 6); waiters/riders stack on the car/landing; no free vertical climb

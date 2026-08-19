@@ -6,7 +6,6 @@ const LABELS: Record<SimSpeed, string> = {
   1: '1×',
   2: '2×',
   5: '5×',
-  10: '10×',
 };
 
 export function createSpeedBar(root: HTMLElement, store: Store): () => void {
@@ -35,7 +34,7 @@ export function createSpeedBar(root: HTMLElement, store: Store): () => void {
       <div class="speed-bar-inner">
         <span class="speed-label">Sim speed</span>
         <div class="speed-buttons">${buttons}</div>
-        <p class="speed-hint">Applies during attack waves.</p>
+        <p class="speed-hint">Applies during day and night.</p>
       </div>`;
   };
 }

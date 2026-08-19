@@ -1,8 +1,10 @@
 import { CELL_SIZE, GRID_COLS, SUB_CELL_SIZE, SUB_CELLS_PER_MACRO } from '@/config/constants';
 import { colors } from '@/view/theme';
+import { getBlueprint } from '@/model/blueprints';
+import { orderFootprintCells } from '@/model/construction';
 import { previewPipeFluidAt } from '@/model/pipes';
 import { getSolarCollectorPosition } from '@/model/wizard';
-import { selectCastPreview, selectGhostPlacement, selectWizardPosition } from '@/store/selectors';
+import { selectCastPreview, selectConstructionOrders, selectGhostPlacement, selectWizardPosition } from '@/store/selectors';
 import type { Snapshot } from '@/store/store';
 import { BOARD_WIDTH, cellCenter, cellTopLeft, exteriorNodeDrawCenter, GROUND_LINE_INSET, visibleRowRange } from '../camera';
 import { drawElevatorShaft, drawPipeCell, drawStairLine } from './tower';
@@ -38,6 +40,51 @@ export function drawGhost(ctx: CanvasRenderingContext2D, snapshot: Snapshot, scr
     return;
   }
   ctx.globalAlpha = 0.45; ctx.fillStyle = stroke; for (const cell of ghost.cells) { const { x, y } = cellTopLeft(cell.col, cell.row, scrollY, viewportHeight); ctx.fillRect(x + 2, y + 2, CELL_SIZE - 4, CELL_SIZE - 4); } ctx.globalAlpha = 1;
+}
+
+/** Painted construction orders (queued sites) during day. */
+export function drawConstructionOrders(
+  ctx: CanvasRenderingContext2D,
+  snapshot: Snapshot,
+  scrollY: number,
+  viewportHeight: number,
+): void {
+  const { game } = snapshot;
+  if (game.scene !== 'run' || game.phase !== 'day') return;
+
+  for (const order of selectConstructionOrders(snapshot)) {
+    if (order.kind !== 'build') continue;
+    const bp = getBlueprint(order.blueprintId);
+    const cells = orderFootprintCells(order);
+    const stroke = colors.ghostValid;
+    ctx.globalAlpha = 0.35;
+    ctx.fillStyle = bp?.color ?? colors.room;
+    for (const cell of cells) {
+      const { x, y } = cellTopLeft(cell.col, cell.row, scrollY, viewportHeight);
+      ctx.fillRect(x + 2, y + 2, CELL_SIZE - 4, CELL_SIZE - 4);
+    }
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    for (const cell of cells) {
+      const { x, y } = cellTopLeft(cell.col, cell.row, scrollY, viewportHeight);
+      ctx.strokeRect(x + 2, y + 2, CELL_SIZE - 4, CELL_SIZE - 4);
+    }
+    ctx.setLineDash([]);
+
+    if (order.status === 'building' || order.status === 'scaffold') {
+      const progress = Math.max(0, Math.min(1, order.buildProgress));
+      const anchor = cells[0];
+      if (!anchor) continue;
+      const { x, y } = cellTopLeft(anchor.col, anchor.row, scrollY, viewportHeight);
+      const w = (bp?.size.w ?? 1) * CELL_SIZE - 8;
+      ctx.fillStyle = colors.hpBarBg;
+      ctx.fillRect(x + 4, y + 4, w, 4);
+      ctx.fillStyle = colors.hpBar;
+      ctx.fillRect(x + 4, y + 4, w * progress, 4);
+    }
+  }
 }
 
 export function drawCastPreview(ctx: CanvasRenderingContext2D, snapshot: Snapshot, scrollY: number, viewportHeight: number): void {

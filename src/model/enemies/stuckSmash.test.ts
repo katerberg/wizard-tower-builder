@@ -31,7 +31,7 @@ function stemState(): { state: GameState; enemy: Enemy } {
   let tower = createTower();
   tower = placeStructure(tower, createStructure('a', getBlueprint('stem')!, { col: 5, row: 0 }));
   const state = createInitialState('stuck-smash');
-  state.phase = 'attack';
+  state.phase = 'night';
   state.tower = tower;
   const wallSub = { col: 5 * 3 - 1, row: 0 };
   const enemy = makeSwarm(wallSub);
@@ -81,7 +81,7 @@ describe('stuck climber smash', () => {
     tower = placeStructure(tower, createStructure('a', getBlueprint('stem')!, { col: 5, row: 0 }));
     tower = placeStructure(tower, createStructure('b', getBlueprint('stem')!, { col: 5, row: 1 }));
     const state = createInitialState('stuck-approach');
-    state.phase = 'attack';
+    state.phase = 'night';
     state.tower = tower;
     // Stand on ground a few sub-cells left of the pillar, not yet touching macro (5,0)/(5,1).
     const enemy = makeSwarm({ col: 5 * 3 - 4, row: 0 });

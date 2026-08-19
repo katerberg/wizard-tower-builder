@@ -1,16 +1,15 @@
 import { SUB_CELLS_PER_MACRO, STARTING_RESOURCES } from '@/config/constants';
+import { STARTER_SUPPLY_METAL, STARTER_SUPPLY_STONE } from '@/config/storage';
 import { describe, expect, it } from 'vitest';
-import { netBuildCost, remainingBuildResources } from '@/calculations/buildCost';
-import { emptyResources, resourcesEqual } from '@/calculations/resources';
 import { createInitialState } from './game';
 import { createStarterTower, STARTER_TOWER_PLACEMENTS } from './starterTower';
 import { getWizardPosition, isOccupied, isTowerConnected, isTowerStable } from './tower';
 
 describe('createStarterTower', () => {
-  it('builds a stable connected tower', () => {
+  it('builds a stable connected tower with starter facilities', () => {
     const tower = createStarterTower();
-    expect(tower.structures).toHaveLength(STARTER_TOWER_PLACEMENTS.length);
-    expect(tower.rooms).toHaveLength(0);
+    expect(tower.structures.length).toBeGreaterThan(STARTER_TOWER_PLACEMENTS.length);
+    expect(tower.rooms.length).toBe(2);
     expect(isTowerStable(tower)).toBe(true);
     expect(isTowerConnected(tower)).toBe(true);
   });
@@ -40,17 +39,15 @@ describe('createStarterTower', () => {
 });
 
 describe('createInitialState starter economy', () => {
-  it('includes the starter tower with zero net build cost', () => {
+  it('includes starter tower, supply stockpile, and wallet resources', () => {
     const state = createInitialState('starter-econ');
     expect(state.tower.structures.length).toBeGreaterThan(0);
-    expect(state.tower.rooms.length).toBe(0);
-    expect(state.buildBaseline).not.toBeNull();
-    expect(resourcesEqual(netBuildCost(state.buildBaseline!, state.tower), emptyResources())).toBe(
-      true,
-    );
-    expect(remainingBuildResources(state.buildBaseline!, state.tower)).toEqual({
-      ...STARTING_RESOURCES,
-    });
+    expect(state.tower.rooms.length).toBe(2);
+    expect(state.phase).toBe('day');
     expect(state.player.resources.gold).toBe(STARTING_RESOURCES.gold);
+    expect(state.player.resources.stone).toBe(0);
+    const supply = state.storageSites['starter-supply'];
+    expect(supply?.stockpile.stone).toBe(STARTER_SUPPLY_STONE);
+    expect(supply?.stockpile.metal).toBe(STARTER_SUPPLY_METAL);
   });
 });

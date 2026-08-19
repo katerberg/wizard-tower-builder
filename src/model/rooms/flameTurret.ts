@@ -46,7 +46,7 @@ export function resetFlameTurretRuntime(state: GameState): void {
 
 /** Charge while forge-connected, then full-dump side blast (mana per dump). */
 export function tickFlameTurrets(state: GameState, dt: number): void {
-  const phase = state.phase === 'attack' ? 'attack' : 'build';
+  const phase = state.phase;
   for (const turret of state.tower.rooms.filter(isFlameTurretRoom)) {
     const previous = state.flameTurretRuntime[turret.id] ?? { charge: 0, chargeRate: 0 };
     const chargeRate = flameTurretHasForge(state.tower, turret, phase) ? 1 : 0;

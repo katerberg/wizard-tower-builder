@@ -1,3 +1,4 @@
+import { DAY_DURATION, NIGHT_DURATION } from '@/config/dayNight';
 import { clearElevators, initElevators } from './elevators';
 import { prepareWaveNames } from './game';
 import { addMessage } from './messages';
@@ -5,6 +6,7 @@ import { lockPipeFluids } from './pipes';
 import { resetRoomBehaviors } from './rooms';
 import { clearStaffAfterWave, deployStaffForWave } from './staff';
 import { assignSurplusLaborers, maxWaterReachRow } from './staff/harvest';
+import { resolveProspectAtNightfall } from './staff/prospect';
 import { rewardGold } from '../calculations/economy';
 import {
   cloneResources,
@@ -12,6 +14,7 @@ import {
   formatWaveHaul,
   totalResourceUnits,
 } from '../calculations/resources';
+import { freezeIncompleteOrdersAtDusk } from './construction';
 import { runWaveClearedEffects } from './modifications/effects';
 import {
   refillMana,
@@ -23,43 +26,46 @@ import {
 } from './spells';
 import { heightProgression, unlockEnemiesForHeight, WIN_HEIGHT } from './waves';
 import { buildSpawnQueue } from './waves';
-import { towerExtents } from './tower';
+import { completedTowerExtents } from './tower';
 import { snapWizardToPerch } from './wizard';
 import type { WaveDef } from './progression';
 import type { GameState } from './types';
 
-export function captureBuildBaseline(state: GameState): void {
-  state.buildBaseline = {
-    tower: structuredClone(state.tower),
-    resources: cloneResources(state.player.resources),
-    housingRecruited: structuredClone(state.housingRecruited),
-    slotAllocations: structuredClone(state.slotAllocations),
-    manaSpringAllocations: structuredClone(state.manaSpringAllocations),
-    researchRoomAllocations: structuredClone(state.researchRoomAllocations),
-    prospectAllocation: state.prospectAllocation,
-  };
-  state.buildRecruitSpend = 0;
+export function framingHeight(state: GameState): number {
+  return completedTowerExtents(state.tower).maxOccupiedRow;
 }
 
 export function startRun(state: GameState): void {
   state.scene = 'run';
-  state.phase = 'build';
-  captureBuildBaseline(state);
+  state.phase = 'day';
+  state.dayIndex = 1;
+  state.phaseTimer = DAY_DURATION;
+  state.phasePaused = false;
   addMessage(
     state,
-    `A starter tower frame is in place — climb toward height ${WIN_HEIGHT}.`,
+    `Dawn breaks — climb toward height ${WIN_HEIGHT}. Laborers haul from the Supply Room.`,
     'info',
   );
 }
 
-export function framingHeight(state: GameState): number {
-  return towerExtents(state.tower).maxOccupiedRow;
+export function tickPhaseTimer(state: GameState, dt: number): void {
+  if (state.scene !== 'run' || state.phasePaused) return;
+  state.phaseTimer -= dt;
+  if (state.phaseTimer > 0) return;
+  if (state.phase === 'day') {
+    endDay(state);
+  } else {
+    checkNightEnd(state);
+  }
 }
 
-export function beginWave(state: GameState, override?: WaveDef): void {
+export function endDay(state: GameState, override?: WaveDef): void {
   const height = framingHeight(state);
   state.waveStartHeight = height;
   state.unlockedEnemyIds = unlockEnemiesForHeight(state.unlockedEnemyIds, height);
+
+  freezeIncompleteOrdersAtDusk(state);
+  resolveProspectAtNightfall(state);
 
   const wave =
     override ??
@@ -67,7 +73,12 @@ export function beginWave(state: GameState, override?: WaveDef): void {
       height,
       unlockedEnemyIds: new Set(state.unlockedEnemyIds),
     });
-  state.phase = 'attack';
+  beginNight(state, wave);
+}
+
+function beginNight(state: GameState, wave: WaveDef): void {
+  state.phase = 'night';
+  state.phaseTimer = NIGHT_DURATION;
   state.enemies = [];
   state.spawnQueue = buildSpawnQueue(wave);
   prepareWaveNames(state);
@@ -77,6 +88,13 @@ export function beginWave(state: GameState, override?: WaveDef): void {
   state.waveHaul = emptyResources();
   state.pendingWaveClear = null;
   resetRoomBehaviors(state);
+
+  // Charge pending recruit spend + upkeep at night deploy
+  if (state.pendingRecruitSpend > 0) {
+    state.player.resources.gold -= state.pendingRecruitSpend;
+    state.pendingRecruitSpend = 0;
+  }
+
   deployStaffForWave(state);
   assignSurplusLaborers(state);
   state.tower = lockPipeFluids(state.tower, maxWaterReachRow(state));
@@ -88,19 +106,28 @@ export function beginWave(state: GameState, override?: WaveDef): void {
   resetAirState(state);
   resetEarthState(state);
   resetWaterState(state);
-  const customNote = override ? ' (custom)' : '';
   addMessage(
     state,
-    `Wave ${state.levelIndex + 1} at height ${height}: ${state.spawnQueue.length} foes${customNote}.`,
+    `Night ${state.dayIndex}: wave at height ${state.waveStartHeight}, ${state.spawnQueue.length} foes.`,
     'combat',
   );
 }
 
+function checkNightEnd(state: GameState): void {
+  if (state.enemies.length > 0) {
+    state.enemies = [];
+    addMessage(state, 'Survivors flee at dawn.', 'combat');
+  }
+  beginDay(state);
+}
+
 export function endWave(state: GameState): void {
+  state.levelIndex += 1;
+  state.waveIndex += 1;
   const rewardHeight = state.waveStartHeight;
   const amount = heightProgression.rewardFor(rewardHeight);
   rewardGold(state, amount);
-  addMessage(state, `Wave ${state.levelIndex + 1} cleared! +${amount} gold.`, 'economy');
+  addMessage(state, `Wave cleared! +${amount} gold.`, 'economy');
 
   const haul = cloneResources(state.waveHaul);
   const prospectNote = state.prospectResolved
@@ -110,7 +137,7 @@ export function endWave(state: GameState): void {
   const haulLabel = formatWaveHaul(haul);
   addMessage(
     state,
-    totalResourceUnits(haul) > 0 ? `Mine haul: ${haulLabel}.` : 'Mine haul: nothing this wave.',
+    totalResourceUnits(haul) > 0 ? `Mine haul: ${haulLabel}.` : 'Mine haul: nothing this night.',
     'economy',
   );
   if (prospectNote) {
@@ -123,19 +150,24 @@ export function endWave(state: GameState): void {
   const endHeight = framingHeight(state);
   if (heightProgression.isVictoryHeight(endHeight)) {
     winGame(state);
-    return;
   }
+}
 
-  state.levelIndex += 1;
-  state.waveIndex += 1;
-  state.phase = 'build';
+export function beginDay(state: GameState): void {
+  if (state.scene !== 'run') return;
+  state.phase = 'day';
+  state.dayIndex += 1;
+  state.phaseTimer = DAY_DURATION;
+  state.prospectWorkElapsed = 0;
+  state.prospectResolved = false;
   clearStaffAfterWave(state);
   clearElevators(state);
   state.boilerRuntime = {};
   state.steamTurretRuntime = {};
   state.flameTurretRuntime = {};
-  captureBuildBaseline(state);
-  addMessage(state, `Height ${endHeight} / ${WIN_HEIGHT} — climb when ready.`, 'info');
+  state.staff = [];
+  const endHeight = framingHeight(state);
+  addMessage(state, `Dawn day ${state.dayIndex} — height ${endHeight} / ${WIN_HEIGHT}.`, 'info');
 }
 
 export function loseGame(state: GameState): void {
@@ -150,4 +182,9 @@ export function winGame(state: GameState): void {
     `The spire holds at height ${framingHeight(state)}! The tower stands triumphant!`,
     'info',
   );
+}
+
+/** @deprecated Use beginNight via endDay. Kept for dev custom waves. */
+export function beginWave(state: GameState, override?: WaveDef): void {
+  endDay(state, override);
 }

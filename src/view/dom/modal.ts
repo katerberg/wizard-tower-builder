@@ -115,7 +115,7 @@ export function createModal(root: HTMLElement, store: Store): () => void {
     const modal = view.modal;
     if (
       !modal ||
-      (game.phase === 'attack' &&
+      (game.phase === 'night' &&
         (modal.kind === 'room' || modal.kind === 'structure' || modal.kind === 'research'))
     ) {
       root.innerHTML = '';

@@ -8,6 +8,7 @@ import { createMessageLog } from './view/dom/messageLog';
 import { createModal } from './view/dom/modal';
 import { createOverlay } from './view/dom/overlay';
 import { createResearchPanel } from './view/dom/research';
+import { createSideJobRail } from './view/dom/sideJobRail';
 import { createSpeedBar } from './view/dom/speedBar';
 import { createSpellBar } from './view/dom/spellBar';
 import { createTooltip } from './view/dom/tooltip';
@@ -54,6 +55,7 @@ const domViews = [
   createLayersPanel(requireEl('layers'), store),
   createMessageLog(requireEl('message-log'), store),
   createSpeedBar(requireEl('speed-bar'), store),
+  createSideJobRail(requireEl('side-job-rail'), store),
   createModal(requireEl('modal-root'), store),
   createOverlay(requireEl('overlay-root'), store),
   createTooltip(requireEl('tooltip-root'), store, pointer, requireEl('sidebar')),

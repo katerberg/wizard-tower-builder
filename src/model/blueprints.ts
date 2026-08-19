@@ -37,6 +37,17 @@ export const STRUCTURE_BLUEPRINTS: Blueprint[] = [
     category: 'structure',
     description: 'A wide 3×1 framing platform. Same cantilever rules as the smaller buttress, with more HP. Costs metal.',
   },
+  {
+    id: 'scaffold',
+    name: 'Scaffold',
+    glyph: '#',
+    color: '#4a5568',
+    size: { w: 1, h: 1 },
+    cost: {},
+    baseHp: 20,
+    category: 'structure',
+    description: 'Temporary construction scaffold.',
+  },
 ];
 
 /** Functional rooms that overlay structure. */
@@ -207,6 +218,30 @@ export const ROOM_BLUEPRINTS: Blueprint[] = [
     description:
       'Magi stationed here advance the active research project during attack. Costs souls and stone.',
   },
+  {
+    id: 'supplyRoom',
+    name: 'Supply Room',
+    glyph: 'Y',
+    color: '#ecc94b',
+    size: { w: 1, h: 1 },
+    cost: {},
+    baseHp: 30,
+    category: 'room',
+    passable: true,
+    description: 'Starter stockpile for stone and metal. Cannot be removed.',
+  },
+  {
+    id: 'storageRoom',
+    name: 'Storage Room',
+    glyph: 'Y',
+    color: '#d69e2e',
+    size: { w: 1, h: 1 },
+    cost: { stone: 10, metal: 4 },
+    baseHp: 28,
+    category: 'room',
+    passable: true,
+    description: 'Stores stone and metal (40 units combined). Build higher to shorten haul trips.',
+  },
 ];
 
 export const BLUEPRINTS: Blueprint[] = [...STRUCTURE_BLUEPRINTS, ...ROOM_BLUEPRINTS];
@@ -223,6 +258,7 @@ export const STARTING_BLUEPRINT_IDS: string[] = [
   'chamberRoom',
   'turretRoom',
   'researchRoom',
+  'storageRoom',
 ];
 
 /** Infra ids unlocked at run start (library filters these separately). */

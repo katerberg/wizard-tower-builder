@@ -6,12 +6,12 @@ Stack: **TypeScript**, **Vite**, **HTML5 Canvas** (board), **DOM** (UI chrome). 
 
 ## Gameplay
 
-The run alternates between two phases:
+The run alternates between two phases (see [`docs/DAY_NIGHT.md`](docs/DAY_NIGHT.md)):
 
-1. **Build** — Spend **stone**, **metal**, and **souls** to place **framing** (spires / buttresses), **rooms**, and **infra**. Framing holds the tower up; rooms and infra sit on it (and auto-add Spire Blocks when needed). Paint **stairs** and **pipes**; recruit staff into housing (**gold** payroll); allocate slot/spring headcounts. Use the **Select** tool to inspect rooms (and bare framing). Right-click sells the room first (framing stays); click again to sell framing. When the tower is stable, start the wave.
-2. **Attack** — Enemies spawn at the base and pathfind toward the **solar collector** on the crown. The wizard is a click-to-path **firefighter** on the interior (stairs/elevators; Flight for air) casting at close range — enemies do not aggro the wizard. Staff path on the **interior** (horizontal through framing / passable rooms; **stairs/elevators** to change floors) to slots, mana springs, and repair jobs. Surplus laborers **hand-pump** water and path into an **underground mine** for **stone**. Defenses: wizard **Wand Strike** (auto) plus a four-spell hotbar; **Turret** / **Steam Turret** / **Flame Turret** (+ **Forge** fire pipes) rooms; soldier **Slots**; **spikes** (modification). Stone-built mass weathers and takes climber abrasion. Survive the wave to earn **gold** (clear) and **souls** (kills) and return to build. Lose if the **solar collector’s HP** reaches zero. See [`docs/PLAYER_MOVEMENT.md`](docs/PLAYER_MOVEMENT.md).
+1. **Day (60s)** — Paint **construction orders** for framing, rooms, and infra. **Stone** and **metal** come from **storage rooms** (starter Supply Room on the ground floor); **souls** and **gold** from the wallet. Laborers haul materials and build over time. Recruit staff, allocate slots, paint stairs/pipes. Inspect with **Select**; right-click queues teardown. Timer auto-starts the wave at dusk (dev: **Skip to night**).
+2. **Night (90s)** — Enemies path toward the **solar collector** on the crown. Wizard pathing + spells; staff deploy from housing; surplus laborers **hand-pump** and **harvest stone into storage**. Defenses include turrets, slots, spikes, and spells. Survive to earn **gold** (clear) and **souls** (kills); dawn shows the haul modal. Lose if the **solar collector’s HP** reaches zero. See [`docs/PLAYER_MOVEMENT.md`](docs/PLAYER_MOVEMENT.md).
 
-**Win** by clearing a wave while framing height is still **≥ 100**. Difficulty scales with tower height at Start Wave (plateaus + permanent enemy unlocks); see [`docs/HEIGHT_PROGRESSION.md`](docs/HEIGHT_PROGRESSION.md).
+**Win** by clearing a wave while **completed** framing height is still **≥ 100**. Difficulty scales with height at dusk (plateaus + permanent enemy unlocks); see [`docs/HEIGHT_PROGRESSION.md`](docs/HEIGHT_PROGRESSION.md).
 
 ### Spells
 
@@ -37,15 +37,13 @@ Damage: enemy / flier hits damage **rooms** only. **Earthquake** damages **struc
 | Action               | Input                                               |
 | -------------------- | --------------------------------------------------- |
 | Select / inspect     | **Select** tool (default), then click a room        |
-| Place / replace      | Pick a blueprint, click or drag on grid             |
+| Place / replace      | Pick a blueprint, click or drag on grid (day phase) |
 | Deselect blueprint   | **Esc**, Select tool, or click same blueprint again |
-| Remove room / framing | Right-click grid (build phase) — room first, then framing |
-
-| Undo / revert layout | HUD buttons (build phase)                           |
-| Start wave           | HUD button (when tower is stable)                   |
-| Cast spell           | Hotkeys **1–4**, then click (attack phase)          |
-| Move wizard          | Click board with no spell selected (attack phase)   |
-| Sim speed            | Sidebar **1× / 2× / 5× / 10×** (attack phase)       |
+| Remove room / framing | Right-click grid (day phase) — queues teardown |
+| Undo / revert layout | HUD buttons (day phase)                           |
+| Pause / sim speed    | Sidebar **1× / 2× / 5×** (day and night)          |
+| Cast spell           | Hotkeys **1–4**, then click (night phase)          |
+| Move wizard          | Click board with no spell selected (night phase)   |
 | Scroll tower         | Mouse wheel on board                                |
 
 Dev mode toggles are available via intents (`toggleDevMode`, `devAddCurrency`, `devSkipWave`, `devSetSpellSchool`) for local testing.
@@ -84,7 +82,7 @@ Contributor recipes: [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md).
 - All user actions flow **Input → Intent → Store handlers → Model**
 - Rules live in `src/model/` and `src/calculations/`; test with Vitest
 - **UI never mutates `GameState` directly** — only `store.dispatch(intent)`
-- Build phase uses draft economy (`buildBaseline`); resources commit on `startWave`
+- Day phase uses **storage reservations** + wallet souls/gold; see [`docs/DAY_NIGHT.md`](docs/DAY_NIGHT.md)
 - **Build vs Select mode:** blueprint selected = place/replace; Select tool = inspect/modify
 
 ### Engine vs shell
@@ -186,10 +184,10 @@ Mount points: `#board`, `#stage`, `#hud`, `#library`, `#message-log`, `#modal-ro
 | **Staff** | Mobile units (soldier / mage / laborer) recruited into housing; route to workplaces during attack |
 | **Spell / school** | Hotbar ability spending mana; fire · air · earth · water kits |
 | **Layer** | Visibility/edit plane: `rooms`, `infra`, or `workers` (Maps-style toggles) |
-| **Phase** | `build` or `attack` within a run |
+| **Phase** | `day` or `night` within a run |
 | **Scene** | `menu`, `run`, `gameOver`, `victory` |
 | **Intent** | Typed action dispatched to the store |
-| **buildBaseline** | Tower + resources snapshot at phase start; planning edits diff against this |
+| **Storage** | Stone/metal stockpiles in supply/storage rooms; reservations on paint |
 | **Selectors** | Pure functions deriving UI affordances from `Snapshot` |
 
 ### Where do I…?
@@ -197,6 +195,7 @@ Mount points: `#board`, `#stage`, `#hud`, `#library`, `#message-log`, `#modal-ro
 | Task | Start here |
 |------|------------|
 | Plan a feature (batch questions → locked one-shot) | [`.agents/skills/one-shot-plan/SKILL.md`](.agents/skills/one-shot-plan/SKILL.md) |
+| Day/night cycle / construction queue | [`docs/DAY_NIGHT.md`](docs/DAY_NIGHT.md) + [`src/model/construction/`](src/model/construction/) |
 | Player movement / solar collector | [`docs/PLAYER_MOVEMENT.md`](docs/PLAYER_MOVEMENT.md) |
 | Add a spell | [`src/model/spells/README.md`](src/model/spells/README.md) |
 | Add a room (passive or behavioral) | [`src/model/rooms/README.md`](src/model/rooms/README.md) + `blueprints.ts` |
@@ -207,7 +206,7 @@ Mount points: `#board`, `#stage`, `#hud`, `#library`, `#message-log`, `#modal-ro
 | Research / tech tree / spell discovery (design) | [`docs/RESEARCH.md`](docs/RESEARCH.md) + [`.cursor/plans/research_index.plan.md`](.cursor/plans/research_index.plan.md) |
 | Tweak balance numbers | [`src/config/README.md`](src/config/README.md) |
 | Change the attack tick order | [`src/model/tick.ts`](src/model/tick.ts) |
-| Change build/attack phases | [`src/model/phases.ts`](src/model/phases.ts) |
+| Change day/night phases | [`src/model/phases.ts`](src/model/phases.ts) + [`docs/DAY_NIGHT.md`](docs/DAY_NIGHT.md) |
 | Change placement / stability | [`src/model/tower/`](src/model/tower/) |
 | Add an intent / UI control | [`src/store/README.md`](src/store/README.md) |
 | Change canvas drawing | [`src/view/README.md`](src/view/README.md) → `canvas/layers/` |

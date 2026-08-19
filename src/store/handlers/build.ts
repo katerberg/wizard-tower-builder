@@ -1,22 +1,15 @@
-import { getBlueprint, isStructureBlueprint } from '@/model/blueprints';
+import { getBlueprint } from '@/model/blueprints';
 import { isInfraBlueprint } from '@/model/infraBlueprints';
 import { isFortificationBlueprint } from '@/model/fortificationBlueprints';
-import { canAffordBuild } from '@/calculations/buildCost';
-import { formatResourceCost } from '@/calculations/resources';
 import { addMessage } from '@/model/messages';
-import { pruneHousingState, pruneOrphanStaffState, seedSpecialtyRoomDefaults } from '@/model/staff';
 import {
-  canPlace,
-  createRoom,
-  createStructure,
-  placeRoomReplacing,
-  placeStructureReplacing,
-  removeRoom,
-  removeStructure,
-  roomAt,
-  structureAt,
-  towersEqual,
-} from '@/model/tower';
+  cancelConstructionOrder,
+  createBuildOrder,
+  createTeardownOrder,
+  isLockedRoom,
+} from '@/model/construction';
+import { canPlace, roomAt, structureAt } from '@/model/tower';
+import { SCAFFOLD_BLUEPRINT_ID } from '@/config/construction';
 import type { HandlerContext } from '../context';
 import type { Intent } from '../intents';
 
@@ -35,21 +28,22 @@ export function handleBuildIntent(ctx: HandlerContext, intent: Intent): void {
       sellStructureById(ctx, intent.structureId);
       break;
     case 'undoBuild':
-      undoBuild(ctx);
+      undoLastOrder(ctx);
       break;
     case 'revertBuild':
-      revertBuild(ctx);
+      cancelAllOrders(ctx);
       break;
   }
 }
 
 function placeSelected(ctx: HandlerContext, cell: { col: number; row: number }): void {
   const { game, view } = ctx;
-  if (game.phase !== 'build' || !game.buildBaseline) return;
+  if (game.phase !== 'day') return;
   const id = view.selectedBlueprintId;
   if (!id) return;
-  if (isInfraBlueprint(id)) return; // handled by infra handler
-  if (isFortificationBlueprint(id)) return; // handled by fortification handler
+  if (isInfraBlueprint(id)) return;
+  if (isFortificationBlueprint(id)) return;
+  if (id === 'supplyRoom' || id === 'scaffold') return;
 
   const blueprint = getBlueprint(id);
   if (!blueprint) return;
@@ -60,45 +54,7 @@ function placeSelected(ctx: HandlerContext, cell: { col: number; row: number }):
     return;
   }
 
-  if (isStructureBlueprint(blueprint)) {
-    const structure = createStructure(ctx.nextRoomId(), blueprint, cell);
-    const placed = placeStructureReplacing(game.tower, structure, blueprint);
-    if (!placed.ok || !placed.tower) {
-      addMessage(game, `Cannot build here: ${placed.reason.replace(/_/g, ' ')}.`, 'info');
-      return;
-    }
-    if (!canAffordBuild(game.buildBaseline, placed.tower, {}, game.buildRecruitSpend)) {
-      addMessage(game, `Not enough resources for ${blueprint.name} (${formatResourceCost(blueprint.cost)}).`, 'economy');
-      return;
-    }
-    ctx.recordBuildStep();
-    game.tower = placed.tower;
-    if (view.modal?.kind === 'room' || view.modal?.kind === 'structure') {
-      view.modal = null;
-    }
-    addMessage(game, `Placed ${blueprint.name}.`, 'info');
-    return;
-  }
-
-  const room = createRoom(ctx.nextRoomId(), blueprint, cell);
-  const structuresBefore = game.tower.structures?.length ?? 0;
-  const placed = placeRoomReplacing(game.tower, room, blueprint, () => ctx.nextRoomId());
-  if (!placed.ok || !placed.tower) {
-    addMessage(game, `Cannot build here: ${placed.reason.replace(/_/g, ' ')}.`, 'info');
-    return;
-  }
-  if (!canAffordBuild(game.buildBaseline, placed.tower, {}, game.buildRecruitSpend)) {
-    addMessage(game, `Not enough resources for ${blueprint.name} (${formatResourceCost(blueprint.cost)}).`, 'economy');
-    return;
-  }
-  ctx.recordBuildStep();
-  game.tower = placed.tower;
-  seedSpecialtyRoomDefaults(game, room);
-  if (view.modal?.kind === 'room' || view.modal?.kind === 'structure') {
-    view.modal = null;
-  }
-  const autoFraming = (placed.tower.structures?.length ?? 0) > structuresBefore;
-  addMessage(game, autoFraming ? `Placed ${blueprint.name} (with framing).` : `Placed ${blueprint.name}.`, 'info');
+  createBuildOrder(game, id, cell, () => ctx.nextRoomId());
 }
 
 function removeAt(ctx: HandlerContext, cell: { col: number; row: number }): void {
@@ -108,91 +64,40 @@ function removeAt(ctx: HandlerContext, cell: { col: number; row: number }): void
     return;
   }
   const structure = structureAt(ctx.game.tower, cell.col, cell.row);
-  if (structure) {
+  if (structure && structure.blueprintId !== SCAFFOLD_BLUEPRINT_ID) {
     sellStructureById(ctx, structure.id);
   }
 }
 
 function sellRoomById(ctx: HandlerContext, roomId: string): void {
-  const { game, view } = ctx;
-  if (game.phase !== 'build' || !game.buildBaseline) return;
-  const room = game.tower.rooms.find((r) => r.id === roomId);
-  if (!room) return;
-
-  const blueprint = getBlueprint(room.blueprintId);
-  ctx.recordBuildStep();
-  game.tower = removeRoom(game.tower, room.id);
-  pruneHousingState(game, roomId);
-  addMessage(game, `Removed ${blueprint?.name ?? 'room'} (framing remains).`, 'info');
-
-  if (view.modal?.kind === 'room' && view.modal.roomId === roomId) {
-    view.modal = null;
+  const { game } = ctx;
+  if (game.phase !== 'day') return;
+  if (isLockedRoom(game, roomId)) {
+    addMessage(game, 'This room cannot be removed.', 'info');
+    return;
   }
+  createTeardownOrder(game, roomId);
 }
 
 function sellStructureById(ctx: HandlerContext, structureId: string): void {
-  const { game, view } = ctx;
-  if (game.phase !== 'build' || !game.buildBaseline) return;
+  const { game } = ctx;
+  if (game.phase !== 'day') return;
   const structure = (game.tower.structures ?? []).find((s) => s.id === structureId);
-  if (!structure) return;
-
-  const blueprint = getBlueprint(structure.blueprintId);
-  ctx.recordBuildStep();
-  game.tower = removeStructure(game.tower, structure.id);
-  addMessage(game, `Removed ${blueprint?.name ?? 'structure'}.`, 'info');
-
-  if (view.modal?.kind === 'structure' && view.modal.structureId === structureId) {
-    view.modal = null;
-  }
-  if (view.modal?.kind === 'room') {
-    const roomId = view.modal.roomId;
-    const stillThere = game.tower.rooms.some((r) => r.id === roomId);
-    if (!stillThere) view.modal = null;
-  }
+  if (!structure || structure.blueprintId === SCAFFOLD_BLUEPRINT_ID) return;
+  addMessage(game, 'Remove framing by tearing down rooms first.', 'info');
 }
 
-function undoBuild(ctx: HandlerContext): void {
-  const { game, buildHistory } = ctx;
-  if (game.phase !== 'build' || !game.buildBaseline || buildHistory.length === 0) return;
-
-  const snap = buildHistory.pop()!;
-  game.tower = snap.tower;
-  game.housingRecruited = snap.housingRecruited;
-  game.slotAllocations = snap.slotAllocations;
-  game.manaSpringAllocations = snap.manaSpringAllocations;
-  game.researchRoomAllocations = snap.researchRoomAllocations;
-  game.buildRecruitSpend = snap.buildRecruitSpend;
-  game.prospectAllocation = snap.prospectAllocation;
-  pruneOrphanStaffState(game);
-  ctx.closeModalIfRoomMissing();
-  addMessage(game, 'Undid last change.', 'info');
+function undoLastOrder(ctx: HandlerContext): void {
+  const { game } = ctx;
+  if (game.phase !== 'day') return;
+  const last = game.constructionOrders[game.constructionOrders.length - 1];
+  if (!last) return;
+  cancelConstructionOrder(game, last.id);
 }
 
-function revertBuild(ctx: HandlerContext): void {
-  const { game, buildHistory } = ctx;
-  const baseline = game.buildBaseline;
-  if (game.phase !== 'build' || !baseline) return;
-
-  const layoutChanged = !towersEqual(game.tower, baseline.tower);
-  const staffChanged =
-    JSON.stringify(game.housingRecruited) !== JSON.stringify(baseline.housingRecruited) ||
-    JSON.stringify(game.slotAllocations) !== JSON.stringify(baseline.slotAllocations) ||
-    JSON.stringify(game.manaSpringAllocations) !== JSON.stringify(baseline.manaSpringAllocations) ||
-    JSON.stringify(game.researchRoomAllocations) !==
-    JSON.stringify(baseline.researchRoomAllocations) ||
-    game.buildRecruitSpend !== 0 ||
-    game.prospectAllocation !== baseline.prospectAllocation;
-  if (!layoutChanged && !staffChanged) return;
-
-  game.tower = structuredClone(baseline.tower);
-  game.housingRecruited = structuredClone(baseline.housingRecruited);
-  game.slotAllocations = structuredClone(baseline.slotAllocations);
-  game.manaSpringAllocations = structuredClone(baseline.manaSpringAllocations);
-  game.researchRoomAllocations = structuredClone(baseline.researchRoomAllocations);
-  game.buildRecruitSpend = 0;
-  game.prospectAllocation = baseline.prospectAllocation;
-  buildHistory.length = 0;
-  pruneOrphanStaffState(game);
-  ctx.closeModalIfRoomMissing();
-  addMessage(game, 'Reverted to wave start layout.', 'info');
+function cancelAllOrders(ctx: HandlerContext): void {
+  const { game } = ctx;
+  if (game.phase !== 'day') return;
+  const ids = game.constructionOrders.map((o) => o.id);
+  for (const id of ids) cancelConstructionOrder(game, id);
 }

@@ -155,8 +155,8 @@ export function selectPipeFluids(
 }
 
 /** Prefer locked fluid during attack; otherwise live topology. */
-export function resolvePipeFluids(tower: Tower, phase: 'build' | 'attack'): Record<string, PipeFluid> {
-  if (phase === 'attack') {
+export function resolvePipeFluids(tower: Tower, phase: 'day' | 'night'): Record<string, PipeFluid> {
+  if (phase === 'night') {
     const locked: Record<string, PipeFluid> = {};
     let anyLocked = false;
     for (const [key, cell] of Object.entries(tower.infra ?? {})) {
@@ -175,7 +175,7 @@ export function pipeFluidAt(
   tower: Tower,
   col: number,
   row: number,
-  phase: 'build' | 'attack' = 'build',
+  phase: 'day' | 'night' = 'day',
 ): PipeFluid {
   if (!hasPipe(tower, col, row)) return 'unassigned';
   return resolvePipeFluids(tower, phase)[cellKey(col, row)] ?? 'unassigned';
@@ -258,7 +258,7 @@ export function roomHasFluidPort(
   roomOrigin: Cell,
   roomSize: { w: number; h: number },
   fluid: AssignedPipeFluid,
-  phase: 'build' | 'attack' = 'build',
+  phase: 'day' | 'night' = 'day',
 ): boolean {
   const fluids = resolvePipeFluids(tower, phase);
   for (const c of roomCells(roomOrigin, roomSize)) {
@@ -291,7 +291,7 @@ export function forgeHasFirePort(
   tower: Tower,
   roomOrigin: Cell,
   roomSize: { w: number; h: number },
-  phase: 'build' | 'attack' = 'build',
+  phase: 'day' | 'night' = 'day',
 ): boolean {
   return roomHasFluidPort(tower, roomOrigin, roomSize, 'fire', phase);
 }
@@ -301,7 +301,7 @@ export function forgeHasWaterPort(
   tower: Tower,
   roomOrigin: Cell,
   roomSize: { w: number; h: number },
-  phase: 'build' | 'attack' = 'build',
+  phase: 'day' | 'night' = 'day',
 ): boolean {
   return forgeHasFirePort(tower, roomOrigin, roomSize, phase);
 }
@@ -310,7 +310,7 @@ function componentKeysForFluid(
   tower: Tower,
   start: Cell,
   fluid: AssignedPipeFluid,
-  phase: 'build' | 'attack' = 'build',
+  phase: 'day' | 'night' = 'day',
 ): Set<string> {
   const fluids = resolvePipeFluids(tower, phase);
   const startKey = cellKey(start.col, start.row);
@@ -336,7 +336,7 @@ function adjacentPipeKeysForFluid(
   roomOrigin: Cell,
   roomSize: { w: number; h: number },
   fluid: AssignedPipeFluid,
-  phase: 'build' | 'attack' = 'build',
+  phase: 'day' | 'night' = 'day',
 ): string[] {
   const fluids = resolvePipeFluids(tower, phase);
   const keys: string[] = [];
@@ -354,7 +354,7 @@ function adjacentPipeKeysForFluid(
 export function waterComponentKeys(
   tower: Tower,
   start: Cell,
-  phase: 'build' | 'attack' = 'build',
+  phase: 'day' | 'night' = 'day',
 ): Set<string> {
   return componentKeysForFluid(tower, start, 'water', phase);
 }
@@ -363,7 +363,7 @@ export function adjacentWaterPipeKeys(
   tower: Tower,
   roomOrigin: Cell,
   roomSize: { w: number; h: number },
-  phase: 'build' | 'attack' = 'build',
+  phase: 'day' | 'night' = 'day',
 ): string[] {
   return adjacentPipeKeysForFluid(tower, roomOrigin, roomSize, 'water', phase);
 }
@@ -371,7 +371,7 @@ export function adjacentWaterPipeKeys(
 export function fireComponentKeys(
   tower: Tower,
   start: Cell,
-  phase: 'build' | 'attack' = 'build',
+  phase: 'day' | 'night' = 'day',
 ): Set<string> {
   return componentKeysForFluid(tower, start, 'fire', phase);
 }
@@ -380,7 +380,7 @@ export function adjacentFirePipeKeys(
   tower: Tower,
   roomOrigin: Cell,
   roomSize: { w: number; h: number },
-  phase: 'build' | 'attack' = 'build',
+  phase: 'day' | 'night' = 'day',
 ): string[] {
   return adjacentPipeKeysForFluid(tower, roomOrigin, roomSize, 'fire', phase);
 }
@@ -389,7 +389,7 @@ export function adjacentFirePipeKeys(
 export function flameTurretHasForge(
   tower: Tower,
   turret: { origin: Cell; size: { w: number; h: number } },
-  phase: 'build' | 'attack' = 'build',
+  phase: 'day' | 'night' = 'day',
 ): boolean {
   const pipeKeys = adjacentFirePipeKeys(tower, turret.origin, turret.size, phase);
   if (pipeKeys.length === 0) return false;
@@ -403,7 +403,7 @@ export function flameTurretHasForge(
 
 /** Keys of steam pipes reachable from `start` within the steam network. */
 export function steamComponentKeys(tower: Tower, start: Cell): Set<string> {
-  return componentKeysForFluid(tower, start, 'steam', 'build');
+  return componentKeysForFluid(tower, start, 'steam', 'day');
 }
 
 export function adjacentSteamPipeKeys(
@@ -411,7 +411,7 @@ export function adjacentSteamPipeKeys(
   roomOrigin: Cell,
   roomSize: { w: number; h: number },
 ): string[] {
-  return adjacentPipeKeysForFluid(tower, roomOrigin, roomSize, 'steam', 'build');
+  return adjacentPipeKeysForFluid(tower, roomOrigin, roomSize, 'steam', 'day');
 }
 
 function isFluidPortRoom(room: { blueprintId: string }): boolean {

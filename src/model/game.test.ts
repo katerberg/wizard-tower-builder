@@ -33,22 +33,22 @@ describe('attack-phase simulation', () => {
     beginRun(state);
 
     beginWave(state);
-    expect(state.phase).toBe('attack');
+    expect(state.phase).toBe('night');
     expect(state.spawnQueue.length).toBeGreaterThan(0);
 
     let sawEnemy = false;
     let steps = 0;
-    const maxSteps = 75 * 60; // 75 simulated seconds (sub-cell paths are longer)
+    const maxSteps = 75 * 60 + 90 * 60; // day + night
     while (steps < maxSteps) {
       step(state, FIXED_DT);
       steps += 1;
       if (state.enemies.length > 0) sawEnemy = true;
-      if (state.phase === 'build' || state.scene !== 'run') break;
+      if (state.scene !== 'run') break;
+      if (state.phase === 'day' && state.levelIndex > 0) break;
     }
 
     expect(sawEnemy).toBe(true);
-    // Terminal: either the wave cleared (back to build) or the wizard fell.
-    const cleared = state.phase === 'build' && state.scene === 'run';
+    const cleared = state.levelIndex > 0 && state.scene === 'run';
     const lost = state.scene === 'gameOver';
     expect(cleared || lost).toBe(true);
     expect(steps).toBeLessThan(maxSteps);
@@ -66,12 +66,13 @@ describe('attack-phase simulation', () => {
     beginWave(state);
 
     let steps = 0;
-    while (steps < 60 * 90 && state.scene === 'run' && state.phase === 'attack') {
+    while (steps < 60 * 180 && state.scene === 'run') {
       step(state, FIXED_DT);
       steps += 1;
+      if (state.levelIndex > 0 && state.phase === 'day') break;
     }
 
-    if (state.scene === 'run' && state.phase === 'build') {
+    if (state.scene === 'run' && state.levelIndex > 0) {
       expect(state.levelIndex).toBe(1);
       expect(state.player.resources.gold).toBeGreaterThan(startCurrency);
     }

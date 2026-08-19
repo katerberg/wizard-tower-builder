@@ -10,7 +10,7 @@ Developer-facing architecture for the tower’s **infrastructure layer** — the
 
 1. **Infrastructure is first-class** — placement, routing, and upkeep matter as much as room HP.
 2. **Layered editing** — structure, infra, and workers are separate overlays on the same grid (Maps-style visibility).
-3. **Logistics during attack** — staff spawn from housing at wave start and **move only during the attack phase**; build phase is untimed planning with no movement.
+3. **Logistics during day and night** — staff spawn from housing at **nightfall** and move during the **night phase**; the **day phase** is timed planning with laborer construction/repair (no combat).
 4. **Separate graphs** — staff pathfind on an interior/infra graph; enemies keep the existing exterior surface graph. **Shell fortifications** reshape that exterior graph via routing costs and move slows on framing cells (never hard walkability denies) — see [`FORTIFICATIONS.md`](FORTIFICATIONS.md).
 5. **Fat towers by choice** — one infra occupancy per cell (stair *or* pipe *or* elevator) forces horizontal expansion.
 

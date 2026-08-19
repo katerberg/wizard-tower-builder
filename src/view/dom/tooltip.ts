@@ -2,8 +2,10 @@ import { formatResourceCost } from '@/calculations/resources';
 import { getBlueprint } from '@/model/blueprints';
 import { getInfraBlueprint } from '@/model/infraBlueprints';
 import { getFortificationBlueprint } from '@/model/fortificationBlueprints';
-import { roomAt } from '@/model/tower';
-import { selectGhostPlacement, selectUiTooltip, type UiTooltipTarget } from '@/store/selectors';
+import { orderFootprintCells } from '@/model/construction';
+import { getStorageSite } from '@/model/storage';
+import { roomAt, structureAt } from '@/model/tower';
+import { selectConstructionOrders, selectGhostPlacement, selectUiTooltip, type UiTooltipTarget } from '@/store/selectors';
 import type { Store } from '@/store/store';
 import type { PointerTracker } from '../input';
 
@@ -141,7 +143,7 @@ export function createTooltip(
 
     const room = roomAt(game.tower, cell.col, cell.row);
     let text = '';
-    if (game.phase === 'build' && view.selectedBlueprintId) {
+    if (game.phase === 'day' && view.selectedBlueprintId) {
       const ghost = selectGhostPlacement(store.getSnapshot());
       const blueprint =
         getBlueprint(view.selectedBlueprintId) ??
@@ -153,9 +155,29 @@ export function createTooltip(
           ? `${action} ${blueprint.name} · ${formatResourceCost(blueprint.cost)}`
           : `Cannot build: ${ghost.reason.replace(/_/g, ' ')}`;
       }
-    } else if (game.phase === 'build' && room) {
+    } else if (game.phase === 'day' && room) {
       const blueprint = getBlueprint(room.blueprintId);
-      text = `${blueprint?.name ?? 'Room'} · ${room.hp} hp`;
+      const storage = getStorageSite(game, room.id);
+      if (storage) {
+        const used = storage.stockpile.stone + storage.stockpile.metal;
+        text = `${blueprint?.name ?? 'Storage'} · ${used}/${storage.capacity} · ${storage.stockpile.stone} stone, ${storage.stockpile.metal} metal`;
+      } else {
+        const order = selectConstructionOrders(store.getSnapshot()).find((o) =>
+          orderFootprintCells(o).some((c) => c.col === cell.col && c.row === cell.row),
+        );
+        if (order) {
+          const bp = getBlueprint(order.blueprintId);
+          const pct = Math.round(order.buildProgress * 100);
+          text = `${bp?.name ?? 'Build'} · ${order.status} · ${pct}%`;
+        } else {
+          text = `${blueprint?.name ?? 'Room'} · ${room.hp} hp`;
+        }
+      }
+    } else if (game.phase === 'day') {
+      const structure = structureAt(game.tower, cell.col, cell.row);
+      if (structure?.blueprintId === 'scaffold') {
+        text = 'Scaffold · construction in progress';
+      }
     }
 
     if (!text) {

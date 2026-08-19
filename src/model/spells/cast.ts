@@ -98,7 +98,7 @@ export function spellCooldownRemaining(state: GameState, spellId: string): numbe
 }
 
 export function canCastSpell(state: GameState, spellId: string, target?: SpellTarget): CastCheckResult {
-  if (state.scene !== 'run' || state.phase !== 'attack') {
+  if (state.scene !== 'run' || state.phase !== 'night') {
     return { ok: false, reason: 'wrong_phase' };
   }
   const spell = getSpell(spellId);

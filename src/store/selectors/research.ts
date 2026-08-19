@@ -18,7 +18,7 @@ export interface ResearchSidebarView {
 export function selectResearchPanel(snapshot: Snapshot): ResearchSidebarView {
   const { game } = snapshot;
   const inRun = game.scene === 'run';
-  const inBuild = inRun && game.phase === 'build';
+  const inDay = inRun && game.phase === 'day';
   const active = game.player.research.active;
   const activeNode = active ? getResearchNode(active.nodeId) : undefined;
   const queue = game.player.research.queue
@@ -29,7 +29,7 @@ export function selectResearchPanel(snapshot: Snapshot): ResearchSidebarView {
     .filter((q): q is { id: string; name: string } => q !== null);
 
   return {
-    visible: inBuild || Boolean(active),
+    visible: inDay || Boolean(active),
     devMode: game.devMode,
     active:
       active && activeNode
