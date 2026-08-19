@@ -207,6 +207,7 @@ Mount points: `#board`, `#stage`, `#hud`, `#library`, `#message-log`, `#modal-ro
 | Research / tech tree / spell discovery (design) | [`docs/RESEARCH.md`](docs/RESEARCH.md) + [`.cursor/plans/research_index.plan.md`](.cursor/plans/research_index.plan.md) |
 | Tweak balance numbers | [`src/config/README.md`](src/config/README.md) + [`docs/BALANCE.md`](docs/BALANCE.md) |
 | Add / lock an expected build | [`docs/BALANCE.md`](docs/BALANCE.md) + [`src/test/balance/builds.ts`](src/test/balance/builds.ts) |
+| Save / load tower fixtures from dev mode | [`docs/BALANCE.md`](docs/BALANCE.md) ("Save from dev mode" section) |
 | Validate expected-build economy | **Deferred** — [`docs/BALANCE.md`](docs/BALANCE.md) (affordability envelopes on the harness) |
 | Change the attack tick order | [`src/model/tick.ts`](src/model/tick.ts) |
 | Change build/attack phases | [`src/model/phases.ts`](src/model/phases.ts) |

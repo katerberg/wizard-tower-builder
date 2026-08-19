@@ -426,6 +426,8 @@ export function isSimSpeed(value: number): value is SimSpeed {
 export interface GameState {
   scene: Scene;
   phase: Phase;
+  /** The seed this session was created with (for fixture diffing). */
+  sessionSeed: string | number;
   progressionMode: ProgressionMode;
   /** Wave counter within the run (not the win condition). */
   levelIndex: number;

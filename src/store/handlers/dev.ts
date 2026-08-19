@@ -9,8 +9,10 @@ import {
   WAVE_BUILDER_ENEMY_IDS,
   waveDefFromCounts,
 } from '@/model/waves';
+import FIXTURES from '@/test/balance/fixtures';
 import type { HandlerContext } from '../context';
 import type { Intent } from '../intents';
+import { applyFixtureToState, extractFixtureFromState } from './fixture';
 
 export function handleDevIntent(ctx: HandlerContext, intent: Intent): void {
   switch (intent.type) {
@@ -98,5 +100,54 @@ export function handleDevIntent(ctx: HandlerContext, intent: Intent): void {
         );
       }
       break;
+    case 'devOpenSaveTower': {
+      if (!ctx.game.devMode) break;
+      if (ctx.game.phase !== 'build' && ctx.game.scene !== 'gameOver') break;
+      const fixture = extractFixtureFromState(ctx.game, ctx.game.sessionSeed);
+      ctx.view.modal = { kind: 'saveTower', fixture };
+      break;
+    }
+    case 'devSaveTower': {
+      if (!ctx.game.devMode) break;
+      if (ctx.game.phase !== 'build' && ctx.game.scene !== 'gameOver') break;
+      const fixture = extractFixtureFromState(ctx.game, ctx.game.sessionSeed);
+      ctx.view.modal = {
+        kind: 'saveTower',
+        fixture,
+        name: intent.name,
+        expect: intent.expect,
+      };
+      break;
+    }
+    case 'devOpenLoadTower': {
+      if (!ctx.game.devMode) break;
+      if (ctx.game.phase !== 'build' && ctx.game.scene !== 'gameOver') break;
+      ctx.view.modal = { kind: 'fixtureList' };
+      break;
+    }
+    case 'devLoadFixture': {
+      if (!ctx.game.devMode) break;
+      if (ctx.game.phase !== 'build' && ctx.game.scene !== 'gameOver') break;
+      const fixture = FIXTURES.find((f) => f.id === intent.fixtureId);
+      if (!fixture) break;
+      ctx.view.modal = { kind: 'fixtureConfirm', fixtureId: fixture.id };
+      break;
+    }
+    case 'devConfirmLoad': {
+      if (!ctx.game.devMode) break;
+      if (ctx.game.phase !== 'build' && ctx.game.scene !== 'gameOver') break;
+      const fixture = FIXTURES.find((f) => f.id === intent.fixtureId);
+      if (!fixture) break;
+      const newGame = applyFixtureToState(fixture);
+      ctx.game = newGame;
+      ctx.view.waveBuilder.open = false;
+      ctx.view.waveBuilder.counts = {};
+      ctx.view.modal = null;
+      ctx.view.selectedBlueprintId = null;
+      ctx.view.selectedSpellId = null;
+      ctx.buildHistory = [];
+      addMessage(ctx.game, `Loaded '${fixture.title}' (expect ${fixture.expect}).`, 'info');
+      break;
+    }
   }
 }

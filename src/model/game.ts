@@ -26,6 +26,7 @@ export function createInitialState(seed: string | number = 'wizard'): GameState 
   const state: GameState = {
     scene: 'run',
     phase: 'build',
+    sessionSeed: seed,
     progressionMode: 'height',
     levelIndex: 0,
     waveIndex: 0,

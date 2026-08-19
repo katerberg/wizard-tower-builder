@@ -1,0 +1,27 @@
+[
+    {
+        "id": "double-turret",
+        "title": "double turret",
+        "expect": "clear",
+        "placements": [
+            {
+                "blueprintId": "turretRoom",
+                "cell": {
+                    "col": 6,
+                    "row": 4
+                }
+            },
+            {
+                "blueprintId": "turretRoom",
+                "cell": {
+                    "col": 6,
+                    "row": 3
+                }
+            }
+        ],
+        "seeds": [
+            "first-wave-b"
+        ],
+        "height": 5
+    }
+]

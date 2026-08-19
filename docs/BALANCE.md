@@ -72,6 +72,18 @@ Not in this pass. Planned order: **catalog** of authored fixtures (pass/fail by 
 
 ---
 
+## Save from dev mode
+
+The fastest way to capture a tower you've built in the dev server:
+
+1. Enable **dev mode** (toggle `Dev: off` → `Dev: on` in the HUD).
+2. Build your tower in the build phase (or inspect after a `gameOver` scene).
+3. Click **Save tower** in the dev row → fill in a name and expected outcome (`clear` / `lose`) → click **Generate** → **Copy to clipboard**.
+4. Paste the JSON snippet into [`src/test/balance/fixtures.json`](../src/test/balance/fixtures.json).
+5. Run `npm test` — the harness picks up the new fixture automatically (via `builds.ts`).
+
+**Load tower** reverses the process: click **Load tower** in the dev row → pick a fixture from `fixtures.json` → confirm. This replaces the current tower entirely. Both buttons are disabled during the attack phase.
+
 ## Commands
 
 ```bash

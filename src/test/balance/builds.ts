@@ -1,4 +1,5 @@
 import { BALANCE_SEEDS, type BalanceBuild } from '@/test/balance/types';
+import FIXTURES from './fixtures';
 
 const SLOT_GRANTED_DEFENSE_PLACEMENTS = [
   { blueprintId: 'guardroomRoom', cell: { col: 6, row: 0 } },
@@ -91,6 +92,7 @@ export const BALANCE_BUILDS: readonly BalanceBuild[] = [
     seeds: BALANCE_SEEDS,
     spawnIncludes: ['striker'],
   },
+  ...FIXTURES,
 ];
 
 export function balanceBuildById(id: string): BalanceBuild {
@@ -98,3 +100,4 @@ export function balanceBuildById(id: string): BalanceBuild {
   if (!build) throw new Error(`Unknown balance build: ${id}`);
   return build;
 }
+
