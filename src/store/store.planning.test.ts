@@ -48,6 +48,27 @@ describe('construction undo', () => {
     expect(store.getSnapshot().game.constructionOrders.length).toBe(0);
   });
 
+  it('reverts all queued orders', () => {
+    const store = new Store('revert');
+    placeStem(store, { col: EXT_COL, row: 0 });
+    placeStem(store, { col: EXT_COL, row: 1 });
+    store.dispatch({ type: 'revertBuild' });
+    expect(store.getSnapshot().game.constructionOrders.length).toBe(0);
+    expect(selectBuildUndoState(store.getSnapshot()).canRevert).toBe(false);
+    expect(selectBuildUndoState(store.getSnapshot()).canUndo).toBe(false);
+  });
+
+  it('does not change wallet resources on undo or revert', () => {
+    const store = new Store('undo-gold');
+    placeStem(store, { col: EXT_COL, row: 0 });
+    store.dispatch({ type: 'undoBuild' });
+    expect(store.getSnapshot().game.player.resources.stone).toBe(STARTING_RESOURCES.stone);
+
+    placeStem(store, { col: EXT_COL, row: 0 });
+    store.dispatch({ type: 'revertBuild' });
+    expect(store.getSnapshot().game.player.resources.stone).toBe(STARTING_RESOURCES.stone);
+  });
+
   it('shows ghost placement during day', () => {
     const store = new Store('ghost');
     store.dispatch({ type: 'selectBlueprint', blueprintId: 'stem' });
@@ -65,6 +86,33 @@ describe('construction undo', () => {
       if (store.getSnapshot().game.constructionOrders.length === 0) break;
     }
     expect(store.getSnapshot().game.tower.structures.some((s) => s.origin.col === EXT_COL)).toBe(true);
+  });
+});
+
+describe('build mode vs select mode', () => {
+  it('starts in select mode with no blueprint selected', () => {
+    const store = new Store('select0');
+    expect(store.getSnapshot().view.selectedBlueprintId).toBeNull();
+  });
+
+  it('does not place without a selected blueprint', () => {
+    const store = new Store('select1');
+    const initialRooms = store.getSnapshot().game.tower.structures.length;
+    store.dispatch({ type: 'placeSelectedAt', cell: { col: 8, row: 0 } });
+    expect(store.getSnapshot().game.tower.structures).toHaveLength(initialRooms);
+  });
+
+  it('inspect opens modal and clears blueprint selection', () => {
+    const store = new Store('select2');
+    store.dispatch({ type: 'selectBlueprint', blueprintId: 'stem' });
+    store.dispatch({ type: 'inspectRoomAt', cell: { col: 6, row: 1 } });
+
+    const structureId = store.getSnapshot().game.tower.structures.find(
+      (r) => r.origin.col === 6 && r.origin.row === 1,
+    )!.id;
+    const { view } = store.getSnapshot();
+    expect(view.modal).toEqual({ kind: 'structure', structureId });
+    expect(view.selectedBlueprintId).toBeNull();
   });
 });
 

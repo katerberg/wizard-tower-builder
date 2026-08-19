@@ -95,7 +95,10 @@ export function roomFootprintCells(tower: Tower, roomId: string): Cell[] {
  * Repeatedly remove unsupported / disconnected framing until the tower is stable.
  * Rooms and infra on cascading pieces are cleared via {@link removeStructure}.
  */
-export function cascadeUnsupportedStructures(tower: Tower): {
+export function cascadeUnsupportedStructures(
+  tower: Tower,
+  overhangUnlocked = false,
+): {
   tower: Tower;
   delta: RemovalDelta;
 } {
@@ -107,7 +110,7 @@ export function cascadeUnsupportedStructures(tower: Tower): {
 
   const maxPasses = (tower.structures ?? []).length + 1;
   for (let pass = 0; pass < maxPasses; pass++) {
-    const invalid = [...getUnstableStructureIds(next)];
+    const invalid = [...getUnstableStructureIds(next, overhangUnlocked)];
     if (invalid.length === 0) break;
     let removedThisPass = 0;
     for (const id of invalid) {

@@ -41,7 +41,8 @@ function tCapTower() {
   let tower = createTower();
   tower = placeStructure(tower, createStructure('a', getBlueprint('stem')!, { col: 5, row: 0 }));
   tower = placeStructure(tower, createStructure('b', getBlueprint('stem')!, { col: 5, row: 1 }));
-  tower = placeStructure(tower, createStructure('c', getBlueprint('buttress3')!, { col: 4, row: 2 }));
+  tower = placeStructure(tower, createStructure('c', getBlueprint('stem')!, { col: 4, row: 2 }));
+  tower = placeStructure(tower, createStructure('d', getBlueprint('stem')!, { col: 6, row: 2 }));
   return tower;
 }
 
@@ -91,7 +92,7 @@ describe('preferred-path overhang smash', () => {
     let tower = tCapTower();
     const roomBp = getBlueprint('guardroomRoom')!;
     tower = placeRoom(tower, createRoom('capRoom', roomBp, { col: 4, row: 2 }));
-    // Cap room sits on buttress cell (4,2); also need rooms only on one cell of buttress.
+    // Cap room sits on overhang cell (4,2).
     const state = createInitialState('demo-smash');
     state.phase = 'night';
     state.tower = tower;

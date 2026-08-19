@@ -4,6 +4,7 @@ import { prepareWaveNames } from './game';
 import { addMessage } from './messages';
 import { lockPipeFluids } from './pipes';
 import { resetRoomBehaviors } from './rooms';
+import { restoreTurretMana } from './rooms/turret';
 import { clearStaffAfterWave, deployStaffForWave } from './staff';
 import { assignSurplusLaborers, maxWaterReachRow } from './staff/harvest';
 import { resolveProspectAtNightfall } from './staff/prospect';
@@ -160,6 +161,7 @@ export function beginDay(state: GameState): void {
   state.phaseTimer = DAY_DURATION;
   state.prospectWorkElapsed = 0;
   state.prospectResolved = false;
+  restoreTurretMana(state);
   clearStaffAfterWave(state);
   clearElevators(state);
   state.boilerRuntime = {};

@@ -29,7 +29,7 @@ describe('planInfraPlacement', () => {
     const plan = planInfraPlacement(tower, pipe, { col: 8, row: 2 });
     expect(plan.ok).toBe(false);
     expect(plan.needsStem).toBe(false);
-    expect(plan.reason).toBe('disconnected');
+    expect(plan.reason).toBe('no_support');
   });
 
   it('rejects a floating empty cell for the same no_support reason as a spire', () => {

@@ -1,6 +1,8 @@
 import { formatResourceAmount, formatWaveHaul } from '@/calculations/resources';
 import { selectRoomInspector, selectStructureInspector, type RoomInspector } from '@/store/selectors';
+import FIXTURES from '@/test/balance/fixtures';
 import type { Resources } from '@/model/types';
+import type { BalanceBuild } from '@/test/balance/types';
 import type { Store } from '@/store/store';
 import {
   bindResearchModalInteractions,
@@ -106,6 +108,31 @@ export function createModal(root: HTMLElement, store: Store): () => void {
           count: inspector.researchAllocated + 1,
         });
       }
+    } else if (action === 'devSaveTowerGenerate') {
+      const nameInput = root.querySelector('#saveTowerName');
+      const expectSelect = root.querySelector('#saveTowerExpect');
+      if (nameInput instanceof HTMLInputElement && expectSelect instanceof HTMLSelectElement) {
+        const name = nameInput.value.trim();
+        const expect = expectSelect.value;
+        if (name && (expect === 'clear' || expect === 'lose')) {
+          store.dispatch({ type: 'devSaveTower', name, expect: expect });
+        }
+      }
+    } else if (action === 'devCopyFixture') {
+      const textarea = root.querySelector('#fixtureJsonOutput');
+      if (textarea instanceof HTMLTextAreaElement) {
+        void navigator.clipboard.writeText(textarea.value).then(() => {
+          const btn = root.querySelector('[data-action="devCopyFixture"]');
+          if (btn instanceof HTMLButtonElement) {
+            btn.textContent = 'Copied!';
+            btn.disabled = true;
+          }
+        });
+      }
+    } else if (action === 'devLoadFixture' && target?.dataset.fixtureId) {
+      store.dispatch({ type: 'devLoadFixture', fixtureId: target.dataset.fixtureId });
+    } else if (action === 'devConfirmLoad' && target?.dataset.fixtureId) {
+      store.dispatch({ type: 'devConfirmLoad', fixtureId: target.dataset.fixtureId });
     }
   });
 
@@ -141,6 +168,12 @@ export function createModal(root: HTMLElement, store: Store): () => void {
       body = inspector ? structureBody(inspector) : '<p>Structure no longer exists.</p>';
     } else if (modal.kind === 'waveClear') {
       body = waveClearBody(modal.gold, modal.haul, modal.prospectNote);
+    } else if (modal.kind === 'saveTower') {
+      body = saveTowerBody(modal);
+    } else if (modal.kind === 'fixtureList') {
+      body = fixtureListBody();
+    } else if (modal.kind === 'fixtureConfirm') {
+      body = fixtureConfirmBody(modal.fixtureId);
     } else {
       body = helpBody();
     }
@@ -331,7 +364,7 @@ function helpBody(): string {
   return `
     <h3>How to play</h3>
     <ul class="help-list">
-      <li>Build framing (spires / buttresses), then place rooms on top. Infra and rooms auto-add framing when needed.</li>
+      <li>Build framing (spire blocks), then place rooms on top. Infra and rooms auto-add framing when needed.</li>
       <li>Recruit staff in housing, allocate slots and mana springs, connect floors with stairs.</li>
       <li>Surplus laborers harvest stone underground — quarters need stairs or elevators to reach ground.</li>
       <li>Crawlers climb the outside of framing and rooms toward the solar collector; fliers pass through bare framing and only rooms block them. Protect the collector — lose if its HP hits zero.</li>
@@ -341,4 +374,95 @@ function helpBody(): string {
       <li>Right-click sells the room first (framing stays); click again to sell framing.</li>
       <li>Climb your framing toward height 100. Clear a wave while still at 100+ to win — taller towers face harder pressure, but collapse eases the next fight. Climb when ready; don't grind for a seal.</li>
     </ul>`;
+}
+
+/* ---- Save Tower Modal ---- */
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function saveTowerBody(modal: { kind: 'saveTower'; fixture: Omit<BalanceBuild, 'id' | 'title' | 'expect'>; name?: string; expect?: 'clear' | 'lose' }): string {
+  const name = modal.name ?? '';
+  const expect = modal.expect ?? 'clear';
+  const generated = modal.name && modal.expect;
+
+  const fixtureJson = generated
+    ? JSON.stringify({
+      id: name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+      title: name,
+      expect: modal.expect,
+      ...modal.fixture,
+    }, null, 2)
+    : '';
+
+  return `
+    <h3>Save tower as fixture</h3>
+    <div class="stat"><span>Height</span><strong>${modal.fixture.height}</strong></div>
+    <div class="stat"><span>Placements</span><strong>${modal.fixture.placements?.length ?? 0}</strong></div>
+    <div class="form-row">
+      <label for="saveTowerName">Name</label>
+      <input id="saveTowerName" type="text" value="${escapeHtml(name)}" placeholder="my-turret-layout" ${generated ? 'disabled' : ''} />
+    </div>
+    <div class="form-row">
+      <label>Expected outcome</label>
+      <select id="saveTowerExpect" ${generated ? 'disabled' : ''}>
+        <option value="clear" ${expect === 'clear' ? 'selected' : ''}>clear</option>
+        <option value="lose" ${expect === 'lose' ? 'selected' : ''}>lose</option>
+      </select>
+    </div>
+    ${generated
+      ? `<textarea id="fixtureJsonOutput" readonly rows="12">${escapeHtml(fixtureJson)}</textarea>
+       <div class="modal-actions">
+         <button class="primary" data-action="devCopyFixture">Copy to clipboard</button>
+         <p class="hint">Paste the JSON into <code>src/test/balance/fixtures.json</code>.</p>
+       </div>`
+      : `<button class="primary" data-action="devSaveTowerGenerate">Generate</button>`
+    }
+    ${!generated ? '<button data-action="closeModal">Cancel</button>' : ''}`;
+}
+
+/* ---- Load Tower Modal ---- */
+
+function fixtureListBody(): string {
+  if (FIXTURES.length === 0) {
+    return `
+      <h3>Load tower fixture</h3>
+      <p class="hint">No fixtures available. Save a tower first, then paste it into <code>src/test/balance/fixtures.json</code>.</p>
+      <button data-action="closeModal">Close</button>`;
+  }
+
+  const items = FIXTURES.map((f) =>
+    `<div class="fixture-row">
+      <button data-action="devLoadFixture" data-fixture-id="${escapeHtml(f.id)}">
+        <strong>${escapeHtml(f.title)}</strong>
+        <span class="fixture-meta">(${escapeHtml(f.expect)})</span>
+      </button>
+    </div>`,
+  ).join('');
+
+  return `
+    <h3>Load tower fixture</h3>
+    <p class="hint">Click a fixture to confirm. This replaces the current tower.</p>
+    <div class="fixture-list">${items}</div>
+    <button data-action="closeModal">Close</button>`;
+}
+
+function fixtureConfirmBody(fixtureId: string): string {
+  const fixture = FIXTURES.find((f) => f.id === fixtureId);
+  if (!fixture) return '<p>Fixture not found.</p>';
+
+  return `
+    <h3>Load fixture</h3>
+    <p><strong>${escapeHtml(fixture.title)}</strong></p>
+    <div class="stat"><span>Expect</span><strong>${escapeHtml(fixture.expect)}</strong></div>
+    <div class="stat"><span>Height</span><strong>${fixture.height}</strong></div>
+    <div class="stat"><span>Placements</span><strong>${fixture.placements?.length ?? 0}</strong></div>
+    <p class="warning">This replaces your current tower. Unsaved changes will be lost.</p>
+    <button class="primary" data-action="devConfirmLoad" data-fixture-id="${escapeHtml(fixture.id)}">Confirm load</button>
+    <button data-action="closeModal">Cancel</button>`;
 }

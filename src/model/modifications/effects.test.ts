@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { FLAME_TURRET_CHARGE_SEC } from '@/config/constants';
+import { FLAME_TURRET_CHARGE_SEC, TURRET_MANA_RESERVATION } from '@/config/constants';
+import { restoreTurretMana } from '../rooms/turret';
 import { getBlueprint } from '../blueprints';
 import { createInitialState } from '../game';
 import { placeInfra } from '../infra';
@@ -8,8 +9,9 @@ import {
   resetFlameTurretRuntime,
   tickFlameTurrets,
 } from '../rooms/flameTurret';
+import { getRoomBehavior } from '../rooms';
 import { isKindled } from '../spells/fire/kindled';
-import { createRoom, placeRoom } from '../tower';
+import { createRoom, createTower, placeRoom } from '../tower';
 import { runEnemyStepEffects, runRoomEffects, runWaveClearedEffects } from './effects';
 import type { GameState } from '../types';
 import { makeTestEnemy, subAt } from '@/test/subCells';
@@ -24,6 +26,7 @@ function stateWithRoom(
   mod?: { id: string; level: number },
 ): GameState {
   const state = createInitialState(seed);
+  state.tower = createTower();
   const room = createRoom('r0', getBlueprint(blueprintId)!, { col: 8, row: 0 });
   if (mod) room.modifications.push(mod);
   state.tower = placeRoom(state.tower, room);
@@ -64,6 +67,9 @@ function chargeAndDump(state: GameState): void {
 describe('turret room effect', () => {
   it('damages the nearest enemy within range', () => {
     const state = stateWithRoom('turret', 'turretRoom');
+    state.phase = 'night';
+    const { reset } = getRoomBehavior('turretRoom')!;
+    reset?.(state);
     const elite = makeEnemy('elite', 8, 2, 28);
     state.enemies = [elite];
 
@@ -72,26 +78,47 @@ describe('turret room effect', () => {
     expect(elite.currentHp).toBeLessThan(28);
   });
 
-  it('spends mana per shot', () => {
+  it('does not spend mana per shot (reserved at wave start)', () => {
     const state = stateWithRoom('turret-mana', 'turretRoom');
+    state.phase = 'night';
+    const beforeMax = state.player.maxMana;
+    const { reset } = getRoomBehavior('turretRoom')!;
+    reset?.(state);
+    expect(state.player.maxMana).toBe(beforeMax - TURRET_MANA_RESERVATION);
     const elite = makeEnemy('elite', 8, 2, 28);
     state.enemies = [elite];
     const before = state.player.mana;
     runRoomEffects(state, 1.0);
-    expect(state.player.mana).toBe(before - 1);
+    expect(state.player.mana).toBe(before);
   });
 
-  it('skips the shot when mana is empty', () => {
-    const state = stateWithRoom('turret-dry', 'turretRoom');
+  it('is depowered when maxMana is insufficient', () => {
+    const state = stateWithRoom('turret-depower', 'turretRoom');
+    state.phase = 'night';
+    state.player.maxMana = 3; // Less than TURRET_MANA_RESERVATION (5)
+    const { reset } = getRoomBehavior('turretRoom')!;
+    reset?.(state);
     const elite = makeEnemy('elite', 8, 2, 28);
     state.enemies = [elite];
-    state.player.mana = 0;
     runRoomEffects(state, 1.0);
     expect(elite.currentHp).toBe(28);
   });
 
+  it('restores reserved maxMana at wave end', () => {
+    const state = stateWithRoom('turret-restore', 'turretRoom');
+    const baseline = state.player.maxMana;
+    const { reset } = getRoomBehavior('turretRoom')!;
+    reset?.(state);
+    expect(state.player.maxMana).toBe(baseline - TURRET_MANA_RESERVATION);
+    restoreTurretMana(state);
+    expect(state.player.maxMana).toBe(baseline);
+  });
+
   it('ignores enemies beyond range', () => {
     const state = stateWithRoom('turret-range', 'turretRoom');
+    state.phase = 'night';
+    const { reset } = getRoomBehavior('turretRoom')!;
+    reset?.(state);
     const far = makeEnemy('elite', 8, 9, 28);
     state.enemies = [far];
 

@@ -116,6 +116,10 @@ export function createHud(root: HTMLElement, store: Store): () => void {
            <button data-action="startWave">Skip to night</button>
          </div>
          <div class="dev-row">
+           <button data-action="devOpenSaveTower" ${game.phase === 'night' ? 'disabled' : ''}>Save tower</button>
+           <button data-action="devOpenLoadTower" ${game.phase === 'night' ? 'disabled' : ''}>Load tower</button>
+         </div>
+         <div class="dev-row">
            <button data-action="devSetSpellSchool" data-school="fire" ${game.activeSpellSchool === 'fire' ? 'disabled' : ''}>Fire school</button>
            <button data-action="devSetSpellSchool" data-school="air" ${game.activeSpellSchool === 'air' ? 'disabled' : ''}>Air school</button>
            <button data-action="devSetSpellSchool" data-school="earth" ${game.activeSpellSchool === 'earth' ? 'disabled' : ''}>Earth school</button>

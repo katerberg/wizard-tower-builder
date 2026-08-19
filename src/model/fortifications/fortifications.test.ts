@@ -51,7 +51,8 @@ function pillar(): Tower {
 
 function tShape(): Tower {
   let tower = pillar();
-  tower = placeStructure(tower, createStructure('c', getBlueprint('buttress3')!, { col: 4, row: 2 }));
+  tower = placeStructure(tower, createStructure('c', getBlueprint('stem')!, { col: 4, row: 2 }));
+  tower = placeStructure(tower, createStructure('d', getBlueprint('stem')!, { col: 6, row: 2 }));
   return tower;
 }
 

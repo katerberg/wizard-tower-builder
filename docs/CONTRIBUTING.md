@@ -93,7 +93,7 @@ See [`src/store/README.md`](../src/store/README.md).
 
 ### Tweak balance
 
-Index: [`src/config/README.md`](../src/config/README.md). Playability gate: [`src/store/playability.test.ts`](../src/store/playability.test.ts) + `npm run test:playability`.
+Index: [`src/config/README.md`](../src/config/README.md). Expected builds: [`docs/BALANCE.md`](BALANCE.md) + [`src/test/balance/builds.ts`](../src/test/balance/builds.ts). Commands: `npm run test:balance` (full suite) and `npm run test:playability` (first-wave pair).
 
 Cost snapshot by resource: [`docs/ECONOMY_COST_MATRIX.md`](ECONOMY_COST_MATRIX.md). Mine harvest design (not shipped): [`docs/MINES.md`](MINES.md).
 

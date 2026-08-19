@@ -2,7 +2,7 @@ import type { ResourceCost } from '@/model/types';
 
 export type ResearchNodeId = string;
 
-export type ResearchNodeKind = 'blueprint' | 'expansion';
+export type ResearchNodeKind = 'blueprint' | 'expansion' | 'technology';
 
 export interface ResearchNode {
   id: ResearchNodeId;

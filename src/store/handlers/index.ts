@@ -86,6 +86,11 @@ export function applyIntent(ctx: HandlerContext, intent: Intent): void {
     case 'devSetWaveCount':
     case 'devClearWaveBuilder':
     case 'devLoadCurrentWave':
+    case 'devOpenSaveTower':
+    case 'devSaveTower':
+    case 'devOpenLoadTower':
+    case 'devLoadFixture':
+    case 'devConfirmLoad':
       handleDevIntent(ctx, intent);
       break;
 

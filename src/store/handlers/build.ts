@@ -2,6 +2,7 @@ import { getBlueprint } from '@/model/blueprints';
 import { isInfraBlueprint } from '@/model/infraBlueprints';
 import { isFortificationBlueprint } from '@/model/fortificationBlueprints';
 import { addMessage } from '@/model/messages';
+import { isOverhangUnlocked } from '@/model/research';
 import {
   cancelConstructionOrder,
   createBuildOrder,
@@ -48,7 +49,7 @@ function placeSelected(ctx: HandlerContext, cell: { col: number; row: number }):
   const blueprint = getBlueprint(id);
   if (!blueprint) return;
 
-  const result = canPlace(game.tower, blueprint, cell);
+  const result = canPlace(game.tower, blueprint, cell, { overhangUnlocked: isOverhangUnlocked(game) });
   if (!result.ok) {
     addMessage(game, `Cannot build here: ${result.reason.replace(/_/g, ' ')}.`, 'info');
     return;

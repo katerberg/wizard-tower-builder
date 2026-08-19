@@ -9,7 +9,7 @@ Stack: **TypeScript**, **Vite**, **HTML5 Canvas** (board), **DOM** (UI chrome). 
 The run alternates between two phases (see [`docs/DAY_NIGHT.md`](docs/DAY_NIGHT.md)):
 
 1. **Day (60s)** — Paint **construction orders** for framing, rooms, and infra. **Stone** and **metal** come from **storage rooms** (starter Supply Room on the ground floor); **souls** and **gold** from the wallet. Laborers haul materials and build over time. Recruit staff, allocate slots, paint stairs/pipes. Inspect with **Select**; right-click queues teardown. Timer auto-starts the wave at dusk (dev: **Skip to night**).
-2. **Night (90s)** — Enemies path toward the **solar collector** on the crown. Wizard pathing + spells; staff deploy from housing; surplus laborers **hand-pump** and **harvest stone into storage**. Defenses include turrets, slots, spikes, and spells. Survive to earn **gold** (clear) and **souls** (kills); dawn shows the haul modal. Lose if the **solar collector’s HP** reaches zero. See [`docs/PLAYER_MOVEMENT.md`](docs/PLAYER_MOVEMENT.md).
+2. **Night (90s)** — Enemies path toward the **solar collector** on the crown. Wizard pathing + spells; staff deploy from housing; surplus laborers **hand-pump** and **harvest stone into storage**. Defenses include turrets, slots, spikes, and spells. Survive to earn **gold** (clear) and **souls** (kills); dawn shows the haul modal. Lose if the **solar collector's HP** reaches zero. See [`docs/PLAYER_MOVEMENT.md`](docs/PLAYER_MOVEMENT.md).
 
 **Win** by clearing a wave while **completed** framing height is still **≥ 100**. Difficulty scales with height at dusk (plateaus + permanent enemy unlocks); see [`docs/HEIGHT_PROGRESSION.md`](docs/HEIGHT_PROGRESSION.md).
 
@@ -22,8 +22,8 @@ Mana powers the wizard’s hotbar (keys **1–4** to select, click to aim/cast d
 The tower has three layers on each cell: **structure** (framing), **room** (optional overlay), and **infra** (stairs / pipes / elevators). Physics and stability use the structure layer only.
 
 - **Ground** — Row 0 is the floor; framing can be placed directly on it.
-- **Spire blocks (1-wide)** — Framing that must sit on the ground or directly on framing below — no overhang.
-- **Buttress (2 or 3 wide)** — Wide framing; outer cells may cantilever at most **one step** beyond support below.
+- **Spire blocks (1-wide)** — Framing that must sit on the ground or directly on framing below until **Cantilever Framing** is researched.
+- **Overhangs (researched)** — After **Cantilever Framing**, spire blocks may cantilever at most **one step** beyond support below.
 - **Rooms** — Functional overlays (housing, generators, damagers). Every footprint cell needs framing; missing cells auto-place Spire Blocks when legal.
 - **Infra** — Same rule: must sit on framing; empty cells auto-place a Spire Block when legal.
 - **Single tower** — All framing must form **one connected mass** (4-way adjacency).
@@ -204,7 +204,10 @@ Mount points: `#board`, `#stage`, `#hud`, `#library`, `#message-log`, `#modal-ro
 | Mine harvest / prospecting (design) | [`docs/MINES.md`](docs/MINES.md) + [`.cursor/plans/mine_harvest_index.plan.md`](.cursor/plans/mine_harvest_index.plan.md) |
 | Current build costs by resource | [`docs/ECONOMY_COST_MATRIX.md`](docs/ECONOMY_COST_MATRIX.md) |
 | Research / tech tree / spell discovery (design) | [`docs/RESEARCH.md`](docs/RESEARCH.md) + [`.cursor/plans/research_index.plan.md`](.cursor/plans/research_index.plan.md) |
-| Tweak balance numbers | [`src/config/README.md`](src/config/README.md) |
+| Tweak balance numbers | [`src/config/README.md`](src/config/README.md) + [`docs/BALANCE.md`](docs/BALANCE.md) |
+| Add / lock an expected build | [`docs/BALANCE.md`](docs/BALANCE.md) + [`src/test/balance/builds.ts`](src/test/balance/builds.ts) |
+| Save / load tower fixtures from dev mode | [`docs/BALANCE.md`](docs/BALANCE.md) ("Save from dev mode" section) |
+| Validate expected-build economy | **Deferred** — [`docs/BALANCE.md`](docs/BALANCE.md) (affordability envelopes on the harness) |
 | Change the attack tick order | [`src/model/tick.ts`](src/model/tick.ts) |
 | Change day/night phases | [`src/model/phases.ts`](src/model/phases.ts) + [`docs/DAY_NIGHT.md`](docs/DAY_NIGHT.md) |
 | Change placement / stability | [`src/model/tower/`](src/model/tower/) |
@@ -229,6 +232,9 @@ src/
   store/
     handlers/          # Only writers of game state
     selectors/         # UI affordances by domain
+  test/
+    playability.ts     # Headless build + wave driver
+    balance/           # Named expected-build fixtures + sim report
   view/
     canvas/layers/     # Board paint pipeline
     dom/ theme.ts …
@@ -301,6 +307,8 @@ Still not done:
 - Additional turret / economy room types beyond Boiler, Mana Spring, Turret, Steam Turret, Forge, Flame Turret, and Water Pump
 - Infra/mod repair and mid-wave building (laborers repair room HP only today)
 - Exact harvest/wear balance curves; weather events on the weathering channel
+- **Validate expected-build economy** — affordability envelopes (slack leftover, not exact gold snapshots) for named fixtures; depends on the balance harness ([`docs/BALANCE.md`](docs/BALANCE.md))
+- **Possible-towers visualization** — catalog → spatial heatmap → layout search; harness emits an in-memory sim report only ([`docs/BALANCE.md`](docs/BALANCE.md))
 - Mine grid harvest / prospecting / storage rooms — design in [`docs/MINES.md`](docs/MINES.md); **engine slice shipped** (shallow stone workplaces); prospect / iron-gems / storage still open
 - Leyline / substance harvest + mana-spring removal — stub only ([`.cursor/plans/leyline_harvest_stub.plan.md`](.cursor/plans/leyline_harvest_stub.plan.md))
 

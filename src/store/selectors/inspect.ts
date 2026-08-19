@@ -16,7 +16,7 @@ import {
   modificationCost,
 } from '@/model/modifications';
 import { isManaSpringRoom } from '@/model/pipes';
-import { isResearchRoom } from '@/model/research';
+import { isResearchRoom, isOverhangUnlocked } from '@/model/research';
 import {
   housingCapacity,
   isHousingRoom,
@@ -71,7 +71,10 @@ export interface TowerStability {
 }
 
 export function selectTowerStability(snapshot: Snapshot): TowerStability {
-  const unstableStructureIds = getUnstableStructureIds(snapshot.game.tower);
+  const unstableStructureIds = getUnstableStructureIds(
+    snapshot.game.tower,
+    isOverhangUnlocked(snapshot.game),
+  );
   return {
     stable: unstableStructureIds.size === 0,
     unstableRoomIds: unstableStructureIds,

@@ -3,6 +3,8 @@ import { canAffordResources, subResources } from '@/calculations/resources';
 import { beginRun, createInitialState } from '@/model/game';
 import { addMessage } from '@/model/messages';
 import { endDay } from '@/model/phases';
+import { isOverhangUnlocked } from '@/model/research';
+import { isTowerStable } from '@/model/tower';
 import { waveDefFromCounts } from '@/model/waves';
 import { resetToSelectMode } from '../viewState';
 import type { HandlerContext } from '../context';
@@ -30,6 +32,10 @@ export function handleWaveIntent(ctx: HandlerContext, intent: Intent): void {
 function skipToNight(ctx: HandlerContext): void {
   const { game } = ctx;
   if (game.scene !== 'run' || game.phase !== 'day') return;
+  if (!isTowerStable(game.tower, isOverhangUnlocked(game))) {
+    addMessage(game, 'The tower is unstable. Remove or support floating rooms first.', 'info');
+    return;
+  }
 
   if (game.prospectAllocation > 0) {
     const cost = PROSPECT_EQUIP_COST as import('@/model/types').ResourceCost;

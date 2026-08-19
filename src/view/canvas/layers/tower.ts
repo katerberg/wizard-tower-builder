@@ -6,6 +6,7 @@ import { getBlueprint } from '@/model/blueprints';
 import { getFortificationBlueprint } from '@/model/fortificationBlueprints';
 import { getModification } from '@/model/modifications';
 import { resolvePipeFluids, pipeVisualLinks } from '@/model/pipes';
+import { isOverhangUnlocked } from '@/model/research';
 import { getUnstableStructureIds } from '@/model/tower';
 import { selectRoomBuildAlerts, selectStructureBuildAlerts } from '@/store/selectors';
 import type { Snapshot } from '@/store/store';
@@ -55,7 +56,7 @@ export function drawTowerAlerts(ctx: CanvasRenderingContext2D, snapshot: Snapsho
 
 function drawStructures(ctx: CanvasRenderingContext2D, snapshot: Snapshot, scrollY: number, viewportHeight: number): void {
   const { minRow, maxRow } = visibleRowRange(scrollY, viewportHeight);
-  const unstable = getUnstableStructureIds(snapshot.game.tower);
+  const unstable = getUnstableStructureIds(snapshot.game.tower, isOverhangUnlocked(snapshot.game));
   for (const structure of snapshot.game.tower.structures ?? []) {
     const maxStructureRow = structure.origin.row + structure.size.h - 1;
     if (maxStructureRow < minRow || structure.origin.row > maxRow) continue;

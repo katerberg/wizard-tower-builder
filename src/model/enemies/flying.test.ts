@@ -6,7 +6,7 @@ import { createInitialState, prepareWaveNames, step } from '@/model/game';
 import { ENEMY_TEMPLATES } from '@/model/enemies';
 import { castSpell } from '@/model/spells/cast';
 import { getBlueprint } from '@/model/blueprints';
-import { createRoom, placeRoom } from '@/model/tower';
+import { createRoom, createTower, placeRoom } from '@/model/tower';
 import { makeTestEnemy } from '@/test/subCells';
 import { heightProgression, buildSpawnQueue, unlockEnemiesForHeight } from '@/model/waves';
 
@@ -104,6 +104,7 @@ describe('gust pushes fliers from center', () => {
 describe('flier spawn in wave', () => {
   it('spawns strikers from the air band during attack', () => {
     const state = createInitialState('spawn-fly');
+    state.tower = createTower();
     for (let r = 0; r < 8; r++) {
       state.tower = placeRoom(
         state.tower,

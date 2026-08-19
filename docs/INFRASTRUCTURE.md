@@ -22,7 +22,7 @@ Three tower layers (visibility toggles; workers use glyphs when the layer is on)
 
 | Layer | Contents | Edit trigger |
 |-------|----------|--------------|
-| **rooms** | Structure blueprints (spire, buttress, housing, slot, turret, …) | Select a structure blueprint |
+| **rooms** | Structure blueprints (spire, housing, slot, turret, …) | Select a structure blueprint |
 | **infra** | Stairs, pipes, elevators | Select an infra blueprint / tool |
 | **workers** | Staff positions during attack (build: allocation UI, not free movement) | Slot/spring headcount; auto-routing at wave start |
 
@@ -95,7 +95,8 @@ Three housing types — full tables, economy, and workplaces in [`HOUSING.md`](H
 | 2 | 70% |
 | 3 | 60% |
 
-Baseline: one soldier at 100% ≈ one magic turret shot (turrets cost **1 mana** per shot — see [`PIPES.md`](PIPES.md)).
+
+Baseline: one soldier at 100% ≈ one magic turret shot (turrets reserve **5 mana** from pool cap per wave — see [`PIPES.md`](PIPES.md)).
 
 ### Staircase (`stair` infra)
 
@@ -264,7 +265,7 @@ Relevant order inside `game.step(dt)` (attack only):
 | Wave start upkeep | Per rostered occupant by kind; failure deserts |
 | Stair / pipe / elevator placement | Infra blueprint cost |
 
-**Mana** — shared pool; magic turret **1**/shot; flame turret **1**/blast; springs staffed by magi; boilers drain while producing. See [`PIPES.md`](PIPES.md).
+**Mana** — shared pool; magic turret **5** reserved from pool cap per wave; flame turret **1**/blast; springs staffed by magi; boilers drain while producing. See [`PIPES.md`](PIPES.md).
 
 ---
 

@@ -19,7 +19,8 @@ import { planInfraPlacement } from '@/model/infraPlacement';
 import { selectPipeConnectivityReport } from '@/model/pipes';
 import { selectLogisticsReport } from '@/model/staff/connectivity';
 import { housingKindOf, staffKindForHousing } from '@/model/staff/capacity';
-import { canPlace, getUnstableStructureIds, planRoomPlacement } from '@/model/tower';
+import { isOverhangUnlocked } from '@/model/research';
+import { canPlace, getUnstableStructureIds, planRoomPlacement, type StructurePlacementOptions } from '@/model/tower';
 import {
   LIBRARY_SECTIONS,
   librarySectionFor,
@@ -33,6 +34,10 @@ import type {
   Resources,
 } from '@/model/types';
 import type { Snapshot } from '../store';
+
+function structurePlacementOptions(snapshot: Snapshot): StructurePlacementOptions {
+  return { overhangUnlocked: isOverhangUnlocked(snapshot.game) };
+}
 
 export interface BuildEconomy {
   isPlanning: boolean;
@@ -126,7 +131,8 @@ export function selectGhostPlacement(snapshot: Snapshot): GhostPlacement | null 
   if (isInfraBlueprint(id)) {
     const blueprint = getInfraBlueprint(id);
     if (!blueprint?.infraKind) return null;
-    const plan = planInfraPlacement(game.tower, blueprint, view.hoveredCell);
+    const placementOptions = structurePlacementOptions(snapshot);
+    const plan = planInfraPlacement(game.tower, blueprint, view.hoveredCell, placementOptions);
     return {
       cells: [view.hoveredCell],
       valid: plan.ok && canAffordOrder(snapshot, id, view.hoveredCell),
@@ -155,7 +161,7 @@ export function selectGhostPlacement(snapshot: Snapshot): GhostPlacement | null 
   if (!blueprint) return null;
 
   if (isStructureBlueprint(blueprint)) {
-    const result = canPlace(game.tower, blueprint, view.hoveredCell);
+    const result = canPlace(game.tower, blueprint, view.hoveredCell, structurePlacementOptions(snapshot));
     return {
       cells: roomCells(view.hoveredCell, blueprint.size),
       valid: result.ok && canAffordOrder(snapshot, id, view.hoveredCell),
@@ -163,7 +169,7 @@ export function selectGhostPlacement(snapshot: Snapshot): GhostPlacement | null 
     };
   }
 
-  const plan = planRoomPlacement(game.tower, blueprint, view.hoveredCell);
+  const plan = planRoomPlacement(game.tower, blueprint, view.hoveredCell, structurePlacementOptions(snapshot));
   return {
     cells: roomCells(view.hoveredCell, blueprint.size),
     valid: plan.ok && canAffordOrder(snapshot, id, view.hoveredCell),
@@ -310,7 +316,7 @@ export function selectRoomBuildAlerts(snapshot: Snapshot): RoomBuildAlert[] {
 export function selectStructureBuildAlerts(snapshot: Snapshot): StructureBuildAlert[] {
   const { game } = snapshot;
   if (game.scene !== 'run' || game.phase !== 'day') return [];
-  return [...getUnstableStructureIds(game.tower)].map((structureId) => ({
+  return [...getUnstableStructureIds(game.tower, isOverhangUnlocked(game))].map((structureId) => ({
     structureId,
     message: 'Needs support',
   }));

@@ -1,4 +1,5 @@
 import type { Cell, Resources, SimSpeed } from '@/model/types';
+import type { BalanceBuild } from '@/test/balance/types';
 
 export type TowerLayer = 'rooms' | 'infra' | 'workers';
 
@@ -43,6 +44,11 @@ export type Intent =
   | { type: 'devSetWaveCount'; templateId: string; count: number }
   | { type: 'devClearWaveBuilder' }
   | { type: 'devLoadCurrentWave' }
+  | { type: 'devOpenSaveTower' }
+  | { type: 'devSaveTower'; name: string; expect: 'clear' | 'lose' }
+  | { type: 'devOpenLoadTower' }
+  | { type: 'devLoadFixture'; fixtureId: string }
+  | { type: 'devConfirmLoad'; fixtureId: string }
   | { type: 'scrollCamera'; deltaY: number }
   | { type: 'setViewportHeight'; height: number }
   | { type: 'undoBuild' }
@@ -58,7 +64,10 @@ export type ModalData =
   | { kind: 'structure'; structureId: string }
   | { kind: 'research' }
   | { kind: 'help' }
-  | { kind: 'waveClear'; gold: number; haul: Resources; prospectNote: string | null };
+  | { kind: 'waveClear'; gold: number; haul: Resources; prospectNote: string | null }
+  | { kind: 'saveTower'; fixture: Omit<BalanceBuild, 'id' | 'title' | 'expect'>; name?: string; expect?: 'clear' | 'lose' }
+  | { kind: 'fixtureList' }
+  | { kind: 'fixtureConfirm'; fixtureId: string };
 
 export interface WaveBuilderState {
   open: boolean;

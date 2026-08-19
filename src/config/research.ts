@@ -8,3 +8,6 @@ export const RESEARCH_MAGE_EFFICIENCY = [1, 0.8, 0.6] as const;
 export const RESEARCH_QUEUE_CAP = 5;
 /** Fraction of startCost refunded when cancelling the active project. */
 export const RESEARCH_CANCEL_REFUND_RATE = 0.5;
+
+/** Research node id that unlocks one-cell spire overhangs. */
+export const OVERHANG_RESEARCH_ID = 'tech-overhang';

@@ -64,7 +64,7 @@ export interface InfraCell {
 /** A modification instance attached to a room (one per type, leveled in place). */
 export interface RoomModification { id: string; level: number }
 
-/** Load-bearing framing piece (spire / buttress). */
+/** Load-bearing framing piece (spire block). */
 export interface Structure {
   id: string;
   blueprintId: string;
@@ -88,7 +88,7 @@ export interface RoomStats { maxHp: number; attack: number; defense: number }
 export interface StructureStats { maxHp: number }
 
 export interface Tower {
-  /** Load-bearing framing (spires / buttresses). */
+  /** Load-bearing framing (spire blocks). */
   structures: Structure[];
   /** cellKey → structureId */
   structureOccupancy: Record<string, string>;
@@ -493,6 +493,8 @@ export function isSimSpeed(value: number): value is SimSpeed {
 export interface GameState {
   scene: Scene;
   phase: Phase;
+  /** The seed this session was created with (for fixture diffing). */
+  sessionSeed: string | number;
   progressionMode: ProgressionMode;
   /** Wave counter within the run (not the win condition). */
   levelIndex: number;
@@ -585,6 +587,8 @@ export interface GameState {
   steamTurretRuntime: Record<string, SteamTurretRuntime>;
   /** Attack-phase flame turret charge state. */
   flameTurretRuntime: Record<string, FlameTurretRuntime>;
+  /** Attack-phase magic turret depower state. */
+  turretRuntime: Record<string, TurretRuntime>;
   /** Attack-phase elevator cars (one per shaft; cleared at wave end). */
   elevators: ElevatorCar[];
   /**
@@ -645,6 +649,10 @@ export interface SteamTurretRuntime {
 export interface FlameTurretRuntime {
   charge: number;
   chargeRate: number;
+}
+
+export interface TurretRuntime {
+  depowered: boolean;
 }
 
 export type PlacementReason =

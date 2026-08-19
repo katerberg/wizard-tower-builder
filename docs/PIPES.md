@@ -34,9 +34,8 @@ flowchart TB
     Pool[Shared mana pool max 20]
     MS -->|water + stationed magi| Pool
     Boiler[Boiler 1x2] -->|mana/sec| Pool
-    MT[Magic turret 1 mana/shot]
+    MT[Magic turret 5 mana reserved/wave]
     FT2[Flame turret 1 mana/blast]
-    Pool --> MT
     Pool --> FT2
   end
   BI --- Boiler
@@ -48,7 +47,7 @@ flowchart TB
 | **Soldier slots** | Gold + logistics | Guardrooms, stairs |
 | **Steam turrets** | Steam charge | Boiler water + mana |
 | **Flame turrets** | Fire pipe + mana/blast | Forge fire network + mana pool |
-| **Magic turret** | Mana per shot | Mana springs (water + magi) + pool |
+| **Magic turret** | 5 mana reserved/wave | Mana springs (water + magi) + pool |
 
 Spells spend mana but are **not** part of this logistics slice.
 
@@ -155,7 +154,7 @@ Many boilers may share water and steam networks.
 | Input | Adjacent **steam** pipe |
 | Charge | **3s** at 1.0× throughput; **keeps partial charge** if steam/mana stops |
 | Fire | **Full dump** when charged + enemy in blast zone (holds at full until a target appears) |
-| Damage | **10** (~2× magic turret’s 5) |
+| Damage | **10** (~5× magic turret’s 2) |
 | Blast | Open **left/right** faces (neighbor cell empty); **3** wide × depth **3** |
 | Targeting | **All** enemies in blast cells |
 | Both sides open | May fire **both** lanes in the same dump |
@@ -204,7 +203,7 @@ Forges do **not** consume water. They only seed fire into pipes.
 
 ### Magic turret (`turretRoom`)
 
-Existing room; **1 mana per shot**. Cooldown still ticks when dry; the shot is skipped until mana is available.
+Existing room; **2 damage every 2s**, **3** cell range. **5 mana reserved from pool cap** at wave start per turret. If the reservation exceeds the pool cap, the turret is depowered (does not fire). No per-shot mana cost. Wave 1: one turret loses even on the covering shaft; two turrets (one per side) clear (`docs/BALANCE.md`).
 
 ---
 
@@ -215,12 +214,12 @@ Existing room; **1 mana per shot**. Cooldown still ticks when dry; the shot is s
 | Pool | **Shared**; **max 20** (`MAX_MANA`) |
 | Wave start | **Full** (20) |
 | Base regen | **0** without water-connected, mage-staffed springs |
-| Magic turret | **1 mana** per shot |
+| Magic turret | **5 mana** reserved from pool cap per turret (depowers if insufficient) |
 | Flame turret | **1 mana** per blast dump |
 | Boiler | Drains mana while producing steam |
 | UI | Mana label rounded to the **nearest tenth** |
 
-Intent: mana springs + turret shots compete with boiler fire — the player cannot run everything on mana alone.
+Intent: mana springs + reserved turret cap compete with boiler fire — the player cannot run everything on mana alone.
 
 ---
 
@@ -312,7 +311,7 @@ flameTurretRuntime: Record<roomId, { charge: number; chargeRate: number }>;
 | **P3** | Boiler 1×2 + `boilerExpansion` + mana drain + steam availability |
 | **P4** | Steam turret + charge + side blast + exterior targeting |
 | **P5** | Mana spring 2×2 + water gate + inspect warning |
-| **P6** | Magic turret 1 mana/shot |
+| **P6** | Magic turret 5 mana/wave reservation |
 | **P7** | Balance pass (costs, HP, passable flags) |
 | **Post** | Magi staffing gate + spring passable (see [`HOUSING.md`](HOUSING.md)) |
 | **Fire** | Forge fire seed + flame turret charge/blast + three-fluid merge |
@@ -346,17 +345,20 @@ flameTurretRuntime: Record<roomId, { charge: number; chargeRate: number }>;
 ## Balance defaults (config + blueprints)
 
 ```ts
-// src/config/infra.ts + combat.ts
+// src/config/infra.ts + combat.ts + rooms/turret.ts
 BOILER_MANA_PER_SEC = 0.25;
 MANA_SPRING_PER_SEC = 0.5;
 MAX_MANA = 20;
+TURRET_DAMAGE = 2;
+TURRET_COOLDOWN = 2.0;
+TURRET_MANA_RESERVATION = 5;
 STEAM_TURRET_CHARGE_SEC = 3;
 STEAM_TURRET_DAMAGE = 10;
 STEAM_TURRET_BLAST_DEPTH = 3;
 FLAME_TURRET_CHARGE_SEC = 3;
 FLAME_TURRET_DAMAGE = 2;
 FLAME_TURRET_BLAST_DEPTH = 3;
-MAGIC_TURRET_MANA_COST = 1;
+MAGIC_TURRET_MANA_COST = 1; // flame turret blast, not magic turret
 BOILER_THROUGHPUT = [3, 4, 5];
 ```
 
