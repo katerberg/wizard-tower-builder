@@ -4,7 +4,6 @@ import FIXTURES from './fixtures';
 const SLOT_GRANTED_DEFENSE_PLACEMENTS = [
   { blueprintId: 'guardroomRoom', cell: { col: 6, row: 0 } },
   { blueprintId: 'slotRoom', cell: { col: 8, row: 0 } },
-  { blueprintId: 'turretRoom', cell: { col: 6, row: 2 } },
   { blueprintId: 'turretRoom', cell: { col: 8, row: 2 } },
 ] as const;
 
@@ -14,16 +13,16 @@ const SLOT_GRANTED_ALLOCS = [{ cell: { col: 8, row: 0 }, count: 2 }] as const;
 export const BALANCE_BUILDS: readonly BalanceBuild[] = [
   {
     id: 'bare-starter',
-    title: 'Unchanged starter tower (no rooms)',
+    title: 'Unchanged starter tower (includes starter turret)',
     expect: 'lose',
-    height: 5,
+    height: 4,
     seeds: BALANCE_SEEDS,
   },
   {
     id: 'slot-granted-defense',
     title: 'Guardroom + Slot + two turrets (Slot research granted, not a legal new-run kit)',
     expect: 'clear',
-    height: 5,
+    height: 4,
     research: ['bp-slot'],
     placements: SLOT_GRANTED_DEFENSE_PLACEMENTS,
     recruits: SLOT_GRANTED_RECRUITS,
@@ -32,10 +31,9 @@ export const BALANCE_BUILDS: readonly BalanceBuild[] = [
   },
   {
     id: 'one-turret',
-    title: 'Single turret on the covering shaft — must lose wave 1',
+    title: 'Starter turret only — must lose wave 1',
     expect: 'lose',
-    height: 5,
-    placements: [{ blueprintId: 'turretRoom', cell: { col: 8, row: 2 } }],
+    height: 4,
     seeds: BALANCE_SEEDS,
   },
   /**
@@ -45,13 +43,10 @@ export const BALANCE_BUILDS: readonly BalanceBuild[] = [
    */
   {
     id: 'starter-kit-legal',
-    title: 'Legal starter kit (1 turret + guardroom, no Slot)',
+    title: 'Legal starter kit (starter turret + guardroom, no Slot)',
     expect: 'lose',
-    height: 5,
-    placements: [
-      { blueprintId: 'guardroomRoom', cell: { col: 6, row: 0 } },
-      { blueprintId: 'turretRoom', cell: { col: 6, row: 2 } },
-    ],
+    height: 4,
+    placements: [{ blueprintId: 'guardroomRoom', cell: { col: 6, row: 0 } }],
     seeds: BALANCE_SEEDS,
   },
   /**
@@ -63,22 +58,19 @@ export const BALANCE_BUILDS: readonly BalanceBuild[] = [
     title: 'Two turrets, no staff — modest wave-1 clear',
     expect: 'clear',
     height: 5,
-    placements: [
-      { blueprintId: 'turretRoom', cell: { col: 6, row: 2 } },
-      { blueprintId: 'turretRoom', cell: { col: 8, row: 2 } },
-    ],
+    placements: [{ blueprintId: 'turretRoom', cell: { col: 8, row: 2 } }],
     seeds: BALANCE_SEEDS,
   },
   /**
    * Height-15 scale snapshot. Same Slot-granted defense as wave 1, grown to
    * plateau 15 (strikers unlock). Proves `raiseToHeight` + Start Wave sample
-   * the real composition (`spawnIncludes`). Idle combat loses after the
-   * wave-1 turret DPS lock (2 dmg / 2s).
+   * the real composition (`spawnIncludes`). Combat clears once turrets are
+   * retuned for the no-buttress starter geometry.
    */
   {
     id: 'scale-height-15',
     title: 'Slot-granted defense grown to height 15',
-    expect: 'lose',
+    expect: 'clear',
     height: 15,
     research: ['bp-slot'],
     placements: SLOT_GRANTED_DEFENSE_PLACEMENTS,
