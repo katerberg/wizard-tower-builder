@@ -40,7 +40,7 @@ export function createInitialState(seed: string | number = 'wizard'): GameState 
     spawnQueue: [],
     waveStartHeight: 0,
     unlockedEnemyIds: [],
-    simSpeed: loadSimSpeed(),
+    simSpeed: DEFAULT_SIM_SPEED,
     player: {
       resources: cloneResources({ ...STARTING_RESOURCES }),
       unlockedBlueprints: [...STARTING_BLUEPRINT_IDS, ...STARTING_INFRA_BLUEPRINT_IDS],
@@ -117,22 +117,6 @@ export function createInitialState(seed: string | number = 'wizard'): GameState 
   initStarterFacilities(state);
   startRun(state);
   return state;
-}
-
-function loadSimSpeed(): SimSpeed {
-  if (typeof localStorage === 'undefined') return DEFAULT_SIM_SPEED;
-  const raw = localStorage.getItem('wizard-tower-sim-speed');
-  const parsed = Number(raw);
-  if (parsed === 2 || parsed === 5) return parsed;
-  if (parsed === 10) return 5;
-  if (parsed === 4) return 5;
-  return DEFAULT_SIM_SPEED;
-}
-
-export function persistSimSpeed(speed: SimSpeed): void {
-  if (typeof localStorage !== 'undefined') {
-    localStorage.setItem('wizard-tower-sim-speed', String(speed));
-  }
 }
 
 export function beginRun(state: GameState): void {
