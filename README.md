@@ -41,7 +41,7 @@ Damage: enemy / flier hits damage **rooms** only. **Earthquake** damages **struc
 | Deselect blueprint   | **Esc**, Select tool, or click same blueprint again |
 | Remove room / framing | Right-click grid (day phase) — queues teardown |
 | Undo / revert layout | HUD buttons (day phase)                           |
-| Pause / sim speed    | Sidebar **1× / 2× / 5×** (day and night)          |
+| Pause / sim speed    | Sidebar **Pause / 1× / 2× / 5×** (day and night)  |
 | Cast spell           | Hotkeys **1–4**, then click (night phase)          |
 | Move wizard          | Click board with no spell selected (night phase)   |
 | Scroll tower         | Mouse wheel on board                                |

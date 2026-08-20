@@ -27,4 +27,10 @@ describe('planSimSteps', () => {
     expect(steps).toBe(1);
     expect(planSimSteps(0, FIXED_DT, 5).steps).toBe(5);
   });
+
+  it('runs no steps while paused', () => {
+    const { steps, accumulator } = planSimSteps(0, FIXED_DT, 0);
+    expect(steps).toBe(0);
+    expect(accumulator).toBe(0);
+  });
 });

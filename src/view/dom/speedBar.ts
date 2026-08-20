@@ -3,6 +3,7 @@ import type { Store } from '@/store/store';
 import { isSimSpeed, SIM_SPEEDS, type SimSpeed } from '@/model/types';
 
 const LABELS: Record<SimSpeed, string> = {
+  0: 'Pause',
   1: '1×',
   2: '2×',
   5: '5×',

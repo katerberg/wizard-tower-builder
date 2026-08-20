@@ -14,7 +14,12 @@ export function selectSideJobs(snapshot: Snapshot): SideJobView[] {
   return snapshot.game.sideJobs.map((job) => {
     const elapsed = job.elapsed;
     const progress = job.status === 'success' ? 1 : Math.min(1, elapsed / job.duration);
-    const remaining = job.status === 'success' ? 0 : Math.max(0, job.duration - elapsed) / speed;
+    const remaining =
+      job.status === 'success'
+        ? 0
+        : speed === 0
+          ? Math.max(0, job.duration - elapsed)
+          : Math.max(0, job.duration - elapsed) / speed;
     return {
       id: job.id,
       label: job.label,

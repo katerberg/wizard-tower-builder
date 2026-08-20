@@ -483,7 +483,7 @@ export interface ActiveWaterfall {
 
 export type SpellSchool = 'fire' | 'air' | 'earth' | 'water';
 
-export const SIM_SPEEDS = [1, 2, 5] as const;
+export const SIM_SPEEDS = [0, 1, 2, 5] as const;
 export type SimSpeed = (typeof SIM_SPEEDS)[number];
 
 export function isSimSpeed(value: number): value is SimSpeed {
