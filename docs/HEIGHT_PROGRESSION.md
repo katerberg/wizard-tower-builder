@@ -32,11 +32,11 @@ Difficulty for a wave is sampled from height at **Start Wave**. Flier spawn alti
 
 ### Unlocks vs weight (chess points)
 
-| Concept | Rule |
-|---------|------|
-| **Unlock** | Permanent for the run once the height threshold is crossed (see [when unlocks fire](#when-unlocks-fire)). |
+| Concept    | Rule                                                                                                                                                                   |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Unlock** | Permanent for the run once the height threshold is crossed.                                                                                                            |
 | **Weight** | Current height sets total difficulty budget / heavy **slots**. Below a type’s home band, that type may still appear but only in **small numbers** (“a few”) — tunable. |
-| **Purity** | No hard “forbidden below home height” after unlock. Points/slots do the suppression. |
+| **Purity** | No hard “forbidden below home height” after unlock. Points/slots do the suppression.                                                                                   |
 
 ### Anti-grind (explicit)
 
@@ -60,25 +60,25 @@ If the tower loses height between waves, the next wave should feel like the worl
 
 ## Win / lose
 
-| Rule | Decision |
-|------|----------|
-| Victory | Clear a wave while height ≥ **100** at wave end (must still be ≥ 100 after the fight). |
-| Run after win | **Over** for now (victory scene). No endless continue in v1. |
-| Minimum wave count | **None** — wave 1 at height 100 is a valid win if the tower holds. |
-| Stability | Tower must be **stable** to Start Wave (unchanged). |
-| Defeat | Solar collector HP ≤ 0. |
+| Rule                 | Decision                                                                                                                                                                              |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Victory              | Clear a wave while height ≥ **100** at wave end (must still be ≥ 100 after the fight).                                                                                                |
+| Run after win        | **Over** for now (victory scene). No endless continue in v1.                                                                                                                          |
+| Minimum wave count   | **None** — wave 1 at height 100 is a valid win if the tower holds.                                                                                                                    |
+| Stability            | Tower must be **stable** to Start Wave (unchanged).                                                                                                                                   |
+| Defeat               | Solar collector HP ≤ 0.                                                                                                                                                               |
 | Mid-wave height drop | Spawn difficulty stays **locked** from Start Wave. Dropping below 100 during the fight **voids that wave’s win** even if you clear it; you must clear a later wave while still ≥ 100. |
 
 ---
 
 ## When difficulty and unlocks sample height
 
-| Event | Behavior |
-|-------|----------|
-| **Start Wave** | Snapshot height → difficulty budget, slots, flier crown band. Spawn queue locked for the wave. |
-| **During attack** | No retune of remaining queue or live enemies when height changes. |
-| **Win check** | At wave clear: height ≥ 100 **and** scene would otherwise advance — else treat as a normal clear (gold, next build) without victory. |
-| **Unlocks** | Fire when Start Wave height first crosses a threshold (**start-of-wave** only, not merely building past a row in build phase). |
+| Event             | Behavior                                                                                                                             |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| **Start Wave**    | Snapshot height → difficulty budget, slots, flier crown band. Spawn queue locked for the wave.                                       |
+| **During attack** | No retune of remaining queue or live enemies when height changes.                                                                    |
+| **Win check**     | At wave clear: height ≥ 100 **and** scene would otherwise advance — else treat as a normal clear (gold, next build) without victory. |
+| **Unlocks**       | Fire when Start Wave height first crosses a threshold (**start-of-wave** only, not merely building past a row in build phase).       |
 
 ---
 
@@ -93,11 +93,11 @@ Keep **Build → Start Wave → Attack → Build**.
 
 ### Hold & refine vs grind
 
-| Encouraged | Discouraged |
-|------------|-------------|
-| Rebuild coverage, fix logistics, reshape cantilever crowns at a plateau | Mandatory gold farm loops at a fixed height |
-| Dip in difficulty after a collapse, then climb again | Soft gates that require N clears before the next row is “safe” |
-| Multiple waves at mid height because fights are interesting | UI/systems that imply “seal at 21 — grind 20 first” |
+| Encouraged                                                              | Discouraged                                                    |
+| ----------------------------------------------------------------------- | -------------------------------------------------------------- |
+| Rebuild coverage, fix logistics, reshape cantilever crowns at a plateau | Mandatory gold farm loops at a fixed height                    |
+| Dip in difficulty after a collapse, then climb again                    | Soft gates that require N clears before the next row is “safe” |
+| Multiple waves at mid height because fights are interesting             | UI/systems that imply “seal at 21 — grind 20 first”            |
 
 ---
 
@@ -116,16 +116,16 @@ Enemy **templates stay as-is for v1**; new types and retunes come in a later pas
 
 Rewrite freely when enemy roster changes:
 
-| Height (framing row) | Unlocks (permanent for run) |
-|----------------------|-----------------------------|
-| 0 | swarm, elite (tiny presence) |
-| 15 | striker |
-| 30 | kamikaze |
-| 40 | skirmisher |
-| 55 | denser elite slots |
-| 70 | carrier |
-| 85 | brute |
-| 100 | win-eligible + peak budget plateau |
+| Height (framing row) | Unlocks (permanent for run)        |
+| -------------------- | ---------------------------------- |
+| 0                    | swarm, elite (tiny presence)       |
+| 15                   | striker                            |
+| 30                   | kamikaze                           |
+| 40                   | skirmisher                         |
+| 55                   | denser elite slots                 |
+| 70                   | carrier                            |
+| 85                   | brute                              |
+| 100                  | win-eligible + peak budget plateau |
 
 ---
 
@@ -154,15 +154,15 @@ Enough to playtest the fantasy:
 
 ### Out of scope (this plan)
 
-| Topic | Notes |
-|-------|--------|
-| Enemy framing damage / wing collapse from foes | Demolisher overhang smash + stuck-climber smash when path empty (see enemies / demolisherCombat) |
-| New enemy types / full roster retune | Demolishers added; further roster changes later |
-| Complex resource harvesting economy | Engine: shallow mine stone ([`MINES.md`](MINES.md)). Prospect / rare veins / storage / leylines still later. |
-| Mid-wave difficulty retuning | Locked at Start Wave |
-| Endless mode after victory | Not for now |
-| Soft answer on “how few” heavies below home band | Default “a few”; tune in playtest |
-| Player blueprint / research unlocks | Separate track — [`RESEARCH.md`](RESEARCH.md); must not become height seal-gates |
+| Topic                                            | Notes                                                                                                        |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| Enemy framing damage / wing collapse from foes   | Demolisher overhang smash + stuck-climber smash when path empty (see enemies / demolisherCombat)             |
+| New enemy types / full roster retune             | Demolishers added; further roster changes later                                                              |
+| Complex resource harvesting economy              | Engine: shallow mine stone ([`MINES.md`](MINES.md)). Prospect / rare veins / storage / leylines still later. |
+| Mid-wave difficulty retuning                     | Locked at Start Wave                                                                                         |
+| Endless mode after victory                       | Not for now                                                                                                  |
+| Soft answer on “how few” heavies below home band | Default “a few”; tune in playtest                                                                            |
+| Player blueprint / research unlocks              | Separate track — [`RESEARCH.md`](RESEARCH.md); must not become height seal-gates                             |
 
 ---
 
@@ -176,27 +176,27 @@ Enough to playtest the fantasy:
 
 ## Decision log (from design pass)
 
-| # | Topic | Decision |
-|---|--------|----------|
-| 1 | After win | Run over |
-| 2 | Min waves to win | None |
-| 3 | Stability to start | Required |
-| 4 | HUD | Show height (not Level N/10) |
-| 5 | Difficulty sample | Start Wave only; win needs end-of-wave height ≥ 100 |
-| 6 | Mid-wave retune | No — lock queue at start |
-| 7 | Unlock sample | Start Wave only |
-| 8 | Pacing | Longer mid heights; epic ~5 min late |
-| 9 | Curve shape | Plateaus |
-| 10 | Composition | Slots (+ budget fill) |
-| 11 | Below-home heavies | A few (soft) |
-| 12 | Unlock ladder | Placeholder OK; enemies will change |
-| 13 | Hard gates after unlock | No — stay pure |
-| 14 | Flier altitude | Track tower crown |
-| 15 | Phase loop | Keep Build / Attack |
-| 16 | Clear gold | Scale with difficulty for now |
-| 17 | Hold vs grind | Refine OK; document anti-grind |
-| 18 | Enemy framing damage | Demolishers (room→framing, cascade) |
-| 19 | Collapse → easier next wave | Yes |
-| 20 | Ruined tower feel | Breather |
-| 21 | v1 scope | Height budget + unlocks + win + HUD; no mid-wave retune |
-| 22 | Enemy roster | Demolisher size ladder added |
+| #   | Topic                       | Decision                                                |
+| --- | --------------------------- | ------------------------------------------------------- |
+| 1   | After win                   | Run over                                                |
+| 2   | Min waves to win            | None                                                    |
+| 3   | Stability to start          | Required                                                |
+| 4   | HUD                         | Show height (not Level N/10)                            |
+| 5   | Difficulty sample           | Start Wave only; win needs end-of-wave height ≥ 100     |
+| 6   | Mid-wave retune             | No — lock queue at start                                |
+| 7   | Unlock sample               | Start Wave only                                         |
+| 8   | Pacing                      | Longer mid heights; epic ~5 min late                    |
+| 9   | Curve shape                 | Plateaus                                                |
+| 10  | Composition                 | Slots (+ budget fill)                                   |
+| 11  | Below-home heavies          | A few (soft)                                            |
+| 12  | Unlock ladder               | Placeholder OK; enemies will change                     |
+| 13  | Hard gates after unlock     | No — stay pure                                          |
+| 14  | Flier altitude              | Track tower crown                                       |
+| 15  | Phase loop                  | Keep Build / Attack                                     |
+| 16  | Clear gold                  | Scale with difficulty for now                           |
+| 17  | Hold vs grind               | Refine OK; document anti-grind                          |
+| 18  | Enemy framing damage        | Demolishers (room→framing, cascade)                     |
+| 19  | Collapse → easier next wave | Yes                                                     |
+| 20  | Ruined tower feel           | Breather                                                |
+| 21  | v1 scope                    | Height budget + unlocks + win + HUD; no mid-wave retune |
+| 22  | Enemy roster                | Demolisher size ladder added                            |
