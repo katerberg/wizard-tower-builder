@@ -23,7 +23,6 @@ import {
   tickLaborerHarvestAndPump,
   tickLaborerRepairs,
 } from '@/model/staff';
-import { selectLogisticsReport } from '@/model/staff/connectivity';
 import { endWave } from '@/model/phases';
 import { createRoom, createStructure, createTower, placeRoom, placeStructure } from '@/model/tower';
 
@@ -207,10 +206,6 @@ describe('mine stone harvest', () => {
     assignSurplusLaborers(state);
     expect(state.staff[0].targetWorkplaceId).toBeNull();
     expect(state.staff[0].status).toBe('idle');
-
-    state.phase = 'day';
-    const report = selectLogisticsReport(state);
-    expect(report.warnings.some((w) => w.includes('for mining'))).toBe(true);
   });
 
   it('sets pendingWaveClear with haul totals on endWave', () => {

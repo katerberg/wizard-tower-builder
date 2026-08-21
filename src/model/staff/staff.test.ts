@@ -12,6 +12,7 @@ import { getBlueprint } from '@/model/blueprints';
 import { createRoom,
   createStructure, createTower, placeRoom, placeStructure } from '@/model/tower';
 import { placeInfra } from '@/model/infra';
+import { reconcileAutoStairs } from '@/model/autoStairs';
 import { tickManaSprings } from '@/model/rooms/manaSpring';
 import {
   deployStaffForWave,
@@ -33,9 +34,9 @@ function towerWithStairShaft() {
   state.tower = placeStructure(state.tower, createStructure('sg2', stem, { col: 3, row: 2 }));
   state.tower = placeRoom(state.tower, createRoom('b1', guardroomBp, { col: 3, row: 0 }));
   state.tower = placeRoom(state.tower, createRoom('s1', slotBp, { col: 3, row: 2 }));
-  state.tower = placeInfra(state.tower, { col: 3, row: 0 }, 'stair');
-  state.tower = placeInfra(state.tower, { col: 3, row: 1 }, 'stair');
-  state.tower = placeInfra(state.tower, { col: 3, row: 2 }, 'stair');
+  const stairs = reconcileAutoStairs(state.tower);
+  expect(stairs.ok).toBe(true);
+  state.tower = stairs.tower;
   return state;
 }
 
@@ -171,10 +172,9 @@ describe('magi + mana springs', () => {
     );
     state.tower = placeInfra(state.tower, { col: 7, row: 0 }, 'pipe');
     state.tower = placeInfra(state.tower, { col: 7, row: 1 }, 'pipe');
-    // Full stair shaft so magi can descend to the spring on row 0.
-    state.tower = placeInfra(state.tower, { col: 4, row: 0 }, 'stair');
-    state.tower = placeInfra(state.tower, { col: 4, row: 1 }, 'stair');
-    state.tower = placeInfra(state.tower, { col: 4, row: 2 }, 'stair');
+    const stairs = reconcileAutoStairs(state.tower);
+    expect(stairs.ok).toBe(true);
+    state.tower = stairs.tower;
     state.housingRecruited.ch = 2;
     state.manaSpringAllocations.spring = 2;
     state.player.resources.gold = 100;

@@ -51,9 +51,9 @@ describe('selectLibraryBlueprints', () => {
     expect(items.find((b) => b.id === 'stem')?.section).toBe('structure');
     expect(items.find((b) => b.id === 'guardroomRoom')?.section).toBe('housing');
     expect(items.find((b) => b.id === 'researchRoom')?.section).toBe('generators');
-    expect(items.find((b) => b.id === 'staircase')?.section).toBe('infrastructure');
-    expect(items.find((b) => b.id === 'turretRoom')?.section).toBe('damagers');
+    expect(items.find((b) => b.id === 'staircase')).toBeUndefined();
     expect(items.find((b) => b.id === 'pipe')).toBeUndefined();
+    expect(items.find((b) => b.id === 'turretRoom')?.section).toBe('damagers');
     expect(items.find((b) => b.id === 'manaSpringRoom')).toBeUndefined();
   });
 });
@@ -89,21 +89,23 @@ describe('selectLibrarySections', () => {
 });
 
 describe('selectRoomBuildAlerts', () => {
-  it('flags allocated slots that lack a stair path', () => {
+  it('connects allocated slots via auto-stairs without stair warnings', () => {
     const store = new Store('alert-slot');
-    const { game } = store.getSnapshot();
-    const stem = getBlueprint('stem')!;
-    const guardroomBp = getBlueprint('guardroomRoom')!;
-    const slotBp = getBlueprint('slotRoom')!;
-    game.tower = placeStructure(game.tower, createStructure('sb1', stem, { col: 4, row: 0 }));
-    game.tower = placeStructure(game.tower, createStructure('ss1', stem, { col: 10, row: 3 }));
-    game.tower = placeRoom(game.tower, createRoom('b1', guardroomBp, { col: 4, row: 0 }));
-    game.tower = placeRoom(game.tower, createRoom('s1', slotBp, { col: 10, row: 3 }));
-    game.housingRecruited.b1 = 1;
-    game.slotAllocations.s1 = 1;
+    store.dispatch({ type: 'selectBlueprint', blueprintId: 'stem' });
+    store.dispatch({ type: 'placeSelectedAt', cell: { col: 6, row: 1 } });
+    completeConstruction(store);
+    store.dispatch({ type: 'selectBlueprint', blueprintId: 'guardroomRoom' });
+    store.dispatch({ type: 'placeSelectedAt', cell: { col: 6, row: 1 } });
+    completeConstruction(store);
+    store.dispatch({ type: 'selectBlueprint', blueprintId: 'slotRoom' });
+    store.dispatch({ type: 'placeSelectedAt', cell: { col: 8, row: 1 } });
+    completeConstruction(store);
 
+    const { game } = store.getSnapshot();
+    const slot = game.tower.rooms.find((r) => r.blueprintId === 'slotRoom')!;
+    expect(Object.values(game.tower.infra).some((c) => c.kind === 'stair')).toBe(true);
     const alerts = selectRoomBuildAlerts(store.getSnapshot());
-    expect(alerts.some((a) => a.roomId === 's1' && a.message.includes('stairs'))).toBe(true);
+    expect(alerts.some((a) => a.roomId === slot.id && a.message.includes('stairs'))).toBe(false);
   });
 
   it('flags guardrooms with no recruited soldiers', () => {

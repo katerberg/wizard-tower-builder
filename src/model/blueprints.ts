@@ -239,7 +239,7 @@ export const STARTING_BLUEPRINT_IDS: string[] = [
 ];
 
 /** Infra ids unlocked at run start (library filters these separately). */
-export const STARTING_INFRA_BLUEPRINT_IDS: string[] = ['staircase'];
+export const STARTING_INFRA_BLUEPRINT_IDS: string[] = [];
 
 /** Room mods available without research. */
 export const STARTING_MODIFICATION_IDS: string[] = ['spikes'];
@@ -247,7 +247,6 @@ export const STARTING_MODIFICATION_IDS: string[] = ['spikes'];
 /** Blueprint ids whose footprints take stone wear (weathering + abrasion). */
 export const STONE_BUILT_BLUEPRINT_IDS = new Set([
   'stem',
-  'staircase',
   'guardroomRoom',
   'quartersRoom',
   'slotRoom',

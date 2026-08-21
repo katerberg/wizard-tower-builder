@@ -12,7 +12,7 @@ Complements [`HOUSING.md`](HOUSING.md) (laborer jobs), [`HEIGHT_PROGRESSION.md`]
 |-------|----------|
 | `GameState.mine` | Deterministic shallow shaft under ground framing (starter prefers col 7) |
 | Pathing | Interior graph treats mine tunnels as walkable; free vertical in/into mine |
-| Ground access | Quarters must path to the mine entrance via **stairs/elevators** (vertical); disconnected quarters warn and cannot mine |
+| Ground access | Quarters path to the mine entrance via **auto-stairs** (or elevators); layout edits that would disconnect rooms are blocked |
 | Jobs | After repair + hand-pump reserve, surplus laborers who can reach ground path to stone patches |
 | Yield | **Stone** at `MINE_STONE_HARVEST_PER_SEC`; **metal/gold** with `RARE_PATCH_FALLOFF` (×0.5 per extra laborer); passive iron drip at `PASSIVE_IRON_FRACTION` (3%); haul deposits to **storage rooms** (not wallet) |
 | Patches | Finite; deplete; laborer retargets when empty |

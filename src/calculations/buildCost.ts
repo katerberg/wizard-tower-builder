@@ -14,6 +14,7 @@ import {
 export function infraBuildCost(tower: Tower): Resources {
   let cost = emptyResources();
   for (const cell of Object.values(tower.infra ?? {})) {
+    if (cell.kind === 'stair') continue; // auto-stairs are free
     const bp = getInfraBlueprint(infraBlueprintIdForKind(cell.kind));
     if (bp) cost = addResources(cost, bp.cost);
   }

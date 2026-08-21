@@ -4,6 +4,7 @@ import { formatResourceCost } from '@/calculations/resources';
 import { getInfraBlueprint, isInfraBlueprint } from '@/model/infraBlueprints';
 import { getInfraAt, removeInfraAt } from '@/model/infra';
 import { applyInfraPlacement, planInfraPlacement } from '@/model/infraPlacement';
+import { reconcileAutoStairs } from '@/model/autoStairs';
 import { addMessage } from '@/model/messages';
 import { isOverhangUnlocked } from '@/model/research';
 import { roomAt } from '@/model/tower';
@@ -50,11 +51,25 @@ function placeInfraSelected(ctx: HandlerContext, cell: { col: number; row: numbe
 
   const blueprint = getInfraBlueprint(id);
   if (!blueprint?.infraKind) return;
+  if (blueprint.infraKind === 'stair') {
+    addMessage(game, 'Stairs are placed automatically.', 'info');
+    return;
+  }
 
   const placementOptions = { overhangUnlocked: isOverhangUnlocked(game) };
   const plan = planInfraPlacement(game.tower, blueprint, cell, placementOptions);
   if (plan.isToggleOff) {
-    game.tower = removeInfraAt(game.tower, cell.col, cell.row);
+    let next = removeInfraAt(game.tower, cell.col, cell.row);
+    if ((next.rooms?.length ?? 0) > 0) {
+      const stairs = reconcileAutoStairs(next);
+      if (!stairs.ok) {
+        console.warn(`Auto-stairs: cannot remove infra at ${cell.col},${cell.row}: ${stairs.reason}`);
+        addMessage(game, 'Cannot change layout: would disconnect rooms from ground.', 'info');
+        return;
+      }
+      next = stairs.tower;
+    }
+    game.tower = next;
     addMessage(game, `Removed ${blueprint.name}.`, 'info');
     return;
   }
@@ -75,7 +90,17 @@ function placeInfraSelected(ctx: HandlerContext, cell: { col: number; row: numbe
     return;
   }
 
-  game.tower = applyInfraPlacement(game.tower, blueprint, cell, ctx.nextRoomId(), plan);
+  let next = applyInfraPlacement(game.tower, blueprint, cell, ctx.nextRoomId(), plan);
+  if ((next.rooms?.length ?? 0) > 0) {
+    const stairs = reconcileAutoStairs(next);
+    if (!stairs.ok) {
+      console.warn(`Auto-stairs: cannot place ${blueprint.name} at ${cell.col},${cell.row}: ${stairs.reason}`);
+      addMessage(game, 'Cannot change layout: would disconnect rooms from ground.', 'info');
+      return;
+    }
+    next = stairs.tower;
+  }
+  game.tower = next;
   if (plan.needsStem) {
     addMessage(game, `Placed Spire Block and ${blueprint.name}.`, 'info');
   } else {
@@ -87,8 +112,20 @@ function removeInfraAtCell(ctx: HandlerContext, cell: { col: number; row: number
   const { game } = ctx;
   if (game.phase !== 'day') return;
   if (roomAt(game.tower, cell.col, cell.row)) return;
-  if (!getInfraAt(game.tower, cell.col, cell.row)) return;
+  const existing = getInfraAt(game.tower, cell.col, cell.row);
+  if (!existing) return;
+  if (existing.kind === 'stair') return;
 
-  game.tower = removeInfraAt(game.tower, cell.col, cell.row);
+  let next = removeInfraAt(game.tower, cell.col, cell.row);
+  if ((next.rooms?.length ?? 0) > 0) {
+    const stairs = reconcileAutoStairs(next);
+    if (!stairs.ok) {
+      console.warn(`Auto-stairs: cannot remove infra at ${cell.col},${cell.row}: ${stairs.reason}`);
+      addMessage(game, 'Cannot change layout: would disconnect rooms from ground.', 'info');
+      return;
+    }
+    next = stairs.tower;
+  }
+  game.tower = next;
   addMessage(game, 'Removed infrastructure.', 'info');
 }

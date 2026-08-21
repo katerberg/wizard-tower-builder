@@ -76,16 +76,15 @@ describe('findInteriorPath', () => {
 describe('infra placement', () => {
   it('allows replacing one infra kind with another', () => {
     const tower = createTower();
-    const stair = getInfraBlueprint('staircase')!;
     const pipe = getInfraBlueprint('pipe')!;
     const elevator = getInfraBlueprint('elevator')!;
-    expect(canPlaceInfra(tower, stair, { col: 1, row: 0 }).ok).toBe(true);
-    const withStair = placeInfra(tower, { col: 1, row: 0 }, 'stair');
-    expect(canPlaceInfra(withStair, pipe, { col: 1, row: 0 }).ok).toBe(true);
-    expect(placeInfra(withStair, { col: 1, row: 0 }, 'pipe').infra['1,0']?.kind).toBe('pipe');
-    expect(canPlaceInfra(withStair, elevator, { col: 1, row: 0 }).ok).toBe(true);
-    expect(placeInfra(withStair, { col: 1, row: 0 }, 'elevator').infra['1,0']?.kind).toBe(
+    expect(canPlaceInfra(tower, pipe, { col: 1, row: 0 }).ok).toBe(true);
+    const withPipe = placeInfra(tower, { col: 1, row: 0 }, 'pipe');
+    expect(canPlaceInfra(withPipe, elevator, { col: 1, row: 0 }).ok).toBe(true);
+    expect(placeInfra(withPipe, { col: 1, row: 0 }, 'elevator').infra['1,0']?.kind).toBe(
       'elevator',
     );
+    const withElevator = placeInfra(tower, { col: 1, row: 0 }, 'elevator');
+    expect(placeInfra(withElevator, { col: 1, row: 0 }, 'pipe').infra['1,0']?.kind).toBe('pipe');
   });
 });
