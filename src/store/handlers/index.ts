@@ -57,6 +57,7 @@ export function applyIntent(ctx: HandlerContext, intent: Intent): void {
     case 'setSlotAllocation':
     case 'setManaSpringAllocation':
     case 'setResearchAllocation':
+    case 'setLeylineAllocation':
     case 'setProspectAllocation':
       handleStaffIntent(ctx, intent);
       break;

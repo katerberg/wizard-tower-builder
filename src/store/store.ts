@@ -1,5 +1,6 @@
 import { createInitialState, step } from '@/model/game';
 import { MIN_VIEWPORT_HEIGHT } from '@/calculations/camera';
+import { activeHotbarSpellIds } from '@/model/spells/progression';
 import type { ExteriorNode, Phase, SimSpeed } from '@/model/types';
 import type { Intent, ViewState } from './intents';
 import type { HandlerContext, StoreRefs } from './context';
@@ -96,6 +97,7 @@ export class Store {
 
   /** Notify subscribers once per frame if the simulation changed. */
   flush(): void {
+    this.clearStaleSpellSelection();
     this.syncPhaseView();
 
     if (this.dirty) {
@@ -106,8 +108,19 @@ export class Store {
 
   dispatch(intent: Intent): void {
     applyIntent(this.handlerContext(), intent);
+    this.clearStaleSpellSelection();
     this.syncPhaseView();
     this.emit();
+  }
+
+  private clearStaleSpellSelection(): void {
+    const { game, view } = this.refs;
+    const selected = view.selectedSpellId;
+    if (!selected) return;
+    if (!activeHotbarSpellIds(game).includes(selected)) {
+      view.selectedSpellId = null;
+      view.castAnchor = null;
+    }
   }
 
   private handlerContext(): HandlerContext {
@@ -146,6 +159,7 @@ export class Store {
       slotAllocations: structuredClone(game.slotAllocations),
       manaSpringAllocations: structuredClone(game.manaSpringAllocations),
       researchRoomAllocations: structuredClone(game.researchRoomAllocations),
+      leylineResearchAllocations: structuredClone(game.leylineResearchAllocations),
       pendingRecruitSpend: game.pendingRecruitSpend,
       prospectAllocation: game.prospectAllocation,
     });

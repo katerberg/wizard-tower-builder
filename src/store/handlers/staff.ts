@@ -6,10 +6,12 @@ import {
   RESEARCH_ROOM_STAFF_CAPACITY,
   SOLDIER_RECRUIT_COST,
 } from '@/config/constants';
+import { LEYLINE_RESEARCH_STAFF_CAP } from '@/config/spellProgression';
 import { RECRUIT_SIDE_JOB_SEC } from '@/config/dayNight';
 import { addMessage } from '@/model/messages';
 import { isManaSpringRoom } from '@/model/pipes';
 import { isResearchRoom } from '@/model/research';
+import { isLeylineResearchRoom } from '@/model/spells/progression';
 import { getBlueprint } from '@/model/blueprints';
 import { enqueueSideJob } from '@/model/sideJobs';
 import {
@@ -63,6 +65,9 @@ export function handleStaffIntent(ctx: HandlerContext, intent: Intent): void {
       break;
     case 'setResearchAllocation':
       setResearchAllocation(ctx, intent.researchRoomId, intent.count);
+      break;
+    case 'setLeylineAllocation':
+      setLeylineAllocation(ctx, intent.leylineRoomId, intent.count);
       break;
     case 'setProspectAllocation':
       setProspectAllocation(ctx, intent.count);
@@ -164,6 +169,18 @@ function setResearchAllocation(ctx: HandlerContext, researchRoomId: string, coun
   const clamped = Math.max(0, Math.min(RESEARCH_ROOM_STAFF_CAPACITY, Math.floor(count)));
   if ((game.researchRoomAllocations[researchRoomId] ?? 0) === clamped) return;
   game.researchRoomAllocations[researchRoomId] = clamped;
+}
+
+function setLeylineAllocation(ctx: HandlerContext, leylineRoomId: string, count: number): void {
+  const { game } = ctx;
+  if (game.phase !== 'day') return;
+
+  const room = game.tower.rooms.find((r) => r.id === leylineRoomId);
+  if (!room || !isLeylineResearchRoom(room)) return;
+
+  const clamped = Math.max(0, Math.min(LEYLINE_RESEARCH_STAFF_CAP, Math.floor(count)));
+  if ((game.leylineResearchAllocations[leylineRoomId] ?? 0) === clamped) return;
+  game.leylineResearchAllocations[leylineRoomId] = clamped;
 }
 
 function setProspectAllocation(ctx: HandlerContext, count: number): void {

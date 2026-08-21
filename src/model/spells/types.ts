@@ -22,7 +22,8 @@ export type CastFailureReason =
   | 'invalid_placement'
   | 'invalid_segment'
   | 'concentrating'
-  | 'no_charge';
+  | 'no_charge'
+  | 'locked';
 
 export type SpellTarget =
   | { kind: 'cell'; cell: Cell }

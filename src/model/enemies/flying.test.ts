@@ -72,6 +72,8 @@ describe('carrier kamikaze lifetime', () => {
 describe('Wall of Flame open air', () => {
   it('allows a segment entirely in open air', () => {
     const state = createInitialState('wof-air');
+    state.devMode = true;
+    state.activeSpellSchool = 'fire';
     state.phase = 'night';
     state.player.mana = 20;
     const result = castSpell(state, 'wallOfFlame', {
@@ -88,6 +90,8 @@ describe('Wall of Flame open air', () => {
 describe('gust pushes fliers from center', () => {
   it('shoves a flier away from the gust cell', () => {
     const state = createInitialState('gust-fly');
+    state.devMode = true;
+    state.activeSpellSchool = 'air';
     state.phase = 'night';
     state.player.mana = 20;
     // Place in open air near the starter perch so gust is in range.

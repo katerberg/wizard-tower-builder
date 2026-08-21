@@ -25,6 +25,11 @@ import {
   placeRoomReplacing,
   placeStructureReplacing,
 } from '../tower';
+import { validateLeylineRoomPlacement } from '../spells/progression';
+import {
+  activeHotbarSpellIds,
+  refreshLeylineSpellState,
+} from '../spells/progression';
 import { seedSpecialtyRoomDefaults } from '../staff';
 import { registerStorageSite } from '../storage';
 import { STORAGE_ROOM_CAPACITY } from '@/config/storage';
@@ -88,6 +93,12 @@ export function createBuildOrder(
   const placement = canPlace(state.tower, bp, origin);
   if (!placement.ok) {
     addMessage(state, `Cannot build here: ${placement.reason.replace(/_/g, ' ')}.`, 'info');
+    return null;
+  }
+
+  const leyline = validateLeylineRoomPlacement(state, bp.id, origin, bp.size);
+  if (leyline && !leyline.ok) {
+    addMessage(state, `Cannot build here: ${leyline.reason.replace(/_/g, ' ')}.`, 'info');
     return null;
   }
 
@@ -319,6 +330,7 @@ export function completeTeardownOrder(state: GameState, order: ConstructionOrder
   };
   refundToNearestStorage(state, refund, order.origin);
 
+  const prevSpells = activeHotbarSpellIds(state);
   state.tower.rooms = state.tower.rooms.filter((r) => r.id !== order.targetId);
   const occ = { ...state.tower.occupancy };
   for (const key of Object.keys(occ)) {
@@ -326,6 +338,8 @@ export function completeTeardownOrder(state: GameState, order: ConstructionOrder
   }
   state.tower.occupancy = occ;
   delete state.storageSites[order.targetId!];
+  delete state.leylineResearchAllocations[order.targetId!];
+  refreshLeylineSpellState(state, prevSpells);
 
   addMessage(state, `Removed ${bp?.name ?? 'room'}.`, 'info');
   state.constructionOrders = state.constructionOrders.filter((o) => o.id !== order.id);

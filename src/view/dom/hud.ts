@@ -1,6 +1,7 @@
 import { formatResourceAmount } from '@/calculations/resources';
 import { WIN_HEIGHT } from '@/model/waves';
 import { completedTowerExtents } from '@/model/tower';
+import { LEYLINE_RESEARCH_BLUEPRINT_ID } from '@/model/spells/progression';
 import {
   selectBuildEconomy,
   selectBuildUndoState,
@@ -136,6 +137,11 @@ export function createHud(root: HTMLElement, store: Store): () => void {
          </div>`
       : '';
 
+    const leylineUnlocked = game.player.unlockedBlueprints.includes(LEYLINE_RESEARCH_BLUEPRINT_ID);
+    const leylineHtml = leylineUnlocked
+      ? '<p class="mode-hint">Leyline bands at rows 25 · 50 · 75</p>'
+      : '';
+
     root.innerHTML = `
       <h1>Wizard Tower</h1>
       <div class="stat"><span>${cycleIcon} ${cycleLabel} ${phaseInfo.dayIndex}</span><strong>${timerSec}s</strong></div>
@@ -148,6 +154,7 @@ export function createHud(root: HTMLElement, store: Store): () => void {
       ${attackInfo}
       ${prospectHtml}
       ${buildModeHint}
+      ${leylineHtml}
       ${phaseControls}
       <div class="dev-row">
         <button data-action="toggleDevMode">${game.devMode ? 'Dev: on' : 'Dev: off'}</button>

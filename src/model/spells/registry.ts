@@ -57,7 +57,8 @@ export function hotbarSpellIdsForSchool(school: SpellSchool): readonly string[] 
   return FIRE_HOTBAR_SPELL_IDS;
 }
 
-export function listHotbarSpells(state: GameState): SpellDef[] {
+/** Full school kit (ignores leyline gates). Prefer progression.listHotbarSpells in gameplay. */
+export function listSchoolHotbarSpells(state: GameState): SpellDef[] {
   return hotbarSpellIdsForSchool(state.activeSpellSchool)
     .map((id) => getSpell(id))
     .filter((s): s is SpellDef => !!s);

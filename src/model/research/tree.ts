@@ -85,6 +85,16 @@ export const RESEARCH_NODES: ResearchNode[] = [
     progressRequired: 35,
   },
   {
+    id: 'bp-leyline-research',
+    name: 'Leyline Research',
+    description: 'Build Leyline Research rooms on energy bands to awaken successive school spells.',
+    kind: 'blueprint',
+    unlocksBlueprints: ['leylineResearchRoom'],
+    requires: ['bp-mana-spring'],
+    startCost: { souls: 10, stone: 8 },
+    progressRequired: 30,
+  },
+  {
     id: 'bp-hydrant',
     name: 'Hydrants',
     description: 'Spray water onto climbers from the shell.',

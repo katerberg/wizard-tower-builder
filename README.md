@@ -198,12 +198,13 @@ Mount points: `#board`, `#stage`, `#hud`, `#library`, `#message-log`, `#modal-ro
 | Day/night cycle / construction queue | [`docs/DAY_NIGHT.md`](docs/DAY_NIGHT.md) + [`src/model/construction/`](src/model/construction/) |
 | Player movement / solar collector | [`docs/PLAYER_MOVEMENT.md`](docs/PLAYER_MOVEMENT.md) |
 | Add a spell | [`src/model/spells/README.md`](src/model/spells/README.md) |
+| Spell progression / leyline rooms | [`docs/SPELL_PROGRESSION.md`](docs/SPELL_PROGRESSION.md) |
 | Add a room (passive or behavioral) | [`src/model/rooms/README.md`](src/model/rooms/README.md) + `blueprints.ts` |
 | Add a modification | `src/model/modifications/` (one file + registry line) |
 | Shell fortifications (design / roadmap) | [`docs/FORTIFICATIONS.md`](docs/FORTIFICATIONS.md) + [`.cursor/plans/fortifications_index.plan.md`](.cursor/plans/fortifications_index.plan.md) |
 | Mine harvest / prospecting (design) | [`docs/MINES.md`](docs/MINES.md) + [`.cursor/plans/mine_harvest_index.plan.md`](.cursor/plans/mine_harvest_index.plan.md) |
 | Current build costs by resource | [`docs/ECONOMY_COST_MATRIX.md`](docs/ECONOMY_COST_MATRIX.md) |
-| Research / tech tree / spell discovery (design) | [`docs/RESEARCH.md`](docs/RESEARCH.md) + [`.cursor/plans/research_index.plan.md`](.cursor/plans/research_index.plan.md) |
+| Research / tech tree | [`docs/RESEARCH.md`](docs/RESEARCH.md) + [`.cursor/plans/research_index.plan.md`](.cursor/plans/research_index.plan.md) |
 | Tweak balance numbers | [`src/config/README.md`](src/config/README.md) + [`docs/BALANCE.md`](docs/BALANCE.md) |
 | Add / lock an expected build | [`docs/BALANCE.md`](docs/BALANCE.md) + [`src/test/balance/builds.ts`](src/test/balance/builds.ts) |
 | Save / load tower fixtures from dev mode | [`docs/BALANCE.md`](docs/BALANCE.md) ("Save from dev mode" section) |

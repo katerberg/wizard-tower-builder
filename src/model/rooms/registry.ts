@@ -4,6 +4,7 @@ import { flameTurretRoom } from './flameTurret';
 import { hydrantRoom } from './hydrant';
 import { manaSpringRoom } from './manaSpring';
 import { researchRoomBehavior } from '@/model/research/rooms';
+import { leylineResearchRoom } from './leylineResearch';
 import { slotRoom } from './slot';
 import { steamTurretRoom } from './steamTurret';
 import { turretRoom } from './turret';
@@ -18,6 +19,7 @@ const ROOM_BEHAVIORS: RoomBehaviorDef[] = [
   steamTurretRoom,
   hydrantRoom,
   researchRoomBehavior,
+  leylineResearchRoom,
 ];
 
 export function getRoomBehavior(id: string): RoomBehaviorDef | undefined {
