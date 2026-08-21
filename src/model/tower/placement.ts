@@ -2,6 +2,7 @@ import { getBlueprint, isStructureBlueprint } from '../blueprints';
 import { MAX_OVERHANG_STEP } from '@/config/constants';
 import { cellKey, inBounds, parseKey, roomCells } from '../../calculations/grid';
 import type { Blueprint, Cell, PlacementReason, PlacementResult, Room, Structure, Tower } from '../types';
+import { reconcileAutoStairs } from '../autoStairs';
 import { roomAt, structureAt, hasStructure } from './query';
 import { analyzeSupport, structureComponents, type SupportAnalysis } from './stability';
 import { removeRoom, removeStructure } from './sell';
@@ -216,6 +217,12 @@ export function canPlaceStructure(
   if (!connectsToExistingMass(cleared.tower, candidate, cells, overhangUnlocked)) {
     return fail('disconnected');
   }
+  if ((cleared.tower.rooms?.length ?? 0) > 0) {
+    const stairs = reconcileAutoStairs(candidate);
+    if (!stairs.ok) {
+      return fail(stairs.reason === 'disconnected' ? 'disconnected' : 'no_shaft');
+    }
+  }
   return { ok: true, reason: 'ok' };
 }
 
@@ -258,6 +265,16 @@ export function planRoomPlacement(
     }
     stemCells.push(cell);
     probe = placeStructure(probe, createStructure(`${PLACEMENT_PROBE_ID}-stem-${stemCells.length}`, stem, cell));
+  }
+
+  probe = placeRoom(probe, createRoom(PLACEMENT_PROBE_ID, blueprint, origin));
+  const stairs = reconcileAutoStairs(probe);
+  if (!stairs.ok) {
+    return {
+      ok: false,
+      reason: stairs.reason === 'disconnected' ? 'disconnected' : 'no_shaft',
+      stemCells: [],
+    };
   }
 
   return { ok: true, reason: 'ok', stemCells };
@@ -337,8 +354,16 @@ export function placeStructureReplacing(
   if (!legality.ok) {
     return legality;
   }
-  const placed = placeStructure(cleared.tower, structure);
-  return { ok: true, reason: 'ok', tower: reconcileShellAfterStructureEdit(placed) };
+  let placed = placeStructure(cleared.tower, structure);
+  placed = reconcileShellAfterStructureEdit(placed);
+  if ((placed.rooms?.length ?? 0) > 0) {
+    const stairs = reconcileAutoStairs(placed);
+    if (!stairs.ok) {
+      return fail(stairs.reason === 'disconnected' ? 'disconnected' : 'no_shaft');
+    }
+    return { ok: true, reason: 'ok', tower: stairs.tower };
+  }
+  return { ok: true, reason: 'ok', tower: placed };
 }
 
 /**
@@ -373,5 +398,9 @@ export function placeRoomReplacing(
   }
   next = placeRoom(next, room);
   next = reconcileShellAfterStructureEdit(next);
-  return { ok: true, reason: 'ok', tower: next };
+  const stairs = reconcileAutoStairs(next);
+  if (!stairs.ok) {
+    return fail(stairs.reason === 'disconnected' ? 'disconnected' : 'no_shaft');
+  }
+  return { ok: true, reason: 'ok', tower: stairs.tower };
 }

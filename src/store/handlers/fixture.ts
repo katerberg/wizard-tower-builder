@@ -62,12 +62,14 @@ export function extractFixtureFromState(
     }
   }
 
-  // Diff infra
+  // Diff infra (skip auto-stairs — they are reconciled from rooms)
   for (const [key, infraCell] of Object.entries(currentTower.infra)) {
+    if (infraCell.kind === 'stair') continue;
     const baselineInfra = baselineTower.infra[key];
     if (!baselineInfra?.kind || baselineInfra.kind !== infraCell.kind) {
       const { col, row } = parseKey(key);
       const blueprintId = infraBlueprintIdForKind(infraCell.kind);
+      if (!blueprintId) continue;
       const pKey = `infra-${col},${row}`;
       if (!placedKeys.has(pKey)) {
         placements.push({ blueprintId, cell: { col, row } });

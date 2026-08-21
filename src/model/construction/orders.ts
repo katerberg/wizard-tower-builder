@@ -24,7 +24,9 @@ import {
   planRoomPlacement,
   placeRoomReplacing,
   placeStructureReplacing,
+  removeRoom,
 } from '../tower';
+import { reconcileAutoStairs } from '../autoStairs';
 import { seedSpecialtyRoomDefaults } from '../staff';
 import { registerStorageSite } from '../storage';
 import { STORAGE_ROOM_CAPACITY } from '@/config/storage';
@@ -221,6 +223,14 @@ export function createTeardownOrder(
     return null;
   }
 
+  const simulated = removeRoom(state.tower, targetRoomId);
+  const stairs = reconcileAutoStairs(simulated);
+  if (!stairs.ok) {
+    console.warn(`Auto-stairs: cannot teardown room ${targetRoomId}: ${stairs.reason}`);
+    addMessage(state, 'Cannot remove: would disconnect rooms from ground.', 'info');
+    return null;
+  }
+
   const order: ConstructionOrder = {
     id: nextOrderId(),
     kind: 'teardown',
@@ -312,6 +322,15 @@ export function completeTeardownOrder(state: GameState, order: ConstructionOrder
     return;
   }
   const bp = getBlueprint(room.blueprintId);
+
+  const simulated = removeRoom(state.tower, order.targetId!);
+  const stairs = reconcileAutoStairs(simulated);
+  if (!stairs.ok) {
+    console.warn(`Auto-stairs: teardown reconcile failed for ${order.targetId}: ${stairs.reason}`);
+    addMessage(state, 'Cannot remove: would disconnect rooms from ground.', 'info');
+    return;
+  }
+
   const cost = stockpileFromCost(bp?.cost ?? {});
   const refund = {
     stone: Math.floor(cost.stone * TEARDOWN_REFUND_RATE),
@@ -319,13 +338,8 @@ export function completeTeardownOrder(state: GameState, order: ConstructionOrder
   };
   refundToNearestStorage(state, refund, order.origin);
 
-  state.tower.rooms = state.tower.rooms.filter((r) => r.id !== order.targetId);
-  const occ = { ...state.tower.occupancy };
-  for (const key of Object.keys(occ)) {
-    if (occ[key] === order.targetId) delete occ[key];
-  }
-  state.tower.occupancy = occ;
   delete state.storageSites[order.targetId!];
+  state.tower = stairs.tower;
 
   addMessage(state, `Removed ${bp?.name ?? 'room'}.`, 'info');
   state.constructionOrders = state.constructionOrders.filter((o) => o.id !== order.id);

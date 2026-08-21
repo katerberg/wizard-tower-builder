@@ -3,19 +3,6 @@ import type { Blueprint, InfraKind } from './types';
 /** Infrastructure blueprints painted on the infra layer (same cell grid as rooms). */
 export const INFRA_BLUEPRINTS: Blueprint[] = [
   {
-    id: 'staircase',
-    name: 'Staircase',
-    glyph: '#',
-    color: '#a0aec0',
-    size: { w: 1, h: 1 },
-    cost: { stone: 2 },
-    baseHp: 0,
-    category: 'infra',
-    infraKind: 'stair',
-    description:
-      'Leads up to the floor above (staff can enter a room from the stair below). Empty cells auto-place a Spire Block when legal. Costs stone.',
-  },
-  {
     id: 'pipe',
     name: 'Pipe',
     glyph: '~',
@@ -53,7 +40,8 @@ export function isInfraBlueprint(id: string): boolean {
 export function infraBlueprintIdForKind(kind: InfraKind): string {
   switch (kind) {
     case 'stair':
-      return 'staircase';
+      // Stairs are auto-generated; no buildable blueprint.
+      return '';
     case 'pipe':
       return 'pipe';
     case 'elevator':

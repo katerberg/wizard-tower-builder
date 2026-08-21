@@ -357,7 +357,7 @@ function waveClearBody(gold: number, haul: Resources, prospectNote: string | nul
     <p class="haul-ok">Clear reward: <strong>+${formatResourceAmount(gold)} gold</strong></p>
     ${haulLine}
     ${prospectLine}
-    <p class="hint">Laborers mine when connected to ground by stairs or elevators.</p>`;
+    <p class="hint">Laborers mine when quarters can reach the ground mine entrance.</p>`;
 }
 
 function helpBody(): string {
@@ -365,13 +365,13 @@ function helpBody(): string {
     <h3>How to play</h3>
     <ul class="help-list">
       <li>Build framing (spire blocks), then place rooms on top. Infra and rooms auto-add framing when needed.</li>
-      <li>Recruit staff in housing, allocate slots and mana springs, connect floors with stairs.</li>
-      <li>Surplus laborers harvest stone underground — quarters need stairs or elevators to reach ground.</li>
+      <li>Recruit staff in housing, allocate slots and mana springs. Stairs appear automatically so every room can reach the ground.</li>
+      <li>Surplus laborers harvest stone underground once quarters reach the mine entrance.</li>
       <li>Crawlers climb the outside of framing and rooms toward the solar collector; fliers pass through bare framing and only rooms block them. Protect the collector — lose if its HP hits zero.</li>
       <li>In attack, click the board to move the wizard (firefighter) via stairs/elevators, or select a spell then click to cast. Flight lets you path through open air briefly.</li>
       <li>Demolishers cannot crawl under overhangs — they smash rooms, then framing, on their path. Collapses cascade and pipe networks re-resolve mid-wave.</li>
-      <li>Workers need stairs to change floors even on empty framing.</li>
-      <li>Right-click sells the room first (framing stays); click again to sell framing.</li>
+      <li>Paint elevators for faster vertical travel; stairs are free and automatic.</li>
+      <li>Right-click queues teardown of a room. Layout edits that would strand rooms from the ground are blocked.</li>
       <li>Climb your framing toward height 100. Clear a wave while still at 100+ to win — taller towers face harder pressure, but collapse eases the next fight. Climb when ready; don't grind for a seal.</li>
     </ul>`;
 }

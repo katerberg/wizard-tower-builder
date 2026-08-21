@@ -45,11 +45,10 @@ Wallet today: **gold · metal · stone · souls**. Planned: mine **iron → meta
 
 | Blueprint | id | stone | metal | souls | gold |
 |-----------|-----|-------|-------|-------|------|
-| Staircase | `staircase` | 2 | — | — | — |
 | Pipe | `pipe` | — | 1 | — | — |
 | Elevator | `elevator` | — | 6 | 2 | — |
 
-Empty cells may auto-add Spire Block (stone) when placing rooms/infra.
+Stairs are auto-generated and free (no blueprint cost). Empty cells may auto-add Spire Block (stone) when placing rooms/infra.
 
 ---
 
@@ -109,7 +108,7 @@ Repair remains **laborer time only** (no materials fee).
 
 | Resource | Main sinks today | Harvest design note |
 |----------|------------------|---------------------|
-| **Stone** | Spire, stairs, housing, slots, forts, spikes, expansions | High volume; shallow mine bands should feed this; wear steals labor from mining |
+| **Stone** | Spire, housing, slots, forts, spikes, expansions | High volume; shallow mine bands should feed this; wear steals labor from mining |
 | **Metal** | Buttresses, pipes, elevators, forge/boiler/steam/hydrant/pump, stakes/barbican, boiler mod | Iron veins = metal; rarer / falloff |
 | **Souls** | Turrets, chamber, mana spring, elevators (partial), chamber mod | Still kill-gated; spring goes away with leylines → substance may take some of this load later |
 | **Gold** | Recruit + upkeep only | Gem nuggets add a second income; avoid making mid-height gem farm dominate payroll |

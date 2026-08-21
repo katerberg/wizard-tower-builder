@@ -139,11 +139,12 @@ Always available at run start (no research):
 | Ids | Role |
 |-----|------|
 | `stem` | Framing |
-| `staircase` | Infra |
 | `quartersRoom`, `guardroomRoom`, `chamberRoom` | Housing |
 | `turretRoom` | Simple damager |
 | `researchRoom` | Research workplace |
 | `spikes` (mod) | Starter modification |
+
+Stairs are **not** researched or unlocked — they are auto-generated (see [`INFRASTRUCTURE.md`](INFRASTRUCTURE.md)).
 
 ### Static node inventory (shipped)
 
@@ -214,7 +215,7 @@ Must never break (static tree now; procedural generator later):
 | Forge | Flame Turret |
 | Guardroom | Slot (and soldier workplaces) — Guardroom is starter, so Slot is a root node |
 | Chamber | Mana Spring staffing — Chamber is starter; spring still pipe-gated |
-| Stairs | Elevator — Stairs is starter, so Elevator is a root node |
+| Elevator | Elevator is a root research node (faster vertical travel; stairs are automatic and free) |
 | Room blueprint | That room’s expansion/mod subtree |
 | School base spell | That school’s spell **bonuses** (bonuses still do not grant new spells) |
 

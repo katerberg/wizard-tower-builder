@@ -6,11 +6,9 @@ import { isManaSpringRoom } from '@/model/pipes';
 import { isResearchRoom } from '@/model/research';
 import {
   housingKindOf,
-  isQuarters,
   isSlotRoom,
   staffKindForHousing,
 } from './capacity';
-import { quartersCanReachMine } from './harvest';
 import type { GameState, Room } from '@/model/types';
 
 export interface SlotConnectivity {
@@ -77,7 +75,11 @@ function pathFromAnyHousing(
   return { connected, pathLength: bestPath, hasStaffed };
 }
 
-/** Unified logistics warnings for soldiers, magi, laborers, and paths. */
+/**
+ * Logistics warnings for over-allocation, missing recruits, and non-walkable
+ * anchors. Stair/elevator path gaps are not warned — auto-stairs guarantee
+ * ground connectivity (or block the layout edit).
+ */
 export function selectLogisticsReport(state: GameState): LogisticsReport {
   const warnings: string[] = [];
   const slots: SlotConnectivity[] = [];
@@ -135,10 +137,8 @@ export function selectLogisticsReport(state: GameState): LogisticsReport {
       slotAnchor,
     );
     let warning: string | null = null;
-    if (!connected) {
-      warning = hasStaffed
-        ? 'Needs stairs or elevator from a guardroom to staff this slot'
-        : 'Needs recruited soldiers in a guardroom to staff this slot';
+    if (!hasStaffed) {
+      warning = 'Needs recruited soldiers in a guardroom to staff this slot';
       warnings.push(warning);
     }
 
@@ -146,7 +146,7 @@ export function selectLogisticsReport(state: GameState): LogisticsReport {
       slotId: slot.id,
       slotName: 'Slot',
       allocated: allocatedCount,
-      connected,
+      connected: hasStaffed ? connected : false,
       pathLength,
       warning,
     });
@@ -155,7 +155,7 @@ export function selectLogisticsReport(state: GameState): LogisticsReport {
       roomName: 'Slot',
       kind: 'slot',
       allocated: allocatedCount,
-      connected,
+      connected: hasStaffed ? connected : false,
       warning,
     });
   }
@@ -182,10 +182,8 @@ export function selectLogisticsReport(state: GameState): LogisticsReport {
 
     const { connected, hasStaffed } = pathFromAnyHousing(state, chambers, springAnchor);
     let warning: string | null = null;
-    if (!connected) {
-      warning = hasStaffed
-        ? 'Needs stairs or elevator from a chamber to staff this spring'
-        : 'Needs recruited magi in a chamber to staff this spring';
+    if (!hasStaffed) {
+      warning = 'Needs recruited magi in a chamber to staff this spring';
       warnings.push(warning);
     }
 
@@ -194,7 +192,7 @@ export function selectLogisticsReport(state: GameState): LogisticsReport {
       roomName: 'Mana Spring',
       kind: 'manaSpring',
       allocated: allocatedCount,
-      connected,
+      connected: hasStaffed ? connected : false,
       warning,
     });
   }
@@ -220,10 +218,8 @@ export function selectLogisticsReport(state: GameState): LogisticsReport {
 
     const { connected, hasStaffed } = pathFromAnyHousing(state, chambers, researchAnchor);
     let warning: string | null = null;
-    if (!connected) {
-      warning = hasStaffed
-        ? 'Needs stairs from a chamber'
-        : 'Needs recruited magi in a chamber';
+    if (!hasStaffed) {
+      warning = 'Needs recruited magi in a chamber';
       warnings.push(warning);
     }
 
@@ -232,29 +228,12 @@ export function selectLogisticsReport(state: GameState): LogisticsReport {
       roomName: 'Research Room',
       kind: 'research',
       allocated: allocatedCount,
-      connected,
+      connected: hasStaffed ? connected : false,
       warning,
     });
   }
 
-  const quarters = state.tower.rooms.filter((r) => isQuarters(r));
   const laborerRecruited = recruitedOf(state, 'laborer');
-
-  for (const room of quarters) {
-    const recruited = state.housingRecruited[room.id] ?? 0;
-    if (recruited <= 0) continue;
-    if (quartersCanReachMine(state, room)) continue;
-    const warning = 'Needs stairs or elevator to ground for mining';
-    workplaces.push({
-      roomId: room.id,
-      roomName: 'Quarters',
-      kind: 'mine',
-      allocated: recruited,
-      connected: false,
-      warning,
-    });
-    warnings.push(warning);
-  }
 
   for (const room of state.tower.rooms) {
     const bp = getBlueprint(room.blueprintId);
@@ -265,24 +244,8 @@ export function selectLogisticsReport(state: GameState): LogisticsReport {
     const anchor = roomAnchorCell(state.tower, room.origin, room.size);
     if (!anchor) continue;
 
-    const { connected, hasStaffed } = pathFromAnyHousing(state, quarters, anchor);
     if (laborerRecruited <= 0) {
       const warning = 'Needs recruited laborers in quarters for repairs';
-      workplaces.push({
-        roomId: room.id,
-        roomName: bp.name,
-        kind: 'damage',
-        allocated: 0,
-        connected: false,
-        warning,
-      });
-      warnings.push(warning);
-      continue;
-    }
-    if (!connected) {
-      const warning = hasStaffed
-        ? 'Needs stairs or elevator from quarters for repairs'
-        : 'Needs recruited laborers in quarters for repairs';
       workplaces.push({
         roomId: room.id,
         roomName: bp.name,

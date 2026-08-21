@@ -220,7 +220,7 @@ describe('elevator blueprint', () => {
     const bp = getInfraBlueprint('elevator');
     expect(bp?.infraKind).toBe('elevator');
     expect(totalResourceUnits(bp!.cost)).toBeGreaterThan(
-      totalResourceUnits(getInfraBlueprint('staircase')!.cost),
+      totalResourceUnits(getInfraBlueprint('pipe')!.cost),
     );
   });
 });

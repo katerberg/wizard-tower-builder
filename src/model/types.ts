@@ -662,6 +662,7 @@ export type PlacementReason =
   | 'no_support'
   | 'overhang_too_far'
   | 'disconnected'
+  | 'no_shaft'
   | 'fluid_mix'
   | 'boiler_footprint'
   | 'no_framing'

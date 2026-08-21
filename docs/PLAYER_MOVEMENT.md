@@ -8,7 +8,7 @@ The wizard is a mobile **firefighter** (Factorio-style repair bot): they click-t
 
 ## Fantasy
 
-- Wizard: rush stairs/elevators, reposition for spell range, help control local fights.
+- Wizard: rush auto-stairs/elevators, reposition for spell range, help control local fights.
 - Collector: crown objective with the old wizard HP pool; lose when it reaches 0.
 - Flight: temporary open-air mobility; fall back to standable interior/ground with no fall damage.
 
@@ -26,7 +26,7 @@ The wizard is a mobile **firefighter** (Factorio-style repair bot): they click-t
 | Walkable | Passable rooms, bare framing, **ground row 0** (even empty), crown **collector perch**, stairs/elevators |
 | Vertical | Stairs or elevators (or Flight). Free step only between top framing ↔ perch deck. |
 | Mines | Out of scope |
-| Stairs | Squeeze past staff (no one-per-cell lock) |
+| Stairs | Auto-generated free shafts; squeeze past staff (no one-per-cell lock) |
 | Elevators | Counts as **1** passenger toward capacity 6 |
 | Collapse | Support cleared → fall until standable; no HP damage |
 | Camera | Manual wheel only (no follow in v1) |

@@ -1,6 +1,6 @@
 # Housing & staff types
 
-**Status:** Shipped. Complements [`INFRASTRUCTURE.md`](INFRASTRUCTURE.md) (layers, stairs, slots) and [`PIPES.md`](PIPES.md) (mana springs).
+**Status:** Shipped. Complements [`INFRASTRUCTURE.md`](INFRASTRUCTURE.md) (layers, auto-stairs, slots) and [`PIPES.md`](PIPES.md) (mana springs).
 
 Three housing room types, each tied to a distinct staff role. The economy reshapes the tower — especially forcing **mana springs** to be sited where **chambers** can staff them.
 
@@ -14,7 +14,7 @@ Numbers below match `src/config/staff.ts` / `src/config/economy.ts` (see `src/co
 |---------|-----------|-------|-----------------|-----------|
 | **Guardroom** | `guardroomRoom` | Soldiers | **3 → 6** (`guardroomExpansion`) | Slots |
 | **Chamber** | `chamberRoom` | Magi | **1 → 2** (`chamberExpansion`) | Mana springs |
-| **Quarters** | `quartersRoom` | Laborers | **6 → 12** (`quartersExpansion`) | Damaged rooms (repair HP); surplus hand-pump + **mine stone** when stairs/elevators reach ground ([`MINES.md`](MINES.md)) |
+| **Quarters** | `quartersRoom` | Laborers | **6 → 12** (`quartersExpansion`) | Damaged rooms (repair HP); surplus hand-pump + **mine stone** when auto-stairs reach ground ([`MINES.md`](MINES.md)) |
 
 Shared rules:
 
@@ -25,7 +25,7 @@ Shared rules:
 - **Unrecruit** floor is **1** (no recruit-cost refund). Upkeep desertion **can** leave roster at **0**
 - Recruit in **day** phase; upkeep every **night** deploy for **every** rostered occupant (idle or assigned)
 - **Night-only** combat movement; spawn from housing at nightfall; clear runtime entities at dawn (roster + allocations persist)
-- Auto-assign to workplaces; path via stairs between levels
+- Auto-assign to workplaces; path via auto-stairs between levels
 - Stair shafts: **one staffer per cell** en route (queues down the column; destination workplaces may stack)
 - Elevator shafts: shared car (cap 6); waiters/riders stack on the car/landing; no free vertical climb
 - Selling housing prunes roster/allocations for that room
@@ -172,7 +172,7 @@ Shown as per-room build alerts and a HUD summary line. Does not block `startWave
 ```mermaid
 flowchart TB
   subgraph build [Build phase]
-    Place[Place housing / workplaces / stairs / pipes]
+    Place[Place housing / workplaces / pipes]
     Recruit[Recruit or unrecruit in housing]
     Alloc[Set slot and mana-spring headcounts]
     Undo[Undo reverts this-phase changes]
