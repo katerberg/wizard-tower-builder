@@ -311,16 +311,6 @@ Library filtering already respects `unlockedBlueprints` ([`src/store/selectors/b
 
 ---
 
-## Future: procedural tree layout (deferred)
-
-When the static tree is fun enough:
-
-- At run start, generate a DAG that **preserves sacred hard gates** but varies depth/order of non-critical nodes (e.g. steam turret immediately after pipes in one run, or behind another mid-tier room in another).
-- Claim loop stays research-room based; frontier UI still only shows what’s available.
-- Optional later: draft-style research offers — **not** required for procedural value.
-
----
-
 ## Explicit non-goals (v1)
 
 - Procedural / per-run tree generation
