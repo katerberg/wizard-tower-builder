@@ -29,22 +29,6 @@ Flier spawn altitude tracks the **tower crown** (framing height snapshotted at S
 
 ---
 
-## Size tiers rename
-
-Rename `EnemySizeTier` for clarity (no mental mapping):
-
-| Old | New |
-|-----|-----|
-| `swarm` | `small` |
-| `elite` | `medium` |
-| `boss` | `large` |
-
-Apply everywhere (templates, renderer radii, tests).
-
-**Speed rule (all enemies):** larger tiers move slower. Retune existing crawler speeds to match (small fastest → large slowest). First melee flier is **small** at about **1.3×** a typical small crawler baseline (placeholder; pick concrete constants in implementation).
-
----
-
 ## Shared movement rules
 
 ### Grid
@@ -251,4 +235,3 @@ Today WoF requires same exterior **face** endpoints (`sameFaceEndpoints` in cast
 5. Carrier-kamikaze damage vs 3-cell leash feel
 6. How strictly “never touch wall” is encoded (orthogonally adjacent to any room cell = illegal)
 7. Whether crawler Gust push also switches to gust-center (fliers must; crawlers optional consistency pass)
-

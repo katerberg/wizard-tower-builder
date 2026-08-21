@@ -56,3 +56,38 @@ When the static tree is fun enough:
 - Renaming “substance”
 
 ---
+
+## Flying tiers rename - Size
+
+Rename `EnemySizeTier` for clarity (no mental mapping):
+
+| Old     | New      |
+| ------- | -------- |
+| `swarm` | `small`  |
+| `elite` | `medium` |
+| `boss`  | `large`  |
+
+Apply everywhere (templates, renderer radii, tests).
+
+**Speed rule (all enemies):** larger tiers move slower. Retune existing crawler speeds to match (small fastest → large slowest). First melee flier is **small** at about **1.3×** a typical small crawler baseline (placeholder; pick concrete constants in implementation).
+
+---
+
+## Fortifications - Spikes
+
+**Today (shipped):** room modification `spikes` on any room; Lv1–3; `onEnemyStep` + `onEnemyAttackRoom`; misses fliers.
+
+**Target end state:**
+
+| Field    | Spec                                                                                                                                                                                                                                                |
+| -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Id       | `spikes`                                                                                                                                                                                                                                            |
+| Kind     | Shell fortification on exterior framing                                                                                                                                                                                                             |
+| Level    | Single level only (remove Lv2/3 costs and upgrade UI)                                                                                                                                                                                               |
+| Effect   | Contact damage on crawler step touching the fortified cell’s shell (preserve current per-step adjacency intent as closely as possible); retaliate when a demolisher smashes a **room on that cell** or the framing as defined in the migration plan |
+| Fliers   | Still miss                                                                                                                                                                                                                                          |
+| Stacking | Coexists with rooms on the same cell                                                                                                                                                                                                                |
+
+Until Plan 6 merges, room-mod spikes remain as-is. Do not half-migrate.
+
+---
