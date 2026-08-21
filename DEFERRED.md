@@ -103,3 +103,17 @@ Until Plan 6 merges, room-mod spikes remain as-is. Do not half-migrate.
 - Soldier death / individual targeting
 
 ---
+
+## Pipes
+
+| Item                                   | Notes                                   |
+| -------------------------------------- | --------------------------------------- |
+| Crossover / bridge buildings           | Not planned                             |
+| Pipe damage                            | Not planned                             |
+| Separate `waterSpring` structure       | Ground row only                         |
+| Orphan-pipe component warnings         | Gray unassigned is the signal           |
+| Boiler mana-forecast warning           | Not implemented                         |
+| Drag-paint abort on first illegal cell | Invalid cells skipped; stroke continues |
+| Spell mana as a logistics deliverable  | Spells already spend the shared pool    |
+
+---
