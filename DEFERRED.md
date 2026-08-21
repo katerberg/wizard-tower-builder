@@ -46,3 +46,13 @@ When the static tree is fun enough:
 - **Solar collector raid mode** — enemies raid storage instead of instant loss on collector break.
 
 ---
+
+## Mining
+
+- Player-drawn mine interiors / fog-of-war mapping UI
+- Mine elevators, staging camps, multi-mine sites
+- Research tech trees (fracking, titanium, …)
+- Exact balance numbers
+- Renaming “substance”
+
+---

@@ -2,7 +2,7 @@
 
 **Status:** Reference for harvest / sink design. Amounts match code as of the mines design pass — treat as **provisional** until playtested. Sources: [`src/model/blueprints.ts`](../src/model/blueprints.ts), [`infraBlueprints.ts`](../src/model/infraBlueprints.ts), [`fortificationBlueprints.ts`](../src/model/fortificationBlueprints.ts), [`src/model/modifications/`](../src/model/modifications/), [`src/config/staff.ts`](../src/config/staff.ts), [`src/config/economy.ts`](../src/config/economy.ts), [`src/model/waves.ts`](../src/model/waves.ts) (`rewardFor`).
 
-Wallet today: **gold · metal · stone · souls**. Planned: mine **iron → metal**, **gems → gold**; later **substance** (name TBD) for leyline track.
+Wallet: **gold · souls**.
 
 ---
 
