@@ -91,3 +91,15 @@ Apply everywhere (templates, renderer radii, tests).
 Until Plan 6 merges, room-mod spikes remain as-is. Do not half-migrate.
 
 ---
+
+## Housing
+
+- Magi **combat casting** / replacing the player wizard (research jobs: see [`RESEARCH.md`](RESEARCH.md))
+- Steam-powered workplace analogue
+- Repair of pipes/stairs/mods; building during attack
+- Cross-housing synergies and roguelike mutually exclusive housing rewards
+- Card-heavy or tutorialized housing UX
+- Replacing or merging the player wizard with magi
+- Soldier death / individual targeting
+
+---

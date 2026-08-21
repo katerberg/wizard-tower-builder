@@ -134,8 +134,6 @@ During **attack only**, laborers auto-assign to damaged rooms (`hp < maxHp`) and
 
 **Prospecting** ([`MINES.md`](MINES.md)): In build phase, set a global **prospectors** count via the HUD stepper. Those laborers are removed from the repair/pump/mine auto pool and assigned to the prospect job (path to mine frontier, work timer, reveal next depth tier). Leftover laborers auto-fill pump → mine patches (stone, metal, gold).
 
-Deferred: infra/mod repair, mid-wave building.
-
 ---
 
 ## Layers, UI, logistics
@@ -226,15 +224,3 @@ Attack tick order (staff-related) in `src/model/tick.ts`: `stepStaff` → `tickL
 | Expanded caps | Guardroom 3→6, Chamber 1→2, Quarters 6→12 |
 | Desertion | Any unpaid staff kind |
 | Glyphs | Distinct per kind on the workers layer |
-
----
-
-## Out of scope
-
-- Magi **combat casting** / replacing the player wizard (research jobs: see [`RESEARCH.md`](RESEARCH.md))
-- Steam-powered workplace analogue
-- Repair of pipes/stairs/mods; building during attack
-- Cross-housing synergies and roguelike mutually exclusive housing rewards
-- Card-heavy or tutorialized housing UX
-- Replacing or merging the player wizard with magi
-- Soldier death / individual targeting
