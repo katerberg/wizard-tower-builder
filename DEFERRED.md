@@ -39,3 +39,10 @@ When the static tree is fun enough:
 - Optional later: draft-style research offers — **not** required for procedural value.
 
 ---
+
+### Day/Night: To do
+
+- **Light/dark visual theme** for day vs night.
+- **Solar collector raid mode** — enemies raid storage instead of instant loss on collector break.
+
+---

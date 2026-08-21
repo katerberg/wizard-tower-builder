@@ -4,7 +4,7 @@ Design notes for replacing wave-index campaign length with **tower height** as t
 
 **Status:** v1 implemented (height budgets/slots, permanent unlocks, win at clear ≥ 100, crown-relative flier bands, HUD/help). Enemy templates and exact unlock heights remain placeholders for playtest.
 
-**Related:** today’s linear 10-wave loop lives in [`src/model/waves.ts`](../src/model/waves.ts); flier altitude bands in [`docs/FLYING.md`](FLYING.md) (will retarget to crown-relative height).
+**Related:** today’s linear 10-wave loop lives in [`src/model/waves.ts`](../src/model/waves.ts); flier altitude bands in [`docs/FLYING.md`](FLYING.md).
 
 ---
 
