@@ -9,6 +9,6 @@ export const STARTER_SUPPLY_STONE = 24;
 /** Initial metal in starter supply. */
 export const STARTER_SUPPLY_METAL = 32;
 
-export const SUPPLY_ROOM_BLUEPRINT_ID = 'supplyRoom';
+export const STORAGE_ROOM_BLUEPRINT_ID = 'storageRoom';
 export const STARTER_SUPPLY_ROOM_ID = 'starter-supply';
 export const STARTER_QUARTERS_ROOM_ID = 'starter-quarters';

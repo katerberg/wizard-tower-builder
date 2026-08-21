@@ -28,7 +28,7 @@ Config: [`src/config/dayNight.ts`](../src/config/dayNight.ts).
 | Gold, souls  | `player.resources` wallet   |
 | Stone, metal | **Storage stockpiles** only |
 
-- **Starter Supply Room** (col 5, ground): locked, non-removable; seeds **24 stone + 32 metal** (capacity 56).
+- **Starter Storage Room** (col 5, ground): locked, non-removable; seeds **24 stone + 32 metal** (capacity 56).
 - **Starter Quarters** (col 9, ground): locked housing for laborers.
 - Player-built **`storageRoom`**: flat **40** stone+metal unit cap per room.
 

@@ -197,18 +197,6 @@ export const ROOM_BLUEPRINTS: Blueprint[] = [
       'Magi stationed here advance the active research project during attack. Costs souls and stone.',
   },
   {
-    id: 'supplyRoom',
-    name: 'Supply Room',
-    glyph: 'Y',
-    color: '#ecc94b',
-    size: { w: 1, h: 1 },
-    cost: {},
-    baseHp: 30,
-    category: 'room',
-    passable: true,
-    description: 'Starter stockpile for stone and metal. Cannot be removed.',
-  },
-  {
     id: 'storageRoom',
     name: 'Storage Room',
     glyph: 'Y',
