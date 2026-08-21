@@ -4,12 +4,17 @@ One school folder per element. SpellDef + mechanics live in the same school file
 
 ```
 spells/
-  registry.ts     ← SPELLS list + hotbar ids (register here)
+  registry.ts     ← SPELLS list + school hotbar ids (register here)
+  progression.ts  ← leyline gating / hotbar filter (non-dev)
   cast.ts         ← cast pipeline (do not add spell-id branches)
   wandStrike.ts   ← auto-cast, no school
   fire/ air/ earth/ water/
   <school>.test.ts
 ```
+
+## Hotbar gating
+
+Outside **dev mode**, only the starter spell plus leyline-anchored spells appear. See [`docs/SPELL_PROGRESSION.md`](../../docs/SPELL_PROGRESSION.md). Spell-mechanic tests should set `devMode = true` (and the school under test) so the full kit is available.
 
 ## Add a spell
 

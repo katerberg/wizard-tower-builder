@@ -5,6 +5,7 @@ import { Store } from '@/store/store';
 describe('self-targeting spells', () => {
   it('instant-casts Fortify on selectSpell without a grid click', () => {
     const store = new Store('self0');
+    store.dispatch({ type: 'toggleDevMode' });
     store.dispatch({ type: 'devSetSpellSchool', school: 'earth' });
     store.dispatch({ type: 'startWave' });
 
@@ -17,6 +18,7 @@ describe('self-targeting spells', () => {
 
   it('cancels Fortify via cancelCast after concentration starts', () => {
     const store = new Store('self1');
+    store.dispatch({ type: 'toggleDevMode' });
     store.dispatch({ type: 'devSetSpellSchool', school: 'earth' });
     store.dispatch({ type: 'startWave' });
     store.dispatch({ type: 'selectSpell', spellId: 'fortify' });

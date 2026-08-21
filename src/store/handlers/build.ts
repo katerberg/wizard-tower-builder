@@ -10,6 +10,7 @@ import {
   isLockedRoom,
 } from '@/model/construction';
 import { canPlace, roomAt, structureAt } from '@/model/tower';
+import { validateLeylineRoomPlacement } from '@/model/spells/progression';
 import { SCAFFOLD_BLUEPRINT_ID } from '@/config/construction';
 import type { HandlerContext } from '../context';
 import type { Intent } from '../intents';
@@ -52,6 +53,12 @@ function placeSelected(ctx: HandlerContext, cell: { col: number; row: number }):
   const result = canPlace(game.tower, blueprint, cell, { overhangUnlocked: isOverhangUnlocked(game) });
   if (!result.ok) {
     addMessage(game, `Cannot build here: ${result.reason.replace(/_/g, ' ')}.`, 'info');
+    return;
+  }
+
+  const leyline = validateLeylineRoomPlacement(game, blueprint.id, cell, blueprint.size);
+  if (leyline && !leyline.ok) {
+    addMessage(game, `Cannot build here: ${leyline.reason.replace(/_/g, ' ')}.`, 'info');
     return;
   }
 

@@ -13,21 +13,23 @@ import { getCharge } from './earth/charge';
 import { clearFortify, isFortified, mitigateWizardDamage } from './earth/fortify';
 import { roomIdAtCell } from './earth/earthquake';
 import { getSpell, listAutoSpells } from './registry';
+import { isSpellUnlocked } from './progression';
 import type { CastCheckResult, SpellCastContext, SpellDef, SpellTarget } from './types';
 import type { Cell, Enemy, GameState, SpellSchool } from '../types';
 
 export type { CastCheckResult, SpellCastContext, SpellDef, SpellTarget } from './types';
 export {
   getSpell,
-  listHotbarSpells,
   listAutoSpells,
   hotbarSpellIdsForSchool,
+  listSchoolHotbarSpells,
   FIRE_HOTBAR_SPELL_IDS,
   AIR_HOTBAR_SPELL_IDS,
   EARTH_HOTBAR_SPELL_IDS,
   WATER_HOTBAR_SPELL_IDS,
   HOTBAR_SLOT_COUNT,
 } from './registry';
+export { listHotbarSpells } from './progression';
 
 function gridDistance(state: GameState, _from: { col: number; row: number }, cell: Cell): number {
   const wizardPos = getEffectiveWizardPosition(state);
@@ -104,6 +106,10 @@ export function canCastSpell(state: GameState, spellId: string, target?: SpellTa
   const spell = getSpell(spellId);
   if (!spell) return { ok: false, reason: 'unknown_spell' };
   if (spell.autoCast) return { ok: false, reason: 'manual_only' };
+
+  if (!state.devMode && !isSpellUnlocked(state, spellId) && spellId !== 'wandStrike') {
+    return { ok: false, reason: 'locked' };
+  }
 
   if (isFortified(state) && !spell.allowedWhileConcentrating) {
     return { ok: false, reason: 'concentrating' };

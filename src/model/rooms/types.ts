@@ -19,7 +19,8 @@ export type RoomRole =
   | 'hydrant'
   | 'slot'
   | 'turret'
-  | 'research';
+  | 'research'
+  | 'leyline';
 
 export interface RoomBehaviorDef {
   blueprintId: string;

@@ -172,6 +172,8 @@ describe('selectRoomInspector', () => {
 describe('selectSpellBar', () => {
   it('shows four fire spells on hotkeys 1–4 during attack', () => {
     const store = new Store('spell0');
+    store.dispatch({ type: 'toggleDevMode' });
+    store.dispatch({ type: 'devSetSpellSchool', school: 'fire' });
     placeStem(store, { col: 4, row: 0 });
     store.dispatch({ type: 'startWave' });
     const bar = selectSpellBar(store.getSnapshot());
@@ -186,6 +188,8 @@ describe('selectSpellBar', () => {
 
   it('disables fireball when out of mana', () => {
     const store = new Store('spell1');
+    store.dispatch({ type: 'toggleDevMode' });
+    store.dispatch({ type: 'devSetSpellSchool', school: 'fire' });
     placeStem(store, { col: 4, row: 0 });
     store.dispatch({ type: 'startWave' });
     store.getSnapshot().game.player.mana = 3;
@@ -196,12 +200,26 @@ describe('selectSpellBar', () => {
 
   it('shows equipped spells during build without enabling them', () => {
     const store = new Store('spell2');
+    store.dispatch({ type: 'toggleDevMode' });
+    store.dispatch({ type: 'devSetSpellSchool', school: 'fire' });
     placeStem(store, { col: 4, row: 0 });
     const bar = selectSpellBar(store.getSnapshot());
     expect(bar).toHaveLength(6);
     expect(bar[0].id).toBe('fireball');
     expect(bar[0].enabled).toBe(false);
     expect(bar[0].selected).toBe(false);
+  });
+
+  it('shows only the starter spell and empty slots outside dev mode', () => {
+    const store = new Store('spell-gated');
+    placeStem(store, { col: 4, row: 0 });
+    store.dispatch({ type: 'startWave' });
+    const bar = selectSpellBar(store.getSnapshot());
+    expect(bar).toHaveLength(6);
+    expect(bar[0].id).not.toBeNull();
+    expect(bar[1].empty).toBe(true);
+    expect(bar[2].empty).toBe(true);
+    expect(bar[3].empty).toBe(true);
   });
 });
 

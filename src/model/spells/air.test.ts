@@ -25,6 +25,8 @@ import { FLIGHT_ASCENT_SUB_ROWS } from '@/model/spells/air/constants';
 function towerWithStem(state: GameState): GameState {
   const stem = getBlueprint('stem')!;
   state.tower = placeStructure(createTower(), createStructure('r0', stem, { col: 8, row: 0 }));
+  state.devMode = true;
+  state.activeSpellSchool = 'air';
   return state;
 }
 
@@ -34,6 +36,8 @@ function towerWithStemStack(state: GameState): GameState {
   tower = placeStructure(tower, createStructure('r0', stem, { col: 8, row: 0 }));
   tower = placeStructure(tower, createStructure('r1', stem, { col: 8, row: 1 }));
   state.tower = tower;
+  state.devMode = true;
+  state.activeSpellSchool = 'air';
   return state;
 }
 
@@ -44,6 +48,8 @@ function towerWithStemTall(state: GameState): GameState {
   tower = placeStructure(tower, createStructure('r1', stem, { col: 8, row: 1 }));
   tower = placeStructure(tower, createStructure('r2', stem, { col: 8, row: 2 }));
   state.tower = tower;
+  state.devMode = true;
+  state.activeSpellSchool = 'air';
   return state;
 }
 

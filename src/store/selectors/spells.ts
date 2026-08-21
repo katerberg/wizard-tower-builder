@@ -1,12 +1,12 @@
 import { roomCells } from '@/calculations/grid';
 import {
+  HOTBAR_SLOT_COUNT,
+  activeHotbarSpellIds,
   canCastSpell,
   enemyAtCell,
   getSpell,
   gridLine,
   tornadoGridLine,
-  HOTBAR_SLOT_COUNT,
-  listHotbarSpells,
   spellCooldownRemaining,
   geyserColumnCells,
 } from '@/model/spells';
@@ -71,12 +71,21 @@ export function selectSpellBar(snapshot: Snapshot): SpellBarSlot[] {
   if (game.scene !== 'run') return [];
 
   const inNight = game.phase === 'night';
-  const spells = listHotbarSpells(game);
+  const spellIds = activeHotbarSpellIds(game);
   const slots: SpellBarSlot[] = [];
 
   for (let i = 0; i < HOTBAR_SLOT_COUNT; i++) {
-    const spell = spells[i];
+    const spellId = i < spellIds.length ? spellIds[i] : null;
     const hotkey = i + 1;
+    if (!spellId) {
+      slots.push({
+        hotkey, id: null, name: null, glyph: null, manaCost: null, cooldownRemaining: 0,
+        selected: false, enabled: false, disabledReason: null, empty: true,
+      });
+      continue;
+    }
+
+    const spell = getSpell(spellId);
     if (!spell) {
       slots.push({
         hotkey, id: null, name: null, glyph: null, manaCost: null, cooldownRemaining: 0,

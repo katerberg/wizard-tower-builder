@@ -114,6 +114,7 @@ describe('wizard movement', () => {
   it('falls after Flight ends without damaging collector', () => {
     const state = tallTower();
     beginWave(state);
+    state.devMode = true;
     state.activeSpellSchool = 'air';
     state.player.mana = 20;
     const hp = state.solarCollector.hp;

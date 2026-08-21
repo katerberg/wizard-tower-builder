@@ -21,6 +21,7 @@ export type Intent =
   | { type: 'setSlotAllocation'; slotRoomId: string; count: number }
   | { type: 'setManaSpringAllocation'; springRoomId: string; count: number }
   | { type: 'setResearchAllocation'; researchRoomId: string; count: number }
+  | { type: 'setLeylineAllocation'; leylineRoomId: string; count: number }
   | { type: 'setProspectAllocation'; count: number }
   | { type: 'startResearch'; nodeId: string }
   | { type: 'enqueueResearch'; nodeId: string }

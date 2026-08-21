@@ -26,6 +26,8 @@ import { KINDLED_BURST, KINDLED_DURATION } from '@/model/spells/fire/constants';
 function towerWithStem(state: GameState): GameState {
   const stem = getBlueprint('stem')!;
   state.tower = placeStructure(createTower(), createStructure('r0', stem, { col: 8, row: 0 }));
+  state.devMode = true;
+  state.activeSpellSchool = 'fire';
   return state;
 }
 

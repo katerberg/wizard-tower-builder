@@ -244,6 +244,7 @@ export interface BuildDraftSnapshot {
   slotAllocations: Record<string, number>;
   manaSpringAllocations: Record<string, number>;
   researchRoomAllocations: Record<string, number>;
+  leylineResearchAllocations: Record<string, number>;
   pendingRecruitSpend: number;
   prospectAllocation: number;
 }
@@ -528,6 +529,13 @@ export interface GameState {
   manaSpringAllocations: Record<string, number>;
   /** Desired magi headcount per research room. */
   researchRoomAllocations: Record<string, number>;
+  /** Desired magi headcount per Leyline Research room (cap 1). */
+  leylineResearchAllocations: Record<string, number>;
+  /**
+   * Leyline ritual tiers 2–4 completed this run (tier 1 is the starter spell).
+   * Spell stays on the hotbar only while a matching band room exists.
+   */
+  leylineCompletedTiers: Record<2 | 3 | 4, boolean>;
   /** Laborers assigned to prospecting (day work; excluded from night harvest/repair). */
   prospectAllocation: number;
   /** 1-based day counter; increments at each dawn. */
@@ -666,6 +674,9 @@ export type PlacementReason =
   | 'boiler_footprint'
   | 'no_framing'
   | 'not_exterior'
-  | 'wrong_face';
+  | 'wrong_face'
+  | 'leyline_band_required'
+  | 'leyline_band_taken'
+  | 'leyline_tier_locked';
 
 export interface PlacementResult { ok: boolean; reason: PlacementReason }

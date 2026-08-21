@@ -10,7 +10,7 @@ import {
 } from '@/model/fortificationBlueprints';
 import { getInfraBlueprint } from '@/model/infraBlueprints';
 import { getRoomBehavior } from '@/model/rooms';
-import { getSpell, listHotbarSpells, spellCooldownRemaining } from '@/model/spells';
+import { getSpell, activeHotbarSpellIds, spellCooldownRemaining } from '@/model/spells';
 import { getBuildTool } from '@/store/buildTools';
 import type { Snapshot } from '../store';
 import { selectBuildEconomy } from './build';
@@ -52,7 +52,7 @@ function selectSpellTooltip(snapshot: Snapshot, spellId: string): UiTooltipConte
 
   const { game } = snapshot;
   const inNight = game.scene === 'run' && game.phase === 'night';
-  const hotkey = listHotbarSpells(game).findIndex((s) => s.id === spellId) + 1;
+  const hotkey = activeHotbarSpellIds(game).findIndex((id) => id === spellId) + 1;
   const stats: UiTooltipStat[] = [
     { label: 'Mana', value: String(spell.manaCost), accent: true },
     { label: 'Cooldown', value: `${spell.cooldown}s` },

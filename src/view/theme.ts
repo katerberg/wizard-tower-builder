@@ -50,6 +50,7 @@ export const colors = {
   mage: '#b794f4',
   laborer: '#f6ad55',
   connectivityWarn: '#ff5c5c',
+  leylineBand: 'rgba(107, 91, 149, 0.22)',
 } as const;
 
 /** Workers-layer glyph per staff kind. */

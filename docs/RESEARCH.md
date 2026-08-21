@@ -2,7 +2,7 @@
 
 Design for **gated progression**: a static tech tree researched through **research rooms + magi**, plus a separate **rare spell-discovery** path tied to height clears. Players start with basics; interconnection-heavy builds unlock over the run. Spells stay a skilled “micro” layer — rooms and staff should be enough to brute-force a run.
 
-**Status:** v1 static tech tree **implemented** (starter kit, research rooms + magi progress, queue, DAG modal UI, expansion gating, dev Unlock). Spell discovery / school pick / spell bonuses and procedural trees remain deferred.
+**Status:** v1 static tech tree **implemented** (starter kit, research rooms + magi progress, queue, DAG modal UI, expansion gating, dev Unlock). Spell progression via **leyline bands** is **shipped** — see [`SPELL_PROGRESSION.md`](SPELL_PROGRESSION.md). Spell bonuses and procedural trees remain deferred.
 
 ---
 
@@ -21,10 +21,10 @@ Design for **gated progression**: a static tech tree researched through **resear
 
 | System | What it unlocks | How |
 |--------|-----------------|-----|
-| **Tech tree (research)** | Blueprints, room expansion/mod subtrees, **spell bonuses** (CD / cost / power) | Start research → magi in research rooms progress it |
-| **Spell discovery** | Individual spells (hotbar entries) | Rare offers after clearing a wave at certain heights; pick **1 of 3** |
+| **Tech tree (research)** | Blueprints, room expansion/mod subtrees, **spell bonuses** (CD / cost / power), **Leyline Research** blueprint | Start research → magi in research rooms progress it |
+| **Spell progression** | Individual spells (hotbar entries) | Random school + starter at run start; Leyline Research rooms on bands 25/50/75 — see [`SPELL_PROGRESSION.md`](SPELL_PROGRESSION.md) |
 
-Spell *identity* (fireball, wall of flame, …) comes from discovery. Spell *mastery* (raw damage, shorter CD, cheaper mana) can sit on the tech tree so a fire mage can invest in their craft without unlocking every fire spell from research.
+Spell *identity* (fireball, wall of flame, …) comes from leyline progression. Spell *mastery* (raw damage, shorter CD, cheaper mana) can sit on the tech tree so a fire mage can invest in their craft without unlocking every fire spell from research.
 
 ---
 
@@ -37,11 +37,11 @@ Spell *identity* (fireball, wall of flame, …) comes from discovery. Spell *mas
 | Progress currency | Labor-cycles over waves/build time + **souls** (and other resources as node costs require) |
 | “Higher = better” | **Tree depth / hard gates** for blueprints; **soft** correlation via longer runs having more research cycles — **not** height seal-gates on build unlocks |
 | Early combat | **Rooms/staff carry**; spells are optional power for skilled play |
-| School pick | Run-start pick grants that school’s **base** spell; Wand Strike always on |
-| Cross-school spells | **Allowed** via discovery — not abnormal, but often weaker synergy with the tower you built |
-| Spells on tech tree? | **No** — only spell **bonuses** |
-| Spell discovery volume | About **3–5** spells unlocked per tower climb (tunable) |
-| Spell offer shape | On eligible height clear: choose **1 of 3** offered spells |
+| School pick | **Random** school at run start (deterministic from seed); grants that school’s **base** spell; Wand Strike always on |
+| Cross-school spells | Deferred until after height 100 |
+| Spells on tech tree? | **No** new spell ids — only the **Leyline Research** blueprint (+ optional later spell **bonuses**) |
+| Spell progression | Leyline bands at 25 / 50 / 75; staffed mage clear unlocks next school spell while the room stands |
+| Spell offer shape | **Superseded** — no 1-of-3 height-clear offer modal |
 | Tree contents | Blueprints (+ optional bundled starter mods); each room blueprint opens a **small expansion/mod subtree** |
 | Staff hard gate | Any workplace that needs a staff kind requires that housing unlocked first (e.g. **Chamber before Mana Spring**) |
 | Pace | Can bank and start when ready; research then runs via allocation (not instant unlock on spend) |
@@ -73,7 +73,7 @@ That scarcity is the pace knob.
 
 [`HEIGHT_PROGRESSION.md`](HEIGHT_PROGRESSION.md) rejects grind seals for **enemy** pressure. Blueprint research must not reintroduce “must farm height N before the next room type.” Longer climbs naturally yield more research labor; better stuff sits **deeper on the tree**, not behind a height lock.
 
-Spell **discovery** *does* key off clearing at height bands — that is intentional rarity, separate from build unlocks, and must stay sparse (3–5 per run) so it does not become a height checklist.
+Spell **progression** keys off leyline bands at fixed rows (25 / 50 / 75) via rooms — that is intentional rarity, separate from blueprint unlocks. See [`SPELL_PROGRESSION.md`](SPELL_PROGRESSION.md).
 
 ### Hard gates teach interconnection
 
@@ -233,34 +233,32 @@ A fire mage can invest heavily in raw damage without ever discovering Wall of Fl
 
 ---
 
-## Spell discovery (separate track)
+## Spell progression (leyline track)
 
-### School pick
+Implemented in [`SPELL_PROGRESSION.md`](SPELL_PROGRESSION.md). Summary:
 
-- Once per run at start (UI in a later shot).
-- Sets `activeSpellSchool` and grants that school’s designated **base** spell.
-- Hotbar starts tiny (base + empty slots as discoveries arrive). Wand Strike remains auto and off-hotbar.
+### School at start
 
-### Height-clear offers
+- Random school from the run seed; grants that school’s **base** spell.
+- Hotbar starts with the base spell + empty slots. Wand Strike remains auto and off-hotbar.
 
-- After clearing a wave whose Start Wave height crossed an offer band (exact bands tunable; align spirit with [`HEIGHT_PROGRESSION.md`](HEIGHT_PROGRESSION.md) plateaus, not per-row spam).
-- Offer: **3** candidate spells → player picks **1**.
-- Target yield: **~3–5** discoveries over a full climb to height 100.
-- Candidates may include **other schools**; cross-school is normal but often less synergistic with the researched tower (e.g. water tools in a forge/flame build).
-- Pool rules (soft): prefer unowned spells; weight toward active school without excluding others; never re-offer owned ids.
+### Leyline bands
+
+- Rows **25 / 50 / 75**: build a researched **Leyline Research** room, staff a mage, clear the night → next school spell while the room stands.
+- Destroying the room strips that spell; rebuilding restores it if the tier was already completed.
 
 ### Hotbar
 
-- Only **discovered** (and starter) spells appear.
-- Today’s full 4-spell school kits become the **pool** for discovery, not the starting loadout.
-- Dev school swap may remain for testing; production runs use pick + discovery.
+- Only **active** (starter + anchored) spells appear outside dev mode.
+- Dev mode keeps the full 4-spell school kit + school swap.
 
 ### Explicit non-goals for spells (this design)
 
 - Spell shop / gold-for-spell purchases
 - Mana Well as unlock gated here (room may exist later on the **blueprint** tree)
-- Tech-tree nodes that grant new spell ids
+- Tech-tree nodes that grant new spell ids (except unlocking the Leyline Research **blueprint**)
 - Requiring spell casts to win
+- Height-clear 1-of-3 offer modal (superseded)
 
 ---
 
@@ -290,7 +288,7 @@ Run identity comes from:
 - Click a node → detail pane (name, unlocks, cost, labor, missing prereqs). Primary action **Start** (idle) or **Enqueue** (busy). Dev **Unlock** on the node chip; **Unlock all** in modal footer.
 - Cancel active: inline confirm with half-refund warning. Dequeue: full refund, no confirm beyond the remove control.
 - Research room inspector: assigned magi.
-- Spell offer modal on eligible wave clear (pick 1 of 3) — still deferred.
+- Spell offer modal on eligible wave clear (pick 1 of 3) — **superseded** by leyline rooms.
 
 ---
 
@@ -344,7 +342,7 @@ When the static tree is fun enough:
 | 3 | `research_rooms.plan.md` | Research room + magi labor-cycles — **shipped in static v1** |
 | 4 | `research_ui.plan.md` | Frontier list — superseded by DAG modal |
 | 4b | Research DAG modal + queue | Sidebar slim + DAG modal + enqueue/cancel — **this shot** |
-| 5 | `spell_discovery.plan.md` | School pick, unlocked spell hotbar, height-clear 1-of-3 offers |
+| 5 | `spell_discovery.plan.md` / leyline spell progression | School + leyline bands — **shipped** ([`SPELL_PROGRESSION.md`](SPELL_PROGRESSION.md)) |
 | 6 | `research_content.plan.md` | Author static edges — **initial roster shipped**; tune pace in playtest |
 | 7 | Later | Procedural layout generator |
 
