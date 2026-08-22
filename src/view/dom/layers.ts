@@ -8,7 +8,7 @@ const LAYERS: { id: TowerLayer; label: string }[] = [
 ];
 
 export function createLayersPanel(root: HTMLElement, store: Store): () => void {
-  root.addEventListener('click', (e) => {
+  root.addEventListener('pointerdown', (e) => {
     const target =
       e.target instanceof HTMLElement ? e.target.closest<HTMLElement>('[data-layer]') : null;
     if (!target) return;

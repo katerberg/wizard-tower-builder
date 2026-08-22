@@ -234,6 +234,13 @@ export function bindResearchModalInteractions(root: HTMLElement, store: Store): 
     const nodeId = target.dataset.node;
     const groupId = target.dataset.group;
 
+    // Handle closeModal on pointerdown so it survives innerHTML re-renders
+    // that destroy the button element before pointerup (which would cancel click).
+    if (action === 'closeModal') {
+      store.dispatch({ type: 'closeModal' });
+      return;
+    }
+
     // Don't let node-select steal clicks from nested Unlock buttons.
     if (
       action === 'selectResearchNode' &&

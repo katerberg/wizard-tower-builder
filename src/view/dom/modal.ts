@@ -13,7 +13,7 @@ import {
 export function createModal(root: HTMLElement, store: Store): () => void {
   bindResearchModalInteractions(root, store);
 
-  root.addEventListener('click', (e) => {
+  root.addEventListener('pointerdown', (e) => {
     const snapshot = store.getSnapshot();
     if (snapshot.view.modal?.kind === 'research') {
       // Research actions handled via pointerdown in bindResearchModalInteractions

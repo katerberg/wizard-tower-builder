@@ -2,7 +2,7 @@ import { selectLibrarySections } from '@/store/selectors';
 import type { Store } from '@/store/store';
 
 export function createLibrary(root: HTMLElement, store: Store): () => void {
-  root.addEventListener('click', (e) => {
+  root.addEventListener('pointerdown', (e) => {
     const snapshot = store.getSnapshot();
     if (snapshot.game.phase !== 'day') return;
 
