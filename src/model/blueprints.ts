@@ -210,18 +210,6 @@ export const ROOM_BLUEPRINTS: Blueprint[] = [
       'Anchor a leyline band (rows 25 / 50 / 75). Staff a mage and clear a night to awaken the next school spell while the room stands.',
   },
   {
-    id: 'supplyRoom',
-    name: 'Supply Room',
-    glyph: 'W',
-    color: '#ecc94b',
-    size: { w: 1, h: 1 },
-    cost: {},
-    baseHp: 30,
-    category: 'room',
-    passable: true,
-    description: 'Starter stockpile for stone and metal. Cannot be removed.',
-  },
-  {
     id: 'storageRoom',
     name: 'Storage Room',
     glyph: 'V',

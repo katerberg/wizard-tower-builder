@@ -1,7 +1,7 @@
 /** Flat stone+metal unit cap per player-built storage room. */
 export const STORAGE_ROOM_CAPACITY = 40;
 
-/** Starter supply room capacity (stone + metal units). */
+/** Starter storage room capacity (stone + metal units). */
 export const STARTER_SUPPLY_CAPACITY = 56;
 
 /** Initial stone in starter supply (physical goods not in wallet). Covers day-1 defense paint. */

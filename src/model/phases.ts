@@ -44,7 +44,7 @@ export function startRun(state: GameState): void {
   state.phasePaused = false;
   addMessage(
     state,
-    `Dawn breaks — climb toward height ${WIN_HEIGHT}. Laborers haul from the Supply Room.`,
+    `Dawn breaks — climb toward height ${WIN_HEIGHT}. Laborers haul from the Storage Room.`,
     'info',
   );
 }
