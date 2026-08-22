@@ -1,5 +1,4 @@
 import { BUILD_WORK_PER_CELL, SCAFFOLD_BLUEPRINT_ID, SOUL_REFUND_RATE, TEARDOWN_REFUND_RATE } from '@/config/construction';
-import { SUPPLY_ROOM_BLUEPRINT_ID } from '@/config/storage';
 import { getBlueprint, isStructureBlueprint } from '../blueprints';
 import { isInfraBlueprint } from '../infraBlueprints';
 import { isFortificationBlueprint } from '../fortificationBlueprints';
@@ -86,9 +85,6 @@ export function createBuildOrder(
 ): ConstructionOrder | null {
   const bp = getBlueprint(blueprintId);
   if (!bp) return null;
-  if (bp.id === SUPPLY_ROOM_BLUEPRINT_ID && Object.keys(state.storageSites).length > 0) {
-    // Only one supply via starter; player builds storageRoom for more.
-  }
 
   const placement = canPlace(state.tower, bp, origin);
   if (!placement.ok) {

@@ -289,30 +289,6 @@ flowchart TB
 
 **Implementation status:** Housing + staff workplaces shipped (see [`docs/HOUSING.md`](docs/HOUSING.md)). Pipes/boilers/springs/forge fire shipped ([`docs/PIPES.md`](docs/PIPES.md)). Fire · air · earth · water spell schools shipped. Elevators shipped. Mid-wave pipe breaks remain deferred.
 
-## Deferred / not in v1
-
-Still not done:
-
-- Dynamic pipe/network breaks on room destruction
-- Soldier death / targeting; pipe damage
-- Advanced mage tech (combat casting) — housing basics shipped in [`docs/HOUSING.md`](docs/HOUSING.md); research/tech tree shipped ([`docs/RESEARCH.md`](docs/RESEARCH.md)); spell discovery still deferred
-- Multiple currencies beyond gold; roguelike map branching
-- Attack-overhang / face-transfer crawler modes (fliers shipped — [`docs/FLYING.md`](docs/FLYING.md))
-- Visual polish beyond ASCII-style glyphs on canvas
-- Training rooms (troops of certain types required to populate other rooms)
-- Spell discovery (height-clear offers) + spell bonuses on the tree — see [`docs/RESEARCH.md`](docs/RESEARCH.md)
-- Mana Well / spell shop
-- Shell fortifications (moats, glacis, parapets, cornices, stakes, barbican) — shipped; see [`docs/FORTIFICATIONS.md`](docs/FORTIFICATIONS.md). Spikes migration to shell still deferred.
-- Structures such as crenels / murderholes beyond existing turrets (populated shell — separate from fortifications)
-- Further non-elemental spell kits / spell shop
-- Additional turret / economy room types beyond Boiler, Mana Spring, Turret, Steam Turret, Forge, Flame Turret, and Water Pump
-- Infra/mod repair and mid-wave building (laborers repair room HP only today)
-- Exact harvest/wear balance curves; weather events on the weathering channel
-- **Validate expected-build economy** — affordability envelopes (slack leftover, not exact gold snapshots) for named fixtures; depends on the balance harness ([`docs/BALANCE.md`](docs/BALANCE.md))
-- **Possible-towers visualization** — catalog → spatial heatmap → layout search; harness emits an in-memory sim report only ([`docs/BALANCE.md`](docs/BALANCE.md))
-- Mine grid harvest / prospecting / storage rooms — design in [`docs/MINES.md`](docs/MINES.md); **engine slice shipped** (shallow stone workplaces); prospect / iron-gems / storage still open
-- Leyline / substance harvest + mana-spring removal — stub only ([`.cursor/plans/leyline_harvest_stub.plan.md`](.cursor/plans/leyline_harvest_stub.plan.md))
-
 ## License
 
 Copyright (C) 2026 Mark Katerberg

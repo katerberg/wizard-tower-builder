@@ -3,6 +3,7 @@ import {
   STARTER_QUARTERS_ROOM_ID,
   STARTER_SUPPLY_METAL,
   STARTER_SUPPLY_ROOM_ID,
+  STORAGE_ROOM_BLUEPRINT_ID,
   STARTER_SUPPLY_STONE,
   STARTER_SUPPLY_CAPACITY,
 } from '@/config/storage';
@@ -95,7 +96,7 @@ export function createStarterTower(): Tower {
     tower = placed.tower;
   });
 
-  const supplyBp = getBlueprint('supplyRoom');
+  const supplyBp = getBlueprint(STORAGE_ROOM_BLUEPRINT_ID);
   const quartersBp = getBlueprint('quartersRoom');
   if (!supplyBp || !quartersBp) throw new Error('Starter facility blueprints missing');
 

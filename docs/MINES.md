@@ -1,6 +1,6 @@
 # Mines & laborer harvest
 
-**Status:** Prospecting **shipped** (phase 2: veins + allocation + tier reveal + clear tally). Storage / leylines still later.
+**Status:** Prospecting **shipped** (phase 2: veins + allocation + tier reveal + clear tally).
 
 Complements [`HOUSING.md`](HOUSING.md) (laborer jobs), [`HEIGHT_PROGRESSION.md`](HEIGHT_PROGRESSION.md) (anti-grind), and the wallet rules in [`.cursor/plans/resource_economy_index.plan.md`](../.cursor/plans/resource_economy_index.plan.md). Live construction costs: [`ECONOMY_COST_MATRIX.md`](ECONOMY_COST_MATRIX.md).
 
@@ -58,7 +58,7 @@ Wave clear surfaces a short **haul tally** (“+stone / +metal / +gold from gems
 | Mine infra | **No** shafts/elevators/staging camps in this plan (future tech) |
 | Deep tech | Blueprints / research that make exotic veins useful (fracking, rutile→titanium, …) — **out of scope**; veins may exist before tech unlocks them |
 | Passive finds | Digging raw bodies can surface iron at **low %**; **prospect allocation** is the main next-tier unlock |
-| Storage | **Storage rooms** (future slice in this track) hold stockpiles; they add mass/height pressure and discourage infinite hoarding |
+| Storage | **Storage hold stockpiles; they add mass/height pressure and discourage infinite hoarding |
 | Anti-dwell | **Wear** + repair labor tax, **finite veins**, **longer trips as shallow layers empty**, storage mass — not grind seals |
 | Clear UX | Wave-clear **modal** + log for haul (**shipped** for stone+metal+gold); prospect stats (**shipped**) |
 | Leylines | **Stub only** this pass; magi / substance / mana-spring removal land in the leyline plan |
@@ -155,7 +155,7 @@ Future tech may gate *usefulness* of exotic minerals without blocking discovery.
 - Cost stone/metal and add **tower mass** (wear + larger silhouette / height pressure).
 - Make “dump every laborer into mining forever” pay a structural tax even when wear alone is soft.
 
-Exact capacity rules TBD in the storage slice plan.
+Exact capacity rules TBD.
 
 ---
 
@@ -186,17 +186,6 @@ Souls remain kills-only. Payroll gold curve still height-scaled. Construction si
 
 ---
 
-## Out of scope (this design / first implementation track)
-
-- Leyline bands, substance wallet, mana-spring removal (stub plan only)
-- Player-drawn mine interiors / fog-of-war mapping UI
-- Mine elevators, staging camps, multi-mine sites
-- Research tech trees (fracking, titanium, …)
-- Exact balance numbers
-- Renaming “substance”
-
----
-
 ## Implementation slices (suggested)
 
 Use the index plan; do not implement from this doc alone.
@@ -206,7 +195,7 @@ Use the index plan; do not implement from this doc alone.
 | 0 | Design (this doc + matrix + index + leyline stub) | Locked concept |
 | 1 | Mine grid engine + entrance attach + replace abstract harvest with shallow stone | **Shipped** |
 | 2–3 | Prospecting phase: veins + allocation + tier reveal + clear tally | **Shipped** via [`mine_harvest_prospect.plan.md`](../.cursor/plans/mine_harvest_prospect.plan.md) |
-| 4 | Storage rooms | Anti-hoard mass |
+| 4 | Storage rooms | **Shipped** Anti-hoard mass |
 | 5 | Balance / docs refresh | Numbers + status → shipped |
 
 ---

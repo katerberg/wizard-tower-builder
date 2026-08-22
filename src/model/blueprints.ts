@@ -212,7 +212,7 @@ export const ROOM_BLUEPRINTS: Blueprint[] = [
   {
     id: 'supplyRoom',
     name: 'Supply Room',
-    glyph: 'Y',
+    glyph: 'W',
     color: '#ecc94b',
     size: { w: 1, h: 1 },
     cost: {},
@@ -224,7 +224,7 @@ export const ROOM_BLUEPRINTS: Blueprint[] = [
   {
     id: 'storageRoom',
     name: 'Storage Room',
-    glyph: 'Y',
+    glyph: 'V',
     color: '#d69e2e',
     size: { w: 1, h: 1 },
     cost: { stone: 10, metal: 4 },

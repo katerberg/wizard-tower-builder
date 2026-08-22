@@ -45,7 +45,7 @@ function placeSelected(ctx: HandlerContext, cell: { col: number; row: number }):
   if (!id) return;
   if (isInfraBlueprint(id)) return;
   if (isFortificationBlueprint(id)) return;
-  if (id === 'supplyRoom' || id === 'scaffold') return;
+  if (id === 'scaffold') return;
 
   const blueprint = getBlueprint(id);
   if (!blueprint) return;

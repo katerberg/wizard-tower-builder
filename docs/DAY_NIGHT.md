@@ -8,10 +8,10 @@ The run alternates **60s day** / **90s night** phases with automatic transitions
 
 ## Phases
 
-| Phase | Duration | Player | Simulation |
-|-------|----------|--------|------------|
-| **Day** | 60s (real time) | Paint/cancel construction, recruit, allocate, infra, forts, mods, sell | Laborers haul, build, teardown, repair; side jobs tick; prospect work advances |
-| **Night** | 90s | Wizard path + spells only | Combat, harvest → storage, night labor (repair → hand-pump → mine) |
+| Phase     | Duration        | Player                                                                 | Simulation                                                                     |
+| --------- | --------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| **Day**   | 60s (real time) | Paint/cancel construction, recruit, allocate, infra, forts, mods, sell | Laborers haul, build, teardown, repair; side jobs tick; prospect work advances |
+| **Night** | 90s             | Wizard path + spells only                                              | Combat, harvest → storage, night labor (repair → hand-pump → mine)             |
 
 - **Pause / 1× / 2× / 5×** sim speed apply in **both** phases (sidebar).
 - **Start Wave** removed — night begins automatically at timer zero. Dev mode retains **Skip to night**.
@@ -23,12 +23,12 @@ Config: [`src/config/dayNight.ts`](../src/config/dayNight.ts).
 
 ## Wallet vs storage
 
-| Resource | Location |
-|----------|----------|
-| Gold, souls | `player.resources` wallet |
+| Resource     | Location                    |
+| ------------ | --------------------------- |
+| Gold, souls  | `player.resources` wallet   |
 | Stone, metal | **Storage stockpiles** only |
 
-- **Starter Supply Room** (col 5, ground): locked, non-removable; seeds **24 stone + 32 metal** (capacity 56).
+- **Starter Storage Room** (col 5, ground): locked, non-removable; seeds **24 stone + 32 metal** (capacity 56).
 - **Starter Quarters** (col 9, ground): locked housing for laborers.
 - Player-built **`storageRoom`**: flat **40** stone+metal unit cap per room.
 
@@ -80,13 +80,6 @@ Mine haul credits **storage rooms** (nearest with space). Overflow is **wasted**
 
 - **`buildBaseline`** — removed; affordability uses storage reservations + wallet.
 - **Instant placement** — all structure/room paints go through the construction queue (infra/fort v1 may still spend storage instantly; full labor queue deferred).
-
----
-
-## Deferred (documented only)
-
-- **Light/dark visual theme** for day vs night.
-- **Solar collector raid mode** — enemies raid storage instead of instant loss on collector break.
 
 ---
 

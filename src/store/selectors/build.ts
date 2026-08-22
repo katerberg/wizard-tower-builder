@@ -218,7 +218,7 @@ function toLibraryItem(
 ): LibraryBlueprintItem | null {
   const section = librarySectionFor(b.id);
   if (!section) return null;
-  if (b.id === 'supplyRoom' || b.id === 'scaffold') return null;
+  if (b.id === 'scaffold') return null;
   return {
     id: b.id,
     name: b.name,
