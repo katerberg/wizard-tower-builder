@@ -197,6 +197,19 @@ export const ROOM_BLUEPRINTS: Blueprint[] = [
       'Magi stationed here advance the active research project during attack. Costs souls and stone.',
   },
   {
+    id: 'leylineResearchRoom',
+    name: 'Leyline Research',
+    glyph: 'L',
+    color: '#6b5b95',
+    size: { w: 2, h: 1 },
+    cost: { souls: 10, stone: 8 },
+    baseHp: 25,
+    category: 'room',
+    passable: true,
+    description:
+      'Anchor a leyline band (rows 25 / 50 / 75). Staff a mage and clear a night to awaken the next school spell while the room stands.',
+  },
+  {
     id: 'supplyRoom',
     name: 'Supply Room',
     glyph: 'Y',

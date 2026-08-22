@@ -18,6 +18,16 @@ import {
 import { isManaSpringRoom } from '@/model/pipes';
 import { isResearchRoom, isOverhangUnlocked } from '@/model/research';
 import {
+  bandRowForRoom,
+  getEffectiveWizardPosition,
+  getSpell,
+  isLeylineResearchRoom,
+  isLeylineTierCompleted,
+  priorTierComplete,
+  spellIdForTier,
+} from '@/model/spells';
+import { LEYLINE_RESEARCH_STAFF_CAP, tierForBandRow } from '@/config/spellProgression';
+import {
   housingCapacity,
   isHousingRoom,
   isSlotRoom,
@@ -28,7 +38,6 @@ import {
   staffKindForHousing,
 } from '@/model/staff/capacity';
 import { selectConnectivityReport } from '@/model/staff/connectivity';
-import { getEffectiveWizardPosition } from '@/model/spells';
 import { getBlueprint } from '@/model/blueprints';
 import { getFortificationBlueprint } from '@/model/fortificationBlueprints';
 import { getUnstableStructureIds, structureAt } from '@/model/tower';
@@ -37,6 +46,7 @@ import type {
   Blueprint,
   ExteriorNode,
   FortificationId,
+  GameState,
   Room,
   RoomStats,
   StaffKind,
@@ -49,6 +59,20 @@ import {
   selectStructureBuildAlerts,
 } from './build';
 
+function leylineInspectorStatus(game: GameState, room: Room): string {
+  const band = bandRowForRoom(room);
+  if (band === null) return 'Not on a leyline band';
+  const tier = tierForBandRow(band);
+  if (tier === null) return 'Not on a leyline band';
+  if (!priorTierComplete(game, tier)) {
+    return 'Tier locked (complete prior band)';
+  }
+  if (isLeylineTierCompleted(game, tier)) {
+    const spell = getSpell(spellIdForTier(game, tier));
+    return `Anchored (${spell?.name ?? 'spell'} active)`;
+  }
+  return 'Awaiting staffed clear';
+}
 function recruitCostFor(kind: StaffKind): number {
   switch (kind) {
     case 'soldier':
@@ -133,6 +157,10 @@ export interface RoomInspector {
   manaSpringCapacity?: number;
   researchAllocated?: number;
   researchCapacity?: number;
+  leylineAllocated?: number;
+  leylineCapacity?: number;
+  /** Leyline research status for the inspector. */
+  leylineStatus?: string;
   /** Contextual build warning shown on this room (missing stairs, support, …). */
   buildAlert?: string;
 }
@@ -282,6 +310,11 @@ export function selectRoomInspector(snapshot: Snapshot, roomId: string): RoomIns
       ? (game.researchRoomAllocations[room.id] ?? 0)
       : undefined,
     researchCapacity: isResearchRoom(room) ? researchRoomStaffCapacity() : undefined,
+    leylineAllocated: isLeylineResearchRoom(room)
+      ? (game.leylineResearchAllocations[room.id] ?? 0)
+      : undefined,
+    leylineCapacity: isLeylineResearchRoom(room) ? LEYLINE_RESEARCH_STAFF_CAP : undefined,
+    leylineStatus: isLeylineResearchRoom(room) ? leylineInspectorStatus(game, room) : undefined,
     buildAlert: selectRoomBuildAlerts(snapshot).find((a) => a.roomId === room.id)?.message,
   };
 }

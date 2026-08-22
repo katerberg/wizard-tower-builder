@@ -1,6 +1,7 @@
 import { cellKey, roomCells } from '@/calculations/grid';
 import { addMessage } from '../messages';
 import { lockPipeFluids } from '../pipes';
+import { activeHotbarSpellIds, refreshLeylineSpellState } from '../spells/progression';
 import type { RemovalDelta } from '../tower/sell';
 import type { Cell, GameState, StaffKind, StaffUnit } from '../types';
 import { maybeWizardCollapseFall } from '../wizard';
@@ -74,6 +75,7 @@ function idleWorkplace(state: GameState, workplaceId: string): void {
  */
 export function applyDestructionAftermath(state: GameState, delta: RemovalDelta): void {
   const cleared = cellSet(delta.clearedCells);
+  const prevSpells = activeHotbarSpellIds(state);
 
   // Rooms removed without framing clear still kill staff standing on their footprint
   // (caller should include those cells in clearedCells).
@@ -129,6 +131,7 @@ export function applyDestructionAftermath(state: GameState, delta: RemovalDelta)
   maybeWizardCollapseFall(state, cleared);
 
   state.tower = lockPipeFluids(state.tower, maxWaterReachRow(state));
+  refreshLeylineSpellState(state, prevSpells);
 }
 
 /** Build a removal delta for a single room destroy (framing kept). */

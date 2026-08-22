@@ -1,6 +1,7 @@
 export * from './types';
 export * from './cast';
 export * from './registry';
+export * from './progression';
 
 export { fireball, aoeCells, enemiesInFireballBlast } from './fire/fireball';
 export { wandStrike } from './wandStrike';

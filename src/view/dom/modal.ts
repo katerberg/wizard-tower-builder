@@ -108,6 +108,24 @@ export function createModal(root: HTMLElement, store: Store): () => void {
           count: inspector.researchAllocated + 1,
         });
       }
+    } else if (action === 'leylineMinus' && target?.dataset.room) {
+      const inspector = selectRoomInspector(store.getSnapshot(), target.dataset.room);
+      if (inspector?.leylineAllocated !== undefined) {
+        store.dispatch({
+          type: 'setLeylineAllocation',
+          leylineRoomId: target.dataset.room,
+          count: inspector.leylineAllocated - 1,
+        });
+      }
+    } else if (action === 'leylinePlus' && target?.dataset.room) {
+      const inspector = selectRoomInspector(store.getSnapshot(), target.dataset.room);
+      if (inspector?.leylineAllocated !== undefined) {
+        store.dispatch({
+          type: 'setLeylineAllocation',
+          leylineRoomId: target.dataset.room,
+          count: inspector.leylineAllocated + 1,
+        });
+      }
     } else if (action === 'devSaveTowerGenerate') {
       const nameInput = root.querySelector('#saveTowerName');
       const expectSelect = root.querySelector('#saveTowerExpect');
@@ -312,6 +330,21 @@ function roomBody(inspector: RoomInspector): string {
                <button class="stepper-btn" data-action="researchMinus" data-room="${room.id}">−</button>
                <span>${inspector.researchAllocated}</span>
                <button class="stepper-btn" data-action="researchPlus" data-room="${room.id}">+</button>
+             </div>`
+        : ''
+      }`;
+  }
+
+  if (inspector.leylineCapacity !== undefined && inspector.leylineAllocated !== undefined) {
+    specialty += `
+      <h4>Leyline staffing</h4>
+      <div class="stat"><span>Status</span><strong>${inspector.leylineStatus ?? '—'}</strong></div>
+      <div class="stat"><span>Magi allocated</span><strong>${inspector.leylineAllocated} / ${inspector.leylineCapacity}</strong></div>
+      ${isBuildPhase
+        ? `<div class="slot-stepper">
+               <button class="stepper-btn" data-action="leylineMinus" data-room="${room.id}">−</button>
+               <span>${inspector.leylineAllocated}</span>
+               <button class="stepper-btn" data-action="leylinePlus" data-room="${room.id}">+</button>
              </div>`
         : ''
       }`;

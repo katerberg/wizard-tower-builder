@@ -7,3 +7,4 @@ export * from './steamTurret';
 export * from './hydrant';
 export * from './slot';
 export * from './turret';
+export * from './leylineResearch';

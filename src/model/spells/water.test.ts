@@ -48,6 +48,8 @@ function towerWithStem(state: GameState, height = 1): GameState {
     tower = placeStructure(tower, createStructure(`r${row}`, stem, { col: 8, row }));
   }
   state.tower = tower;
+  state.devMode = true;
+  state.activeSpellSchool = 'water';
   return state;
 }
 

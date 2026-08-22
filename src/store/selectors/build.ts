@@ -21,6 +21,7 @@ import { selectLogisticsReport } from '@/model/staff/connectivity';
 import { housingKindOf, staffKindForHousing } from '@/model/staff/capacity';
 import { isOverhangUnlocked } from '@/model/research';
 import { canPlace, getUnstableStructureIds, planRoomPlacement, type StructurePlacementOptions } from '@/model/tower';
+import { validateLeylineRoomPlacement } from '@/model/spells/progression';
 import {
   LIBRARY_SECTIONS,
   librarySectionFor,
@@ -170,10 +171,19 @@ export function selectGhostPlacement(snapshot: Snapshot): GhostPlacement | null 
   }
 
   const plan = planRoomPlacement(game.tower, blueprint, view.hoveredCell, structurePlacementOptions(snapshot));
+  let reason = plan.reason;
+  let valid = plan.ok;
+  if (plan.ok) {
+    const leyline = validateLeylineRoomPlacement(game, blueprint.id, view.hoveredCell, blueprint.size);
+    if (leyline && !leyline.ok) {
+      valid = false;
+      reason = leyline.reason;
+    }
+  }
   return {
     cells: roomCells(view.hoveredCell, blueprint.size),
-    valid: plan.ok && canAffordOrder(snapshot, id, view.hoveredCell),
-    reason: plan.reason,
+    valid: valid && canAffordOrder(snapshot, id, view.hoveredCell),
+    reason,
     needsStem: plan.stemCells.length > 0,
     stemCells: plan.stemCells,
   };

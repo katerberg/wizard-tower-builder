@@ -19,6 +19,7 @@ import { resetConstructionCounter } from './construction';
 import { resetSideJobCounter } from './sideJobs';
 import { seedFrom } from '../calculations/rng';
 import { generateShallowMine } from './mines';
+import { announceSpellSchool, pickSpellSchoolForRun } from './spells/progression';
 import { createWizardAvatarAtPerch } from './wizard';
 import type { GameState, SimSpeed } from './types';
 
@@ -62,6 +63,8 @@ export function createInitialState(seed: string | number = 'wizard'): GameState 
     slotAllocations: {},
     manaSpringAllocations: {},
     researchRoomAllocations: {},
+    leylineResearchAllocations: {},
+    leylineCompletedTiers: { 2: false, 3: false, 4: false },
     prospectAllocation: 0,
     dayIndex: 1,
     phaseTimer: DAY_DURATION,
@@ -86,7 +89,7 @@ export function createInitialState(seed: string | number = 'wizard'): GameState 
     wetCells: [],
     activeWaterfalls: [],
     hydrantSprayTimers: {},
-    activeSpellSchool: 'fire',
+    activeSpellSchool: pickSpellSchoolForRun(seed),
     boilerRuntime: {},
     steamTurretRuntime: {},
     flameTurretRuntime: {},
@@ -116,6 +119,7 @@ export function createInitialState(seed: string | number = 'wizard'): GameState 
   state.wizardAvatar = createWizardAvatarAtPerch(state);
   initStarterFacilities(state);
   startRun(state);
+  announceSpellSchool(state);
   return state;
 }
 

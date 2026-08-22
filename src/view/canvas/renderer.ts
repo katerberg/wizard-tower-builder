@@ -10,6 +10,7 @@ import {
   drawGhost,
   drawGrid,
   drawGround,
+  drawLeylineBands,
   drawPaths,
   drawSolarCollector,
   drawWizard,
@@ -45,6 +46,7 @@ export class Renderer {
 
     drawGrid(ctx, scrollY, viewportHeight);
     drawGround(ctx, scrollY, viewportHeight);
+    drawLeylineBands(ctx, snapshot, scrollY, viewportHeight);
     if (snapshot.view.layerVisibility.rooms) drawTower(ctx, snapshot, scrollY, viewportHeight);
     if (snapshot.view.layerVisibility.infra) drawInfra(ctx, snapshot, scrollY, viewportHeight);
     drawConstructionOrders(ctx, snapshot, scrollY, viewportHeight);

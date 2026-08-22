@@ -25,6 +25,8 @@ import { makeTestEnemy } from '@/test/subCells';
 function towerWithStem(state: GameState): GameState {
   const stem = getBlueprint('stem')!;
   state.tower = placeStructure(createTower(), createStructure('r0', stem, { col: 8, row: 0 }));
+  state.devMode = true;
+  state.activeSpellSchool = 'earth';
   return state;
 }
 
@@ -35,6 +37,8 @@ function towerStack(state: GameState): GameState {
   tower = placeStructure(tower, createStructure('r1', stem, { col: 8, row: 1 }));
   tower = placeStructure(tower, createStructure('r2', stem, { col: 8, row: 2 }));
   state.tower = tower;
+  state.devMode = true;
+  state.activeSpellSchool = 'earth';
   return state;
 }
 
@@ -175,6 +179,7 @@ describe('Earthquake', () => {
 describe('Earth hotbar', () => {
   it('lists earth kit when school is earth', () => {
     const state = createInitialState('hb0');
+    state.devMode = true;
     setActiveSpellSchool(state, 'earth');
     const ids = listHotbarSpells(state).map((s) => s.id);
     expect(ids).toEqual(['fault', 'fortify', 'boulder', 'earthquake']);

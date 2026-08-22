@@ -3,6 +3,7 @@ import {
   RESEARCH_ROOM_STAFF_CAPACITY,
   SOLDIER_UPKEEP_COST, STAFF_HORIZONTAL_SPEED, STAFF_STAIR_SPEED,
 } from '@/config/constants';
+import { LEYLINE_RESEARCH_STAFF_CAP } from '@/config/spellProgression';
 import { findInteriorPath } from '@/calculations/interiorPathfinding';
 import { canSoldierTraverse, roomAnchorCell } from '@/calculations/interiorGraph';
 import { planElevatorRide, isElevatorVerticalStep } from '@/model/elevators';
@@ -11,6 +12,7 @@ import { findMinePatchByTarget, isMinePatchTarget, isProspectTarget, PROSPECT_TA
 import { addMessage } from '@/model/messages';
 import { isManaSpringRoom } from '@/model/pipes';
 import { isResearchRoom } from '@/model/research';
+import { isLeylineResearchRoom } from '@/model/spells/progression';
 import { prospectFrontierCell } from '@/model/staff/harvest';
 import {
   housingCapacity,
@@ -180,17 +182,23 @@ function deploySoldiers(state: GameState, staggerBase: number): number {
 function deployMagi(state: GameState, staggerBase: number): number {
   const pools = buildPools(state, 'mage');
   const workplaces = state.tower.rooms.filter(
-    (r) => isManaSpringRoom(r) || isResearchRoom(r),
+    (r) => isManaSpringRoom(r) || isResearchRoom(r) || isLeylineResearchRoom(r),
   );
   let spawned = 0;
 
   for (const workplace of workplaces) {
-    const cap = isResearchRoom(workplace)
-      ? RESEARCH_ROOM_STAFF_CAPACITY
-      : MANA_SPRING_STAFF_CAPACITY;
-    const allocated = isResearchRoom(workplace)
-      ? (state.researchRoomAllocations[workplace.id] ?? 0)
-      : (state.manaSpringAllocations[workplace.id] ?? 0);
+    let cap: number;
+    let allocated: number;
+    if (isLeylineResearchRoom(workplace)) {
+      cap = LEYLINE_RESEARCH_STAFF_CAP;
+      allocated = state.leylineResearchAllocations[workplace.id] ?? 0;
+    } else if (isResearchRoom(workplace)) {
+      cap = RESEARCH_ROOM_STAFF_CAPACITY;
+      allocated = state.researchRoomAllocations[workplace.id] ?? 0;
+    } else {
+      cap = MANA_SPRING_STAFF_CAPACITY;
+      allocated = state.manaSpringAllocations[workplace.id] ?? 0;
+    }
     const count = Math.min(allocated, cap);
     if (count <= 0) continue;
     const anchor = workplaceAnchor(state, workplace);

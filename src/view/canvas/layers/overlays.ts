@@ -1,6 +1,8 @@
 import { CELL_SIZE, GRID_COLS, SUB_CELL_SIZE, SUB_CELLS_PER_MACRO } from '@/config/constants';
+import { LEYLINE_BAND_ROWS } from '@/config/spellProgression';
 import { colors } from '@/view/theme';
 import { getBlueprint } from '@/model/blueprints';
+import { LEYLINE_RESEARCH_BLUEPRINT_ID } from '@/model/spells/progression';
 import { orderFootprintCells } from '@/model/construction';
 import { previewPipeFluidAt } from '@/model/pipes';
 import { getSolarCollectorPosition } from '@/model/wizard';
@@ -10,6 +12,22 @@ import { BOARD_WIDTH, cellCenter, cellTopLeft, exteriorNodeDrawCenter, GROUND_LI
 import { drawElevatorShaft, drawPipeCell, drawStairLine } from './tower';
 import { pipeFluidColor } from './shared';
 
+/** Subtle tint on leyline band rows once the blueprint is unlocked. */
+export function drawLeylineBands(
+  ctx: CanvasRenderingContext2D,
+  snapshot: Snapshot,
+  scrollY: number,
+  viewportHeight: number,
+): void {
+  const unlocked = snapshot.game.player.unlockedBlueprints.includes(LEYLINE_RESEARCH_BLUEPRINT_ID);
+  if (!unlocked) return;
+  ctx.fillStyle = colors.leylineBand;
+  for (const row of LEYLINE_BAND_ROWS) {
+    const { y } = cellTopLeft(0, row, scrollY, viewportHeight);
+    if (y < -CELL_SIZE || y > viewportHeight + CELL_SIZE) continue;
+    ctx.fillRect(0, y, BOARD_WIDTH, CELL_SIZE);
+  }
+}
 export function drawGrid(ctx: CanvasRenderingContext2D, scrollY: number, viewportHeight: number): void {
   const { minRow, maxRow } = visibleRowRange(scrollY, viewportHeight); const minSubRow = minRow * SUB_CELLS_PER_MACRO; const maxSubRow = (maxRow + 1) * SUB_CELLS_PER_MACRO;
   ctx.strokeStyle = colors.grid; ctx.lineWidth = 1; ctx.globalAlpha = 0.35;
