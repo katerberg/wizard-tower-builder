@@ -26,7 +26,7 @@ Shared rules:
 - Recruit in **day** phase; upkeep every **night** deploy for **every** rostered occupant (idle or assigned)
 - **Night-only** combat movement; spawn from housing at nightfall; clear runtime entities at dawn (roster + allocations persist)
 - Auto-assign to workplaces; path via stairs between levels
-- Stair shafts: **one staffer per cell** en route (queues down the column; destination workplaces may stack)
+- Stair shafts: staff may **overlap** en route; departures are **staggered** (`STAFF_DEPART_STAGGER_SEC`) so groups leave as a stream, not a blob; destination workplaces may stack
 - Elevator shafts: shared car (cap 6); waiters/riders stack on the car/landing; no free vertical climb
 - Selling housing prunes roster/allocations for that room
 - Build-phase **undo / revert** covers room place/remove, recruit/unrecruit, mods, and workplace allocations

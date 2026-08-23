@@ -19,6 +19,7 @@ import {
   minePatchTargetId,
 } from '@/model/mines';
 import { addMessage, addMessageOnceInRow } from '@/model/messages';
+import { departCooldownForIndex } from './depart';
 import type { Cell, GameState, MinePatch, Resources, Room, StaffUnit, Tower } from '@/model/types';
 
 const PUMP_TARGET = 'pump:hand';
@@ -166,6 +167,7 @@ export function assignSurplusLaborers(state: GameState): void {
   const pumpAnchor = groundPumpAnchor(state);
   const patches = availableMinePatches(state);
 
+  let departIdx = 0;
   for (const unit of idle) {
     if (!laborerCanReachMineJobs(state, unit)) {
       // Stuck above without stairs/elevator — leave idle (repair may still claim them later).
@@ -181,6 +183,8 @@ export function assignSurplusLaborers(state: GameState): void {
       const atAnchor =
         unit.pos.col === pumpAnchor.col && unit.pos.row === pumpAnchor.row && path.length <= 1;
       unit.status = atAnchor ? 'working' : 'moving';
+      unit.moveCooldown = atAnchor ? 0 : departCooldownForIndex(departIdx);
+      if (unit.status === 'moving') departIdx += 1;
       continue;
     }
 
@@ -207,6 +211,8 @@ export function assignSurplusLaborers(state: GameState): void {
     const atPatch =
       unit.pos.col === patch.cell.col && unit.pos.row === patch.cell.row && path.length <= 1;
     unit.status = atPatch ? 'working' : 'moving';
+    unit.moveCooldown = atPatch ? 0 : departCooldownForIndex(departIdx);
+    if (unit.status === 'moving') departIdx += 1;
   }
 }
 

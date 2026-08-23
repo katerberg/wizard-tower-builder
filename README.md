@@ -281,7 +281,7 @@ flowchart TB
 | **Housing** | Guardroom (soldiers 3→6), chamber (magi 1→2), quarters (laborers 6→12) |
 | **Slot** | Player sets headcount; auto-assign closest; fires during attack (2→4 via mod) |
 | **Mana spring** | Water + stationed magi; regen falls off with more magi (cap 5) |
-| **Stairs** | Cheap ad-hoc infra; slow vertical; one staffer per cell en route |
+| **Stairs** | Auto-reconciled shafts; slow vertical; free passage with staggered departures |
 | **Elevators** | Expensive vertical shafts; one car (cap 6); call-to-idle; no free climb |
 | **Movement** | Staff spawn from housing each wave; **attack phase only** |
 | **Pathfinding** | Interior/infra graph for staff; exterior graph for enemies (unchanged) |

@@ -27,6 +27,10 @@ export const STAFF_STAIR_SPEED = 0.4;
 export const STAFF_ELEVATOR_SPEED = 2;
 /** Max staff riding one elevator car. */
 export const ELEVATOR_CAPACITY = 6;
+/** Seconds between departures when a batch of staff leave the same housing / path assign. */
+export const STAFF_DEPART_STAGGER_SEC = 0.25;
+/** Cap so the Nth unit in a large batch is not absurdly late. */
+export const STAFF_DEPART_STAGGER_MAX_SEC = 2.0;
 /** @deprecated Use STAFF_HORIZONTAL_SPEED. */
 export const SOLDIER_HORIZONTAL_SPEED = STAFF_HORIZONTAL_SPEED;
 /** @deprecated Use STAFF_STAIR_SPEED. */

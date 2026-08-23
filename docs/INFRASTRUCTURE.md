@@ -109,7 +109,7 @@ Stairs are **not** a buildable blueprint. `reconcileAutoStairs` (`src/model/auto
 | Shaft column | Opening room anchor col when possible; pipe/elevator cells in the column are overwritten |
 | Vertical fill | Stair on every structure cell in the shaft column from row 0 through the highest room or framing row |
 | Movement | Stair on floor **N** connects **N ↔ N+1** (landing need not have a stair) |
-| Throughput | **One staffer per cell** en route (shafts can hold a queue down the column) |
+| Throughput | Staff may overlap; batch departures stagger by `STAFF_DEPART_STAGGER_SEC` (capped) |
 | Speed | **0.2×** horizontal (`STAFF_STAIR_SPEED` / `STAFF_HORIZONTAL_SPEED` = 0.4 / 2) |
 | Rejection | Layout edits that cannot connect all rooms to ground are blocked (`no_shaft` / `disconnected`) |
 
@@ -250,7 +250,7 @@ Relevant order inside `game.step(dt)` (attack only):
 ```
 1. Spawn / tick enemies, wizard, spells (existing)
 2. stepElevators — car call / empty travel / board / multi-stop
-3. stepStaff — cell-exclusive movement; stairs; elevator wait/ride handoff
+3. stepStaff — free corridor passage + depart stagger; stairs; elevator wait/ride handoff
 4. tickLaborerRepairs — repair + retarget
 5. runRoomEffects — slots, turrets, mods
 6. tickManaSprings — water + stationed magi
@@ -360,7 +360,7 @@ interface GameState {
 |------|-------|
 | Infra placement | One kind per cell; exclusion; paint over structure |
 | Interior path | Horizontal through passable room; vertical when lower cell has a stair |
-| Stair throughput | Second climber waits only for the next occupied cell |
+| Stair throughput | Depart stagger spreads climbers; units may share corridor cells |
 | Elevator shafts | Contiguous column = one shaft; gap = two; adjacent columns separate |
 | Elevator dispatch | Call/empty travel; capacity 6; mid-pickup; no free vertical walk |
 | Auto-assign | Closest housing preferred; unconnected workplaces flagged |

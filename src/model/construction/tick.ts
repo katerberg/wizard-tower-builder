@@ -16,6 +16,7 @@ import {
   LABORER_REPAIR_HP_PER_SEC,
 } from '@/config/constants';
 import { stepStaff } from '../staff/deploy';
+import { departCooldownForIndex } from '../staff/depart';
 import { repathIdleLaborers } from '../staff/combat';
 import { getStorageSite, withdrawFromStorage } from '../storage';
 import {
@@ -114,7 +115,7 @@ function pathDestination(path: Cell[]): Cell | null {
   return path[path.length - 1];
 }
 
-function assignPathTo(lab: StaffUnit, state: GameState, dest: Cell): void {
+function assignPathTo(lab: StaffUnit, state: GameState, dest: Cell, staggerIndex = 0): void {
   const path = findInteriorPath(state.tower, lab.pos, dest, state.mine);
   if (path.length === 0) {
     lab.path = [{ ...lab.pos }];
@@ -125,10 +126,15 @@ function assignPathTo(lab: StaffUnit, state: GameState, dest: Cell): void {
   lab.path = path;
   lab.pathIndex = 0;
   lab.status = 'moving';
-  lab.moveCooldown = 0;
+  lab.moveCooldown = departCooldownForIndex(staggerIndex);
 }
 
-function assignPathToIfNeeded(lab: StaffUnit, state: GameState, dest: Cell): void {
+function assignPathToIfNeeded(
+  lab: StaffUnit,
+  state: GameState,
+  dest: Cell,
+  staggerIndex = 0,
+): boolean {
   const end = pathDestination(lab.path);
   if (
     lab.status === 'moving' &&
@@ -136,9 +142,10 @@ function assignPathToIfNeeded(lab: StaffUnit, state: GameState, dest: Cell): voi
     end?.row === dest.row &&
     !staffPathComplete(lab)
   ) {
-    return;
+    return false;
   }
-  assignPathTo(lab, state, dest);
+  assignPathTo(lab, state, dest, staggerIndex);
+  return true;
 }
 
 function tickConstructionLabor(state: GameState, dt: number, nextRoomId: () => string): void {
@@ -187,17 +194,23 @@ function clearStaleConstructionTargets(state: GameState): void {
   }
 }
 
-function setWorkingAtSite(lab: StaffUnit, state: GameState, order: ConstructionOrder): void {
+function setWorkingAtSite(
+  lab: StaffUnit,
+  state: GameState,
+  order: ConstructionOrder,
+  staggerIndex = 0,
+): boolean {
   const dropCell = orderDeliveryCell(state, order, lab.pos);
   const atSite = lab.pos.col === dropCell.col && lab.pos.row === dropCell.row;
   if (atSite) {
     lab.status = 'working';
-    return;
+    return false;
   }
-  assignPathToIfNeeded(lab, state, dropCell);
+  return assignPathToIfNeeded(lab, state, dropCell, staggerIndex);
 }
 
 function tickHauling(state: GameState): void {
+  let departIdx = 0;
   for (const lab of state.staff) {
     if (lab.kind !== 'laborer') continue;
     const target = lab.targetWorkplaceId;
@@ -208,17 +221,23 @@ function tickHauling(state: GameState): void {
     if (order?.kind !== 'build') continue;
 
     if (order.status === 'planned' || order.status === 'delivering') {
-      tickHaulLaborer(state, lab, order);
+      departIdx += tickHaulLaborer(state, lab, order, departIdx);
     } else if (order.status === 'scaffold' && order.deliverRemaining.stone === 0 && order.deliverRemaining.metal === 0) {
       order.status = 'building';
-      setWorkingAtSite(lab, state, order);
+      if (setWorkingAtSite(lab, state, order, departIdx)) departIdx += 1;
     } else if (order.status === 'scaffold' || order.status === 'building') {
-      setWorkingAtSite(lab, state, order);
+      if (setWorkingAtSite(lab, state, order, departIdx)) departIdx += 1;
     }
   }
 }
 
-function tickHaulLaborer(state: GameState, lab: StaffUnit, order: ConstructionOrder): void {
+/** Returns how many new path assigns this laborer consumed (0 or 1). */
+function tickHaulLaborer(
+  state: GameState,
+  lab: StaffUnit,
+  order: ConstructionOrder,
+  staggerIndex: number,
+): number {
   const reservation = state.storageReservations.find((r) => r.orderId === order.id);
   const dropCell = orderDeliveryCell(state, order, lab.pos);
 
@@ -236,50 +255,50 @@ function tickHaulLaborer(state: GameState, lab: StaffUnit, order: ConstructionOr
         if (order.deliverRemaining.stone === 0 && order.deliverRemaining.metal === 0) {
           placeScaffoldForOrder(state, order);
           order.status = 'building';
-          setWorkingAtSite(lab, state, order);
-        } else {
-          lab.status = 'idle';
+          return setWorkingAtSite(lab, state, order, staggerIndex) ? 1 : 0;
         }
-      } else {
-        assignPathToIfNeeded(lab, state, dropCell);
+        lab.status = 'idle';
+      } else if (assignPathToIfNeeded(lab, state, dropCell, staggerIndex)) {
+        return 1;
       }
     }
-    return;
+    return 0;
   }
 
   if (order.deliverRemaining.stone <= 0 && order.deliverRemaining.metal <= 0) {
     placeScaffoldForOrder(state, order);
     order.status = 'building';
-    setWorkingAtSite(lab, state, order);
-    return;
+    return setWorkingAtSite(lab, state, order, staggerIndex) ? 1 : 0;
   }
 
   const storageId = reservation?.storageRoomId ?? lab.carryFromStorageId;
-  if (!storageId) return;
+  if (!storageId) return 0;
   const anchor = storageAnchor(state, storageId);
-  if (!anchor) return;
+  if (!anchor) return 0;
 
   const atStorage = lab.pos.col === anchor.col && lab.pos.row === anchor.row;
   if (atStorage && lab.status !== 'moving') {
     const site = getStorageSite(state, storageId);
-    if (!site) return;
+    if (!site) return 0;
     let cap = LABORER_CARRY_CAPACITY;
     const carry: Stockpile = { stone: 0, metal: 0 };
     const stoneTake = Math.min(order.deliverRemaining.stone, site.stockpile.stone, cap);
     carry.stone = stoneTake;
     cap -= stoneTake;
     carry.metal = Math.min(order.deliverRemaining.metal, site.stockpile.metal, cap);
-    if (carry.stone === 0 && carry.metal === 0) return;
+    if (carry.stone === 0 && carry.metal === 0) return 0;
     withdrawFromStorage(site, carry);
     addMessageOnceInRow(state, `Laborer carrying ${carry.stone} stone, ${carry.metal} metal to site`, 'info');
     lab.carry = carry;
     lab.carryFromStorageId = storageId;
     lab.carryOrderId = order.id;
     order.status = 'delivering';
-    assignPathToIfNeeded(lab, state, dropCell);
-  } else if (!atStorage) {
-    assignPathToIfNeeded(lab, state, anchor);
+    return assignPathToIfNeeded(lab, state, dropCell, staggerIndex) ? 1 : 0;
   }
+  if (!atStorage) {
+    return assignPathToIfNeeded(lab, state, anchor, staggerIndex) ? 1 : 0;
+  }
+  return 0;
 }
 
 function tickDayRepair(state: GameState, dt: number): void {
