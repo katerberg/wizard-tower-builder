@@ -365,15 +365,19 @@ export function stepStaff(state: GameState, dt: number): void {
       continue;
     }
 
-    if (unit.status === 'idle' && (!workplaceRoom && !workplaceStructure && !pumpJob && !prospectJob && !minePatch)) {
-      // Truly idle with no job — nothing to do
+    if (unit.status === 'idle' && (!workplaceRoom && !workplaceStructure && !pumpJob && !prospectJob && !minePatch && !isConstructionTarget)) {
       continue;
     }
 
-    // In the goal computation section, add:
     const constructionOrder = isConstructionTarget
       ? state.constructionOrders.find((o) => o.id === targetId?.slice('construction:'.length))
       : null;
+
+    if (isConstructionTarget && !constructionOrder) {
+      unit.targetWorkplaceId = null;
+      unit.status = 'idle';
+      continue;
+    }
 
     const goal: Cell = workplaceRoom
       ? (roomAnchorCell(state.tower, workplaceRoom.origin, workplaceRoom.size, state.mine) ??
@@ -406,7 +410,11 @@ export function stepStaff(state: GameState, dt: number): void {
 
     unit.moveCooldown -= dt;
     if (unit.moveCooldown > 0) continue;
-    if (unit.pathIndex >= unit.path.length - 1) continue;
+    if (unit.pathIndex >= unit.path.length - 1) {
+      // Haul paths (e.g. storage) end before the construction goal used above.
+      if (unit.status === 'moving') unit.status = 'idle';
+      continue;
+    }
 
     const next = unit.path[unit.pathIndex + 1];
     const vertical = isVerticalStep(unit.pos, next);

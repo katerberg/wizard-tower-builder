@@ -4,7 +4,12 @@ import {
 } from '@/config/construction';
 import { RARE_PATCH_FALLOFF } from '@/config/mines';
 import { findInteriorPath } from '@/calculations/interiorPathfinding';
-import { roomAnchorCell } from '@/calculations/interiorGraph';
+import {
+  cellDistance,
+  isSoldierWalkable,
+  roomAnchorCell,
+} from '@/calculations/interiorGraph';
+import { cellKey, inBounds } from '@/calculations/grid';
 import {
   STAFF_HORIZONTAL_SPEED,
   STAFF_STAIR_SPEED,
@@ -20,6 +25,7 @@ import {
   placeScaffoldForOrder,
 } from './orders';
 import type { Cell, ConstructionOrder, GameState, StaffUnit, Stockpile } from '../types';
+import { addMessageOnceInRow } from '../messages';
 
 function laborerEfficiency(count: number): number {
   if (count <= 0) return 0;
@@ -28,32 +34,41 @@ function laborerEfficiency(count: number): number {
   return total;
 }
 
-function orderSiteCell(order: ConstructionOrder): Cell {
-  const cells = orderFootprintCells(order);
-  return cells[0] ?? order.origin;
+/** Walkable cell where laborers stand to drop materials (footprint or adjacent). */
+function orderDeliveryCell(state: GameState, order: ConstructionOrder, near?: Cell): Cell {
+  const { tower, mine } = state;
+  const footprint = orderFootprintCells(order);
+  const onFootprint = footprint.filter((c) => isSoldierWalkable(tower, c.col, c.row, mine));
+
+  const candidates: Cell[] = [...onFootprint];
+  if (candidates.length === 0) {
+    const seen = new Set<string>();
+    for (const cell of footprint) {
+      const adjacent: Cell[] = [
+        { col: cell.col + 1, row: cell.row },
+        { col: cell.col - 1, row: cell.row },
+        { col: cell.col, row: cell.row + 1 },
+        { col: cell.col, row: cell.row - 1 },
+      ];
+      for (const n of adjacent) {
+        if (!inBounds(n.col, n.row)) continue;
+        const key = cellKey(n.col, n.row);
+        if (seen.has(key)) continue;
+        seen.add(key);
+        if (isSoldierWalkable(tower, n.col, n.row, mine)) candidates.push(n);
+      }
+    }
+  }
+
+  if (candidates.length === 0) return footprint[0] ?? order.origin;
+  if (!near) return candidates[0];
+  return candidates.reduce((best, c) => (cellDistance(c, near) < cellDistance(best, near) ? c : best));
 }
 
 function storageAnchor(state: GameState, storageRoomId: string): Cell | null {
   const room = state.tower.rooms.find((r) => r.id === storageRoomId);
   if (!room) return null;
   return roomAnchorCell(state.tower, room.origin, room.size);
-}
-
-function assignConstructionLaborers(state: GameState): void {
-  let laborerIdx = 0;
-  const laborers = state.staff.filter((s) => s.kind === 'laborer');
-
-  const teardownOrders = state.constructionOrders.filter((o) => o.kind === 'teardown');
-  const buildOrders = state.constructionOrders.filter((o) => o.kind === 'build' && o.status !== 'building');
-
-  for (const order of [...teardownOrders, ...buildOrders]) {
-    if (laborerIdx >= laborers.length) break;
-    const lab = laborers[laborerIdx];
-    if (isProspectorBusy(state, lab)) continue;
-    if (lab.targetWorkplaceId?.startsWith('construction:')) continue;
-    lab.targetWorkplaceId = `construction:${order.id}`;
-    laborerIdx += 1;
-  }
 }
 
 function isProspectorBusy(state: GameState, lab: StaffUnit): boolean {
@@ -64,9 +79,69 @@ function isProspectorBusy(state: GameState, lab: StaffUnit): boolean {
   return prospectors.some((p) => p.id === lab.id);
 }
 
-function tickConstructionLabor(state: GameState, dt: number, nextRoomId: () => string): void {
-  assignConstructionLaborers(state);
+function assignConstructionLaborers(state: GameState): void {
+  const laborers = state.staff.filter((s) => s.kind === 'laborer');
+  const orders = [
+    ...state.constructionOrders.filter((o) => o.kind === 'teardown'),
+    ...state.constructionOrders.filter((o) => o.kind === 'build' && o.status !== 'building'),
+  ];
 
+  let laborerIdx = 0;
+  for (const order of orders) {
+    while (laborerIdx < laborers.length) {
+      const lab = laborers[laborerIdx];
+      laborerIdx += 1;
+      if (isProspectorBusy(state, lab)) continue;
+      if (lab.targetWorkplaceId?.startsWith('construction:')) continue;
+      lab.targetWorkplaceId = `construction:${order.id}`;
+      addMessageOnceInRow(
+        state,
+        `Laborer assigned to ${order.blueprintId} (${order.status})`,
+        'info',
+      );
+      break;
+    }
+    if (laborerIdx >= laborers.length) break;
+  }
+}
+
+function staffPathComplete(lab: StaffUnit): boolean {
+  return lab.path.length === 0 || lab.pathIndex >= lab.path.length - 1;
+}
+
+function pathDestination(path: Cell[]): Cell | null {
+  if (path.length === 0) return null;
+  return path[path.length - 1];
+}
+
+function assignPathTo(lab: StaffUnit, state: GameState, dest: Cell): void {
+  const path = findInteriorPath(state.tower, lab.pos, dest, state.mine);
+  if (path.length === 0) {
+    lab.path = [{ ...lab.pos }];
+    lab.pathIndex = 0;
+    lab.status = 'idle';
+    return;
+  }
+  lab.path = path;
+  lab.pathIndex = 0;
+  lab.status = 'moving';
+  lab.moveCooldown = 0;
+}
+
+function assignPathToIfNeeded(lab: StaffUnit, state: GameState, dest: Cell): void {
+  const end = pathDestination(lab.path);
+  if (
+    lab.status === 'moving' &&
+    end?.col === dest.col &&
+    end?.row === dest.row &&
+    !staffPathComplete(lab)
+  ) {
+    return;
+  }
+  assignPathTo(lab, state, dest);
+}
+
+function tickConstructionLabor(state: GameState, dt: number, nextRoomId: () => string): void {
   const buildingOrders = state.constructionOrders.filter(
     (o) => o.kind === 'build' && (o.status === 'building' || o.status === 'scaffold'),
   );
@@ -81,6 +156,8 @@ function tickConstructionLabor(state: GameState, dt: number, nextRoomId: () => s
     if (order.buildProgress >= 1) {
       completeConstructionOrder(state, order, nextRoomId);
     }
+    const pct = Math.round(order.buildProgress * 100);
+    addMessageOnceInRow(state, `${order.blueprintId} build progress: ${pct}%`, 'info');
   }
 
   for (const order of state.constructionOrders.filter((o) => o.kind === 'teardown')) {
@@ -93,6 +170,22 @@ function tickConstructionLabor(state: GameState, dt: number, nextRoomId: () => s
     if (order.buildProgress >= 1) {
       completeTeardownOrder(state, order);
     }
+  }
+}
+
+function clearStaleConstructionTargets(state: GameState): void {
+  for (const lab of state.staff) {
+    if (lab.kind !== 'laborer') continue;
+    const target = lab.targetWorkplaceId;
+    if (!target?.startsWith('construction:')) continue;
+    const orderId = target.slice('construction:'.length);
+    if (state.constructionOrders.some((o) => o.id === orderId)) continue;
+    lab.targetWorkplaceId = null;
+    lab.carry = undefined;
+    lab.carryOrderId = undefined;
+    lab.status = 'idle';
+    lab.path = [{ ...lab.pos }];
+    lab.pathIndex = 0;
   }
 }
 
@@ -119,17 +212,17 @@ function tickHauling(state: GameState): void {
 
 function tickHaulLaborer(state: GameState, lab: StaffUnit, order: ConstructionOrder): void {
   const reservation = state.storageReservations.find((r) => r.orderId === order.id);
-  const siteCell = orderSiteCell(order);
+  const dropCell = orderDeliveryCell(state, order, lab.pos);
 
-  if (lab.carry && (lab.carry.stone > 0 || lab.carry.metal > 0)) {
-    // Deliver to site
-    if (lab.path.length === 0 && lab.status !== 'moving') {
-      const atSite = lab.pos.col === siteCell.col && lab.pos.row === siteCell.row;
-      if (atSite) {
-        order.onSiteMaterials.stone += lab.carry.stone;
-        order.onSiteMaterials.metal += lab.carry.metal;
-        order.deliverRemaining.stone = Math.max(0, order.deliverRemaining.stone - lab.carry.stone);
-        order.deliverRemaining.metal = Math.max(0, order.deliverRemaining.metal - lab.carry.metal);
+  const carry = lab.carry;
+  if (carry && (carry.stone > 0 || carry.metal > 0)) {
+    if (staffPathComplete(lab) && lab.status !== 'moving') {
+      const atDrop = lab.pos.col === dropCell.col && lab.pos.row === dropCell.row;
+      if (atDrop) {
+        order.onSiteMaterials.stone += carry.stone;
+        order.onSiteMaterials.metal += carry.metal;
+        order.deliverRemaining.stone = Math.max(0, order.deliverRemaining.stone - carry.stone);
+        order.deliverRemaining.metal = Math.max(0, order.deliverRemaining.metal - carry.metal);
         lab.carry = { stone: 0, metal: 0 };
         lab.carryOrderId = undefined;
         if (order.deliverRemaining.stone === 0 && order.deliverRemaining.metal === 0) {
@@ -137,11 +230,10 @@ function tickHaulLaborer(state: GameState, lab: StaffUnit, order: ConstructionOr
           order.status = 'building';
           lab.status = 'working';
         } else {
-          lab.targetWorkplaceId = `construction:${order.id}`;
           lab.status = 'idle';
         }
       } else {
-        assignPathTo(lab, state, siteCell);
+        assignPathToIfNeeded(lab, state, dropCell);
       }
     }
     return;
@@ -163,40 +255,23 @@ function tickHaulLaborer(state: GameState, lab: StaffUnit, order: ConstructionOr
   if (atStorage && lab.status !== 'moving') {
     const site = getStorageSite(state, storageId);
     if (!site) return;
-    const need: Stockpile = {
-      stone: Math.min(order.deliverRemaining.stone, LABORER_CARRY_CAPACITY),
-      metal: Math.min(order.deliverRemaining.metal, LABORER_CARRY_CAPACITY - Math.min(order.deliverRemaining.stone, LABORER_CARRY_CAPACITY)),
-    };
-    // Fill carry with mixed load up to capacity
     let cap = LABORER_CARRY_CAPACITY;
     const carry: Stockpile = { stone: 0, metal: 0 };
-    const stoneTake = Math.min(need.stone, order.deliverRemaining.stone, site.stockpile.stone, cap);
+    const stoneTake = Math.min(order.deliverRemaining.stone, site.stockpile.stone, cap);
     carry.stone = stoneTake;
     cap -= stoneTake;
-    const metalTake = Math.min(order.deliverRemaining.metal, site.stockpile.metal, cap);
-    carry.metal = metalTake;
+    carry.metal = Math.min(order.deliverRemaining.metal, site.stockpile.metal, cap);
     if (carry.stone === 0 && carry.metal === 0) return;
     withdrawFromStorage(site, carry);
+    addMessageOnceInRow(state, `Laborer carrying ${carry.stone} stone, ${carry.metal} metal to site`, 'info');
     lab.carry = carry;
     lab.carryFromStorageId = storageId;
     lab.carryOrderId = order.id;
     order.status = 'delivering';
-    assignPathTo(lab, state, siteCell);
+    assignPathToIfNeeded(lab, state, dropCell);
   } else if (!atStorage) {
-    assignPathTo(lab, state, anchor);
+    assignPathToIfNeeded(lab, state, anchor);
   }
-}
-
-function assignPathTo(lab: StaffUnit, state: GameState, dest: Cell): void {
-  const path = findInteriorPath(state.tower, lab.pos, dest);
-  if (path.length === 0) {
-    lab.status = 'idle';
-    return;
-  }
-  lab.path = path;
-  lab.pathIndex = 0;
-  lab.status = 'moving';
-  lab.moveCooldown = 0;
 }
 
 function tickDayRepair(state: GameState, dt: number): void {
@@ -216,12 +291,15 @@ function tickDayRepair(state: GameState, dt: number): void {
 }
 
 function getBlueprintHp(room: { blueprintId: string; hp: number }): number | undefined {
-  return room.hp; // simplified — repair until max hp stored on room
+  return room.hp;
 }
 
 let roomIdCounter = 0;
+let dayLaborerCounter = 0;
+
 export function resetConstructionTickCounter(): void {
   roomIdCounter = 0;
+  dayLaborerCounter = 0;
 }
 
 function nextRoomIdLocal(): string {
@@ -229,35 +307,58 @@ function nextRoomIdLocal(): string {
   return `built-${roomIdCounter}`;
 }
 
+/** Keep day roster aligned with housingRecruited (recruits during day appear immediately). */
+function syncDayLaborers(state: GameState): void {
+  for (const room of state.tower.rooms) {
+    if (room.blueprintId !== 'quartersRoom') continue;
+    const want = state.housingRecruited[room.id] ?? 0;
+    const anchor = roomAnchorCell(state.tower, room.origin, room.size);
+    if (!anchor) continue;
+
+    let housed = state.staff.filter((s) => s.kind === 'laborer' && s.homeHousingId === room.id);
+
+    while (housed.length < want) {
+      const unit: StaffUnit = {
+        id: `laborer-day-${dayLaborerCounter++}`,
+        kind: 'laborer',
+        homeHousingId: room.id,
+        targetWorkplaceId: null,
+        pos: { ...anchor },
+        path: [],
+        pathIndex: 0,
+        moveCooldown: 0,
+        status: 'idle',
+      };
+      state.staff.push(unit);
+      housed = state.staff.filter((s) => s.kind === 'laborer' && s.homeHousingId === room.id);
+    }
+
+    while (housed.length > want) {
+      const removable = state.staff.find(
+        (s) =>
+          s.kind === 'laborer' &&
+          s.homeHousingId === room.id &&
+          s.status === 'idle' &&
+          !s.carry &&
+          !s.targetWorkplaceId?.startsWith('construction:'),
+      );
+      if (!removable) break;
+      state.staff = state.staff.filter((s) => s.id !== removable.id);
+      housed = state.staff.filter((s) => s.kind === 'laborer' && s.homeHousingId === room.id);
+    }
+  }
+}
+
 /** Day-phase labor: construction haul/build, teardown, repair. */
 export function tickDayConstruction(state: GameState, dt: number): void {
-  spawnDayLaborers(state);
+  syncDayLaborers(state);
+  clearStaleConstructionTargets(state);
+  assignConstructionLaborers(state);
   tickHauling(state);
   stepStaff(state, dt);
   tickConstructionLabor(state, dt, nextRoomIdLocal);
   tickDayRepair(state, dt);
   repathIdleLaborers(state);
-}
-
-function spawnDayLaborers(state: GameState): void {
-  if (state.staff.length > 0) return;
-  for (const room of state.tower.rooms) {
-    if (room.blueprintId !== 'quartersRoom') continue;
-    const count = state.housingRecruited[room.id] ?? 1;
-    for (let i = 0; i < count; i++) {
-      state.staff.push({
-        id: `laborer-day-${room.id}-${i}`,
-        kind: 'laborer',
-        homeHousingId: room.id,
-        targetWorkplaceId: null,
-        pos: { ...room.origin },
-        path: [],
-        pathIndex: 0,
-        moveCooldown: 0,
-        status: 'idle',
-      });
-    }
-  }
 }
 
 export { STAFF_HORIZONTAL_SPEED, STAFF_STAIR_SPEED };
