@@ -302,7 +302,12 @@ function isVerticalStep(from: Cell, to: Cell): boolean {
   return from.col === to.col && from.row !== to.row;
 }
 
-function isCellOccupiedByOtherStaff(state: GameState, cell: Cell, exceptId: string): boolean {
+function isCellOccupiedByOtherStaff(
+  state: GameState,
+  cell: Cell,
+  exceptId: string,
+  moverKind: StaffKind,
+): boolean {
   // Elevator landings allow stacking; waiters/riders never block cell locks.
   if (hasInfraKind(state.tower, cell.col, cell.row, 'elevator')) return false;
   return state.staff.some(
@@ -311,7 +316,8 @@ function isCellOccupiedByOtherStaff(state: GameState, cell: Cell, exceptId: stri
       s.pos.col === cell.col &&
       s.pos.row === cell.row &&
       s.status !== 'waiting_elevator' &&
-      s.status !== 'riding_elevator',
+      s.status !== 'riding_elevator' &&
+      !(moverKind === 'laborer' && s.kind === 'laborer'),
   );
 }
 
@@ -430,8 +436,8 @@ export function stepStaff(state: GameState, dt: number): void {
       continue;
     }
 
-    // One staffer per cell en route; destination workplaces may hold several.
-    if (!enteringWorkplace && isCellOccupiedByOtherStaff(state, next, unit.id)) {
+    // Soldiers/magi queue on shared corridor cells; laborers may pass each other.
+    if (!enteringWorkplace && isCellOccupiedByOtherStaff(state, next, unit.id, unit.kind)) {
       continue;
     }
 
