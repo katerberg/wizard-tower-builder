@@ -223,7 +223,7 @@ src/
   main.ts              # Shell bootstrap
   config/              # Balance knobs by domain (+ README index)
   model/
-    tick.ts            # Ordered attack-phase step list
+    tick.ts            # Day + night step order
     tower/             # Placement, stability, sell, query
     rooms/             # Behavioral room registry
     spells/            # Schools + registry (see spells/README)
