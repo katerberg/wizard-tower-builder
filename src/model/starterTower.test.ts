@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { SUB_CELLS_PER_MACRO, STARTING_RESOURCES } from '@/config/constants';
+import { findInteriorPath } from '@/calculations/interiorPathfinding';
 import { STARTER_SUPPLY_METAL, STARTER_SUPPLY_STONE } from '@/config/storage';
 import { createInitialState } from './game';
 import {
@@ -9,6 +10,15 @@ import {
   STARTER_STRUCTURE_PLACEMENTS,
 } from './starterTower';
 import { getWizardPosition, isOccupied, isTowerConnected, isTowerStable, roomAt } from './tower';
+
+function stairCols(tower: ReturnType<typeof createStarterTower>): number[] {
+  const cols = new Set<number>();
+  for (const [key, cell] of Object.entries(tower.infra ?? {})) {
+    if (cell.kind !== 'stair') continue;
+    cols.add(Number(key.split(',')[0]));
+  }
+  return [...cols].sort((a, b) => a - b);
+}
 
 describe('createStarterTower', () => {
   it('builds a stable connected tower with starter facilities', () => {
@@ -46,6 +56,16 @@ describe('createStarterTower', () => {
 
   it('keeps STARTER_STRUCTURE_PLACEMENTS as the authored framing list', () => {
     expect(STARTER_STRUCTURE_PLACEMENTS).toHaveLength(10);
+  });
+
+  it('auto-reconciles stair shafts to both crown levels from the ground floor', () => {
+    const tower = createStarterTower();
+    expect(stairCols(tower).length).toBeGreaterThanOrEqual(1);
+    for (const col of [6, 8]) {
+      const path = findInteriorPath(tower, { col: 5, row: 0 }, { col, row: 4 });
+      expect(path.length).toBeGreaterThan(0);
+      expect(path[path.length - 1]).toEqual({ col, row: 4 });
+    }
   });
 });
 

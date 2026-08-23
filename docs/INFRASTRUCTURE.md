@@ -1,6 +1,6 @@
 # Infrastructure & logistics
 
-Developer-facing architecture for the tower’s **infrastructure layer** — the core of an economy/logistics tower-defense game. Mundane structures (housing, slots, stairs, pipes) are the primary defense scaling path; auto-turrets and the mobile wizard firefighter are supplementary (see PLAYER_MOVEMENT.md).
+Developer-facing architecture for the tower’s **infrastructure layer** — the core of an economy/logistics tower-defense game. Mundane structures (housing, slots, auto-stairs, pipes) are the primary defense scaling path; auto-turrets and the mobile wizard firefighter are supplementary (see PLAYER_MOVEMENT.md).
 
 **Shipped:** Guardroom → slot soldier staffing over stairs; full housing for soldiers / magi / laborers — see [`HOUSING.md`](HOUSING.md). Pipes, boilers, mana springs, steam, forge fire — see [`PIPES.md`](PIPES.md).
 
@@ -23,7 +23,7 @@ Three tower layers (visibility toggles; workers use glyphs when the layer is on)
 | Layer | Contents | Edit trigger |
 |-------|----------|--------------|
 | **rooms** | Structure blueprints (spire, housing, slot, turret, …) | Select a structure blueprint |
-| **infra** | Stairs, pipes, elevators | Select an infra blueprint / tool |
+| **infra** | Auto-stairs (read-only), pipes, elevators | Select pipe/elevator; stairs are automatic |
 | **workers** | Staff positions during attack (build: allocation UI, not free movement) | Slot/spring headcount; auto-routing at wave start |
 
 `TowerLayer = 'rooms' | 'infra' | 'workers'`.
@@ -98,15 +98,20 @@ Three housing types — full tables, economy, and workplaces in [`HOUSING.md`](H
 
 Baseline: one soldier at 100% ≈ one magic turret shot (turrets reserve **5 mana** from pool cap per wave — see [`PIPES.md`](PIPES.md)).
 
-### Staircase (`stair` infra)
+### Auto-stairs (`stair` infra)
+
+Stairs are **not** a buildable blueprint. `reconcileAutoStairs` (`src/model/autoStairs.ts`) runs after every room/structure layout edit.
 
 | Property | Value |
 |----------|--------|
-| Cost | Cheap utility (infra blueprint) |
-| Placement | Ad hoc segments on the infra layer |
-| Movement | Stair on floor **N** connects **N ↔ N+1** (leads up into the room above; landing need not have a stair) |
+| Cost | Free (auto-reconciled) |
+| Assignment | One shaft per unserved walkable segment per floor (rooms first, then structure-only framing segments) |
+| Shaft column | Opening room anchor col when possible; pipe/elevator cells in the column are overwritten |
+| Vertical fill | Stair on every structure cell in the shaft column from row 0 through the highest room or framing row |
+| Movement | Stair on floor **N** connects **N ↔ N+1** (landing need not have a stair) |
 | Throughput | **One staffer per cell** en route (shafts can hold a queue down the column) |
 | Speed | **0.2×** horizontal (`STAFF_STAIR_SPEED` / `STAFF_HORIZONTAL_SPEED` = 0.4 / 2) |
+| Rejection | Layout edits that cannot connect all rooms to ground are blocked (`no_shaft` / `disconnected`) |
 
 ### Pipe (`pipe`) — water, steam & fire logistics
 
@@ -195,7 +200,7 @@ stateDiagram-v2
 1. Place **housing** and workplaces (slots, mana springs, …).
 2. Recruit staff (up to housing capacity); optionally unrecruit toward 1.
 3. Set slot and mana-spring headcounts.
-4. Paint **stairs** (and pipes) so housing reaches workplaces.
+4. Stairs appear automatically; paint **pipes** / **elevators** as needed.
 5. Review logistics / pipe warnings (warn-only — wave can still start).
 6. Start wave → pay upkeep → unpaid desert → routing begins.
 
@@ -263,7 +268,7 @@ Relevant order inside `game.step(dt)` (attack only):
 | Housing expansion mods | Modification cost (guardroom / chamber / quarters) |
 | Slot capacity mod | `slotExpansion` (2 → 4) |
 | Wave start upkeep | Per rostered occupant by kind; failure deserts |
-| Stair / pipe / elevator placement | Infra blueprint cost |
+| Stair / pipe / elevator placement | Stairs free (auto); pipe / elevator infra blueprint cost |
 
 **Mana** — shared pool; magic turret **5** reserved from pool cap per wave; flame turret **1**/blast; springs staffed by magi; boilers drain while producing. See [`PIPES.md`](PIPES.md).
 
@@ -291,7 +296,7 @@ Maps-style toggles: `rooms` | `infra` | `workers`.
 
 ### Edit flow
 
-Picking a structure blueprint edits structure; picking stairs/pipes edits infra. Room inspector: recruit/unrecruit, slot/spring steppers, mods.
+Picking a structure blueprint edits structure; picking pipes/elevators edits infra. Stairs are automatic. Room inspector: recruit/unrecruit, slot/spring steppers, mods.
 
 ### Rendering (when layer on)
 
@@ -331,7 +336,7 @@ interface GameState {
 | `quartersRoom` | Laborer housing |
 | `slotRoom` | Ranged soldier defense |
 | `manaSpringRoom` | Mana workplace (pipe + magi) |
-| `stair` / `pipe` / `elevator` | Infra kinds |
+| `stair` / `pipe` / `elevator` | Infra kinds (`stair` auto-generated only) |
 
 ---
 
@@ -339,7 +344,7 @@ interface GameState {
 
 | Area | Status |
 |------|--------|
-| Infra mutual exclusion, stairs, interior path | Shipped |
+| Infra mutual exclusion, auto-stairs, interior path | Shipped |
 | Guardroom → slot staffing | Shipped |
 | Housing (three types), workers layer, logistics | Shipped — [`HOUSING.md`](HOUSING.md) |
 | Pipes, boilers, steam, fire, mana springs | Shipped — [`PIPES.md`](PIPES.md) |

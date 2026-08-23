@@ -10,3 +10,4 @@ export * from './progression';
 export * from './rooms';
 export * from './spells';
 export * from './starterTower';
+export * from './autoStairs';

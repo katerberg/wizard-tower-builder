@@ -31,6 +31,7 @@ export interface StarterRoomPlacement {
 /**
  * Pre-built starter framing: two side-by-side spire columns on a shared base,
  * with ground-floor supply/quarters wings (cols 5, 9) and a starter turret.
+ * Stair shafts are auto-reconciled when rooms are placed (see `autoStairs.ts`).
  *
  * ```text
  * row 4:  I . I     twin crowns

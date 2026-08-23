@@ -38,7 +38,6 @@ export const BLUEPRINT_LIBRARY_SECTION: Record<string, LibrarySectionId> = {
   forgeRoom: 'generators',
   pumpRoom: 'generators',
 
-  staircase: 'infrastructure',
   pipe: 'infrastructure',
   elevator: 'infrastructure',
 

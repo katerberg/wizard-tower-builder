@@ -677,6 +677,7 @@ export type PlacementReason =
   | 'wrong_face'
   | 'leyline_band_required'
   | 'leyline_band_taken'
-  | 'leyline_tier_locked';
+  | 'leyline_tier_locked'
+  | 'no_shaft';
 
 export interface PlacementResult { ok: boolean; reason: PlacementReason }

@@ -7,7 +7,6 @@ import { createStructure, createTower, placeStructure } from './tower';
 
 describe('planInfraPlacement', () => {
   const pipe = getInfraBlueprint('pipe')!;
-  const stair = getInfraBlueprint('staircase')!;
 
   it('places infra on an existing room without needing a stem', () => {
     let tower = createTower();
@@ -36,7 +35,7 @@ describe('planInfraPlacement', () => {
     let tower = createTower();
     tower = placeStructure(tower, createStructure('r1', getBlueprint('stem')!, { col: 5, row: 0 }));
     tower = placeStructure(tower, createStructure('r2', getBlueprint('stem')!, { col: 5, row: 1 }));
-    const plan = planInfraPlacement(tower, stair, { col: 6, row: 1 });
+    const plan = planInfraPlacement(tower, pipe, { col: 6, row: 1 });
     expect(plan.ok).toBe(false);
     expect(plan.reason).toBe('no_support');
   });

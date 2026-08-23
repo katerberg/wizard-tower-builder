@@ -1,5 +1,5 @@
 /** Real-time seconds per day phase. */
-export const DAY_DURATION = 60;
+export const DAY_DURATION = 90;
 /** Real-time seconds per night phase. */
 export const NIGHT_DURATION = 90;
 /** Brief flash after a side job completes before removal. */

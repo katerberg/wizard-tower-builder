@@ -23,12 +23,14 @@ import {
   planRoomPlacement,
   placeRoomReplacing,
   placeStructureReplacing,
+  removeRoom,
 } from '../tower';
-import { validateLeylineRoomPlacement } from '../spells/progression';
 import {
   activeHotbarSpellIds,
   refreshLeylineSpellState,
+  validateLeylineRoomPlacement,
 } from '../spells/progression';
+import { reconcileAutoStairs } from '../autoStairs';
 import { seedSpecialtyRoomDefaults } from '../staff';
 import { registerStorageSite } from '../storage';
 import { STORAGE_ROOM_CAPACITY } from '@/config/storage';
@@ -228,6 +230,13 @@ export function createTeardownOrder(
     return null;
   }
 
+  const simulated = removeRoom(state.tower, targetRoomId);
+  const stairs = reconcileAutoStairs(simulated);
+  if (!stairs.ok) {
+    addMessage(state, 'Cannot remove: would disconnect rooms from ground.', 'info');
+    return null;
+  }
+
   const order: ConstructionOrder = {
     id: nextOrderId(),
     kind: 'teardown',
@@ -319,6 +328,13 @@ export function completeTeardownOrder(state: GameState, order: ConstructionOrder
     return;
   }
   const bp = getBlueprint(room.blueprintId);
+  const simulated = removeRoom(state.tower, order.targetId!);
+  const stairs = reconcileAutoStairs(simulated);
+  if (!stairs.ok) {
+    addMessage(state, 'Cannot remove: would disconnect rooms from ground.', 'info');
+    return;
+  }
+
   const cost = stockpileFromCost(bp?.cost ?? {});
   const refund = {
     stone: Math.floor(cost.stone * TEARDOWN_REFUND_RATE),
@@ -327,14 +343,9 @@ export function completeTeardownOrder(state: GameState, order: ConstructionOrder
   refundToNearestStorage(state, refund, order.origin);
 
   const prevSpells = activeHotbarSpellIds(state);
-  state.tower.rooms = state.tower.rooms.filter((r) => r.id !== order.targetId);
-  const occ = { ...state.tower.occupancy };
-  for (const key of Object.keys(occ)) {
-    if (occ[key] === order.targetId) delete occ[key];
-  }
-  state.tower.occupancy = occ;
   delete state.storageSites[order.targetId!];
   delete state.leylineResearchAllocations[order.targetId!];
+  state.tower = stairs.tower;
   refreshLeylineSpellState(state, prevSpells);
 
   addMessage(state, `Removed ${bp?.name ?? 'room'}.`, 'info');
