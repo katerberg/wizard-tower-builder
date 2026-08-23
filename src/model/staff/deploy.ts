@@ -318,7 +318,7 @@ function beginElevatorWait(state: GameState, unit: StaffUnit): boolean {
   return true;
 }
 
-/** Advance staff movement during the attack phase. */
+/** Advance staff movement (day construction and night combat). */
 export function stepStaff(state: GameState, dt: number): void {
   for (const unit of state.staff) {
     if (
