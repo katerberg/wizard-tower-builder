@@ -182,7 +182,10 @@ export function tickLaborerRepairs(state: GameState, dt: number): void {
 }
 
 export function repathIdleLaborers(state: GameState): void {
-  const idle = state.staff.filter((s) => s.kind === 'laborer' && s.status === 'idle');
+  const idle = state.staff.filter((s) => s.kind === 'laborer' &&
+    s.status === 'idle' &&
+    !s.targetWorkplaceId?.startsWith('construction:')
+  );
   if (idle.length === 0) return;
 
   const jobs: RepairTarget[] = [];

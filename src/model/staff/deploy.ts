@@ -337,7 +337,6 @@ export function stepStaff(state: GameState, dt: number): void {
     if (
       unit.status === 'stationed' ||
       unit.status === 'working' ||
-      unit.status === 'idle' ||
       unit.status === 'waiting_elevator' ||
       unit.status === 'riding_elevator'
     ) {
@@ -357,12 +356,24 @@ export function stepStaff(state: GameState, dt: number): void {
     const minePatch = targetId && isMinePatchTarget(targetId)
       ? findMinePatchByTarget(state.mine, targetId)
       : undefined;
+    const isConstructionTarget = targetId?.startsWith('construction:');
 
-    if (!workplaceRoom && !workplaceStructure && !pumpJob && !prospectJob && !minePatch) {
+
+    if (!workplaceRoom && !workplaceStructure && !pumpJob && !prospectJob && !minePatch && !isConstructionTarget) {
       unit.status = 'idle';
       unit.targetWorkplaceId = null;
       continue;
     }
+
+    if (unit.status === 'idle' && (!workplaceRoom && !workplaceStructure && !pumpJob && !prospectJob && !minePatch)) {
+      // Truly idle with no job — nothing to do
+      continue;
+    }
+
+    // In the goal computation section, add:
+    const constructionOrder = isConstructionTarget
+      ? state.constructionOrders.find((o) => o.id === targetId?.slice('construction:'.length))
+      : null;
 
     const goal: Cell = workplaceRoom
       ? (roomAnchorCell(state.tower, workplaceRoom.origin, workplaceRoom.size, state.mine) ??
@@ -374,11 +385,13 @@ export function stepStaff(state: GameState, dt: number): void {
           workplaceStructure.size,
           state.mine,
         ) ?? workplaceStructure.origin)
-        : pumpJob
-          ? groundPumpAnchor(state)
-          : prospectJob
-            ? prospectFrontierCell(state)
-            : minePatch!.cell;
+        : constructionOrder
+          ? constructionOrder.origin
+          : pumpJob
+            ? groundPumpAnchor(state)
+            : prospectJob
+              ? prospectFrontierCell(state)
+              : minePatch!.cell;
 
     const inFootprint = workplaceRoom
       ? isInRoomFootprint(workplaceRoom, unit.pos)
