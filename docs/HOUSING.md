@@ -182,7 +182,7 @@ flowchart TB
     Spawn[Spawn entities at housing anchors]
   end
   subgraph attack [Attack phase]
-    Path[Pathfind; cell-exclusive movement]
+    Path[Pathfind; free passage + depart stagger]
     Soldiers[Soldiers station in slots and fire]
     Magi[Magi station in springs; spring ticks mana]
     Labor[Laborers path to damage and repair HP]
