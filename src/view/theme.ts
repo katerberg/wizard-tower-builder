@@ -57,5 +57,5 @@ export const colors = {
 export const STAFF_GLYPHS = {
   soldier: '↑',
   mage: '*',
-  laborer: '·',
+  laborer: '◆',
 } as const;

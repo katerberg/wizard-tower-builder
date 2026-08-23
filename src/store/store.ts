@@ -1,7 +1,7 @@
 import { createInitialState, step } from '@/model/game';
 import { MIN_VIEWPORT_HEIGHT } from '@/calculations/camera';
 import { activeHotbarSpellIds } from '@/model/spells/progression';
-import type { ExteriorNode, Phase, SimSpeed } from '@/model/types';
+import type { ExteriorNode, Phase, SimSpeed, Cell } from '@/model/types';
 import type { Intent, ViewState } from './intents';
 import type { HandlerContext, StoreRefs } from './context';
 import { applyIntent } from './handlers';
@@ -13,6 +13,7 @@ export interface Snapshot {
   /** 0..1 blend from pre-step positions to current (for smooth canvas motion). */
   renderAlpha: number;
   previousEnemyPositions: ReadonlyMap<string, ExteriorNode>;
+  previousStaffPositions: ReadonlyMap<string, Cell>;
   /** Successful build edits recorded this phase (undo stack depth). */
   buildUndoDepth: number;
 }
@@ -26,6 +27,7 @@ export class Store {
   private dirty = false;
   private renderAlpha = 1;
   private previousEnemyPositions = new Map<string, ExteriorNode>();
+  private previousStaffPositions = new Map<string, Cell>();
   private lastPhase: Phase = 'day';
 
   constructor(seed?: string | number) {
@@ -57,15 +59,20 @@ export class Store {
       view: this.refs.view,
       renderAlpha: this.renderAlpha,
       previousEnemyPositions: this.previousEnemyPositions,
+      previousStaffPositions: this.previousStaffPositions,
       buildUndoDepth: this.refs.buildHistory.length,
     };
   }
 
-  /** Snapshot enemy positions before a sim step so the canvas can interpolate. */
+  /** Snapshot entity positions before a sim step so the canvas can interpolate. */
   captureForRender(): void {
     this.previousEnemyPositions.clear();
     for (const enemy of this.refs.game.enemies) {
       this.previousEnemyPositions.set(enemy.id, { ...enemy.pos });
+    }
+    this.previousStaffPositions.clear();
+    for (const unit of this.refs.game.staff) {
+      this.previousStaffPositions.set(unit.id, { ...unit.pos });
     }
   }
 

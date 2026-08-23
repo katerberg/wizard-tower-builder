@@ -156,8 +156,6 @@ function tickConstructionLabor(state: GameState, dt: number, nextRoomId: () => s
     if (order.buildProgress >= 1) {
       completeConstructionOrder(state, order, nextRoomId);
     }
-    const pct = Math.round(order.buildProgress * 100);
-    addMessageOnceInRow(state, `${order.blueprintId} build progress: ${pct}%`, 'info');
   }
 
   for (const order of state.constructionOrders.filter((o) => o.kind === 'teardown')) {
@@ -189,6 +187,16 @@ function clearStaleConstructionTargets(state: GameState): void {
   }
 }
 
+function setWorkingAtSite(lab: StaffUnit, state: GameState, order: ConstructionOrder): void {
+  const dropCell = orderDeliveryCell(state, order, lab.pos);
+  const atSite = lab.pos.col === dropCell.col && lab.pos.row === dropCell.row;
+  if (atSite) {
+    lab.status = 'working';
+    return;
+  }
+  assignPathToIfNeeded(lab, state, dropCell);
+}
+
 function tickHauling(state: GameState): void {
   for (const lab of state.staff) {
     if (lab.kind !== 'laborer') continue;
@@ -203,9 +211,9 @@ function tickHauling(state: GameState): void {
       tickHaulLaborer(state, lab, order);
     } else if (order.status === 'scaffold' && order.deliverRemaining.stone === 0 && order.deliverRemaining.metal === 0) {
       order.status = 'building';
-      lab.status = 'working';
+      setWorkingAtSite(lab, state, order);
     } else if (order.status === 'scaffold' || order.status === 'building') {
-      lab.status = 'working';
+      setWorkingAtSite(lab, state, order);
     }
   }
 }
@@ -228,7 +236,7 @@ function tickHaulLaborer(state: GameState, lab: StaffUnit, order: ConstructionOr
         if (order.deliverRemaining.stone === 0 && order.deliverRemaining.metal === 0) {
           placeScaffoldForOrder(state, order);
           order.status = 'building';
-          lab.status = 'working';
+          setWorkingAtSite(lab, state, order);
         } else {
           lab.status = 'idle';
         }
@@ -242,7 +250,7 @@ function tickHaulLaborer(state: GameState, lab: StaffUnit, order: ConstructionOr
   if (order.deliverRemaining.stone <= 0 && order.deliverRemaining.metal <= 0) {
     placeScaffoldForOrder(state, order);
     order.status = 'building';
-    lab.status = 'working';
+    setWorkingAtSite(lab, state, order);
     return;
   }
 
