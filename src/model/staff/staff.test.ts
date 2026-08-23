@@ -102,6 +102,43 @@ describe('staff corridor passage + depart stagger', () => {
     expect(second.pos).toEqual({ col: 3, row: 1 });
   });
 
+  it('allows laborers to pass each other in stair shafts', () => {
+    const state = towerWithStairShaft();
+    const path = [
+      { col: 3, row: 0 },
+      { col: 3, row: 1 },
+      { col: 3, row: 2 },
+    ];
+    state.staff = [
+      {
+        id: 'lab-a',
+        kind: 'laborer',
+        homeHousingId: 'q1',
+        targetWorkplaceId: 's1',
+        pos: { col: 3, row: 0 },
+        path: [...path],
+        pathIndex: 0,
+        moveCooldown: 0,
+        status: 'moving',
+      },
+      {
+        id: 'lab-b',
+        kind: 'laborer',
+        homeHousingId: 'q1',
+        targetWorkplaceId: 's1',
+        pos: { col: 3, row: 0 },
+        path: [...path],
+        pathIndex: 0,
+        moveCooldown: 0,
+        status: 'moving',
+      },
+    ];
+
+    stepStaff(state, 1);
+    expect(state.staff[0].pos).toEqual({ col: 3, row: 1 });
+    expect(state.staff[1].pos).toEqual({ col: 3, row: 1 });
+  });
+
   it('staggers night deploy cooldowns so units do not leave as a blob', () => {
     const state = towerWithStairShaft();
     state.housingRecruited.b1 = 2;
