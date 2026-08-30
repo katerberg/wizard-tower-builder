@@ -11,7 +11,7 @@ import {
   SLOT_EXPANDED_CAPACITY,
 } from '@/config/constants';
 import { getBlueprint } from '@/model/blueprints';
-import type { HousingKind, Room, StaffKind } from '@/model/types';
+import type { GameState, HousingKind, Room, StaffKind } from '@/model/types';
 
 const HOUSING_TO_STAFF: Record<HousingKind, StaffKind> = {
   guardroom: 'soldier',
@@ -83,6 +83,22 @@ export function researchRoomStaffCapacity(): number {
 
 export function canRecruitInHousing(room: Room, recruited: number): boolean {
   return isHousingRoom(room) && recruited < housingCapacity(room);
+}
+
+/** Net recruit/unrecruit side jobs still running for one housing room. */
+export function pendingRecruitDeltaForHousing(state: GameState, housingRoomId: string): number {
+  let delta = 0;
+  for (const job of state.sideJobs) {
+    if (job.status !== 'running') continue;
+    if (job.kind === 'recruit' && job.payload.housingRoomId === housingRoomId) delta += 1;
+    if (job.kind === 'unrecruit' && job.payload.housingRoomId === housingRoomId) delta -= 1;
+  }
+  return delta;
+}
+
+/** Committed roster including in-flight recruit/unrecruit side jobs. */
+export function effectiveHousingRecruited(state: GameState, housingRoomId: string): number {
+  return (state.housingRecruited[housingRoomId] ?? 0) + pendingRecruitDeltaForHousing(state, housingRoomId);
 }
 
 /** Minimum roster size while the room exists (unrecruit floor). */

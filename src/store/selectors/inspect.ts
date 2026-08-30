@@ -28,6 +28,7 @@ import {
 } from '@/model/spells';
 import { LEYLINE_RESEARCH_STAFF_CAP, tierForBandRow } from '@/config/spellProgression';
 import {
+  effectiveHousingRecruited,
   housingCapacity,
   isHousingRoom,
   isSlotRoom,
@@ -293,7 +294,7 @@ export function selectRoomInspector(snapshot: Snapshot, roomId: string): RoomIns
     modifications,
     canRemove: isBuildPhase,
     underStructure,
-    housingRecruited: isHousingRoom(room) ? (game.housingRecruited[room.id] ?? 0) : undefined,
+    housingRecruited: isHousingRoom(room) ? effectiveHousingRecruited(game, room.id) : undefined,
     housingCapacity: isHousingRoom(room) ? housingCapacity(room) : undefined,
     housingStaffKind: staffKind,
     recruitCost: staffKind ? recruitCostFor(staffKind) : undefined,
