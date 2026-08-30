@@ -6,7 +6,7 @@ Wizard Tower Builder is a single **frontend** app (TypeScript + Vite + HTML5 Can
 
 Standard commands are documented in `README.md` (Getting started) and `package.json` scripts; use those rather than duplicating here:
 
-- **Always run `nvm use` first** (repo root has `.nvmrc` → Node 20 LTS). Vite 8, Vitest 4, and ESLint 10 require Node 20+; the default shell Node (e.g. 18) will fail tests with `styleText` / `node:util` errors.
+- **Always run `nvm use` first** (repo root has `.nvmrc` → Node 20 LTS). Vite 8, Vitest 4, and ESLint 10 require Node 20+; the default shell Node (e.g. 18) will fail tests with `styleText` / `node:util` errors. If `nvm use` reports the version is missing, run `nvm install` once from the repo root.
 - `npm run dev` — Vite dev server (defaults to http://localhost:5173/).
 - `npm test` — Vitest engine tests.
 - `npm run lint` — ESLint **and** `tsc --noEmit` typecheck (the lint script runs both; it also enforces the engine/shell import-layer boundaries described in the README).
