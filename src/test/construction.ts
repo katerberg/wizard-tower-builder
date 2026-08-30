@@ -21,7 +21,6 @@ export function instantCompleteConstruction(store: Store): void {
   for (const order of orders) {
     if (order.kind === 'build') {
       const cost = stockpileFromCost(totalOrderCost(order.blueprintId, game.tower, order.origin));
-      order.deliverRemaining = { stone: 0, metal: 0 };
       order.onSiteMaterials = cost;
       order.buildProgress = 1;
       order.status = 'building';

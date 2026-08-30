@@ -7,6 +7,7 @@ import { getBlueprint } from '@/model/blueprints';
 import { isMinePatchTarget, isProspectTarget } from '@/model/mines';
 import { roomAt } from '@/model/tower';
 import { assignSurplusLaborers, isPumpTarget } from './harvest';
+import { departCooldownForIndex } from './depart';
 import type { Cell, GameState, Room, StaffKind, StaffUnit, Structure } from '@/model/types';
 
 function workplaceAnchor(state: GameState, room: Room): Cell | null {
@@ -235,6 +236,7 @@ export function repathIdleLaborers(state: GameState): void {
     return;
   }
 
+  let departIdx = 0;
   for (const unit of idle) {
     const unstaffed = jobs.filter((d) => d.assigned === 0);
     const candidates = unstaffed.length > 0 ? unstaffed : jobs;
@@ -252,8 +254,10 @@ export function repathIdleLaborers(state: GameState): void {
     unit.targetWorkplaceId = repairTargetId(target);
     unit.path = path.length > 0 ? path : [unit.pos];
     unit.pathIndex = 0;
+    unit.moveCooldown = departCooldownForIndex(departIdx);
     unit.status =
       path.length <= 1 && isInRepairFootprint(target, unit.pos) ? 'working' : 'moving';
+    if (unit.status === 'moving') departIdx += 1;
     target.assigned += 1;
   }
 }

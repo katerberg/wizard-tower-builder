@@ -24,9 +24,9 @@ Shared rules:
 - Place housing → **1 free occupant** seeded; hard-capped at capacity
 - **Unrecruit** floor is **1** (no recruit-cost refund). Upkeep desertion **can** leave roster at **0**
 - Recruit in **day** phase; upkeep every **night** deploy for **every** rostered occupant (idle or assigned)
-- **Night-only** combat movement; spawn from housing at nightfall; clear runtime entities at dawn (roster + allocations persist)
+- **Day:** laborers move for haul/build/repair; soldiers and magi are roster-only (no combat entities). **Night:** full roster spawns from housing, paths to workplaces, clears at dawn (roster + allocations persist)
 - Auto-assign to workplaces; path via stairs between levels
-- Stair shafts: **one staffer per cell** en route (queues down the column; destination workplaces may stack)
+- Stair shafts: staff may **overlap** en route; departures are **staggered** (`STAFF_DEPART_STAGGER_SEC`) so groups leave as a stream, not a blob; destination workplaces may stack
 - Elevator shafts: shared car (cap 6); waiters/riders stack on the car/landing; no free vertical climb
 - Selling housing prunes roster/allocations for that room
 - Build-phase **undo / revert** covers room place/remove, recruit/unrecruit, mods, and workplace allocations
@@ -122,15 +122,15 @@ A mana spring regenerates only if it is **water-connected** *and* has **at least
 
 ### Laborers → room repair
 
-During **attack only**, laborers auto-assign to damaged rooms (`hp < maxHp`) and restore room HP.
+Laborers auto-assign to damaged rooms (`hp < maxHp`) and restore room HP on **both** day and night (day via `tickDayConstruction` / `repathIdleLaborers`; night via combat staff deploy + `tickLaborerRepairs`).
 
-- Spawn all rostered laborers at quarters (idle), then assign.
+- Spawn / sync rostered laborers at quarters, then assign.
 - Prefer rooms with **0** laborers; only stack when every damaged reachable room already has ≥1.
 - Target heuristic: **lowest HP%**, then nearest.
 - Repair rate: **2 HP/sec** for the first laborer; each next does **50% of the previous**.
 - No per-room headcount UI; recruit only in quarters.
 - Retarget when the job room is gone or fully repaired.
-- No repair ticks in build phase.
+- Construction haul/build takes priority over repair during day when orders are queued.
 
 **Prospecting** ([`MINES.md`](MINES.md)): In build phase, set a global **prospectors** count via the HUD stepper. Those laborers are removed from the repair/pump/mine auto pool and assigned to the prospect job (path to mine frontier, work timer, reveal next depth tier). Leftover laborers auto-fill pump → mine patches (stone, metal, gold).
 
@@ -169,33 +169,34 @@ Shown as per-room build alerts and a HUD summary line. Does not block `startWave
 
 ```mermaid
 flowchart TB
-  subgraph build [Build phase]
-    Place[Place housing / workplaces / stairs / pipes]
+  subgraph day [Day phase]
+    Place[Place housing / workplaces / framing / pipes]
     Recruit[Recruit or unrecruit in housing]
     Alloc[Set slot and mana-spring headcounts]
+    Haul[Laborers haul build and day-repair]
     Undo[Undo reverts this-phase changes]
   end
-  subgraph waveStart [Wave start]
+  subgraph nightStart [Nightfall]
     Pay[Charge upkeep for all rostered staff]
     Desert[Unpaid desert from roster]
     Assign[Auto-assign staff to workplaces]
     Spawn[Spawn entities at housing anchors]
   end
-  subgraph attack [Attack phase]
-    Path[Pathfind; cell-exclusive movement]
+  subgraph night [Night phase]
+    Path[Pathfind; free passage + depart stagger]
     Soldiers[Soldiers station in slots and fire]
     Magi[Magi station in springs; spring ticks mana]
-    Labor[Laborers path to damage and repair HP]
+    Labor[Laborers path to damage mine and pump]
     Retarget[Laborers retarget if job invalid]
   end
-  subgraph waveEnd [Wave end]
+  subgraph dawn [Dawn]
     Clear[Clear runtime staff entities]
     Keep[Keep housing rosters and allocations]
   end
-  build --> waveStart --> attack --> waveEnd --> build
+  day --> nightStart --> night --> dawn --> day
 ```
 
-Attack tick order (staff-related) in `src/model/tick.ts`: `stepStaff` → `tickLaborerRepairs` → room effects (slots) → `tickRoomBehaviors` (mana springs → boilers → steam turrets).
+**Night** staff tick order in `src/model/tick.ts`: `stepStaff` → `tickLaborerRepairs` → room effects (slots) → `tickRoomBehaviors` (mana springs → boilers → steam turrets). **Day** labor uses `tickDayConstruction` (see [`DAY_NIGHT.md`](DAY_NIGHT.md)).
 
 ---
 

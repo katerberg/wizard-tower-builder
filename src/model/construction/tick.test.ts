@@ -62,4 +62,28 @@ describe('day construction labor loop', () => {
     step(state, FIXED_DT);
     expect(state.staff.filter((s) => s.kind === 'laborer')).toHaveLength(3);
   });
+
+  it('staggers path assigns when multiple day laborers leave together', () => {
+    resetConstructionCounter();
+    resetConstructionTickCounter();
+    const state = createInitialState('depart-stagger');
+    state.housingRecruited[STARTER_QUARTERS_ROOM_ID] = 3;
+    step(state, FIXED_DT);
+
+    // Two disconnected wings of the starter base (east of quarters, west of supply).
+    const a = createBuildOrder(state, 'stem', { col: EXT_COL, row: 0 }, () => 'built-a');
+    const b = createBuildOrder(state, 'stem', { col: 4, row: 0 }, () => 'built-b');
+    expect(a).not.toBeNull();
+    expect(b).not.toBeNull();
+    // One tick: assign + haul pathing + one stepStaff — staggered units should not all move.
+    step(state, FIXED_DT);
+
+    const assigned = state.staff.filter(
+      (s) => s.kind === 'laborer' && s.targetWorkplaceId?.startsWith('construction:'),
+    );
+    expect(assigned.length).toBeGreaterThanOrEqual(2);
+    const keys = assigned.map((s) => `${s.pos.col},${s.pos.row},${s.pathIndex}`);
+    // Stream, not a blob: at least two laborers still differ in cell or path progress.
+    expect(new Set(keys).size).toBeGreaterThanOrEqual(2);
+  });
 });

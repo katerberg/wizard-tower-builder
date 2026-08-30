@@ -96,13 +96,18 @@ export function releaseReservation(state: GameState, orderId: string): void {
 }
 
 /** Withdraw reserved materials when build completes or cancel with refund. */
-export function consumeReservation(state: GameState, orderId: string): void {
+export function consumeReservation(
+  state: GameState,
+  orderId: string,
+  amount?: Stockpile,
+): void {
   const res = state.storageReservations.find((r) => r.orderId === orderId);
   if (!res) return;
   const site = state.storageSites[res.storageRoomId];
   if (site) {
-    site.stockpile.stone -= res.reserved.stone;
-    site.stockpile.metal -= res.reserved.metal;
+    const deduct = amount ?? res.reserved;
+    site.stockpile.stone -= deduct.stone;
+    site.stockpile.metal -= deduct.metal;
   }
   releaseReservation(state, orderId);
 }

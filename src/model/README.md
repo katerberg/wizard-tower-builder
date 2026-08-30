@@ -2,8 +2,8 @@
 
 | Folder / file | What |
 |---------------|------|
-| `tick.ts` | Attack-phase step order (start here for the loop) |
-| `phases.ts` | Build ↔ attack lifecycle |
+| `tick.ts` | Day + night step order (start here for the loop) |
+| `phases.ts` | Day ↔ night lifecycle |
 | `tower/` | Placement, stability, sell, query |
 | `blueprints.ts` / `infraBlueprints.ts` | Room & infra defs |
 | `rooms/` | Behavioral rooms — see `rooms/README.md` |

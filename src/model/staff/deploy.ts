@@ -7,7 +7,6 @@ import { LEYLINE_RESEARCH_STAFF_CAP } from '@/config/spellProgression';
 import { findInteriorPath } from '@/calculations/interiorPathfinding';
 import { canSoldierTraverse, roomAnchorCell } from '@/calculations/interiorGraph';
 import { planElevatorRide, isElevatorVerticalStep } from '@/model/elevators';
-import { hasInfraKind } from '@/model/infra';
 import { findMinePatchByTarget, isMinePatchTarget, isProspectTarget, PROSPECT_TARGET } from '@/model/mines';
 import { addMessage } from '@/model/messages';
 import { isManaSpringRoom } from '@/model/pipes';
@@ -23,6 +22,7 @@ import {
   staffKindForHousing,
 } from './capacity';
 import { isInFootprint, isInRoomFootprint, repathIdleLaborers } from './combat';
+import { departCooldownForIndex } from './depart';
 import { groundPumpAnchor, isPumpTarget } from './harvest';
 import type { Cell, GameState, Room, StaffKind, StaffUnit } from '@/model/types';
 
@@ -151,7 +151,7 @@ function spawnStaff(
     pos: { ...from },
     path: path.length > 0 ? path : [from],
     pathIndex: 0,
-    moveCooldown: staggerIndex * 0.12,
+    moveCooldown: departCooldownForIndex(staggerIndex),
     status: path.length <= 1 && isInRoomFootprint(workplace, from) ? statusOnArrive : 'moving',
   };
   state.staff.push(unit);
@@ -241,7 +241,7 @@ function spawnIdleLaborers(state: GameState, staggerBase: number): number {
           pos: { ...anchor },
           path: path.length > 0 ? path : [anchor],
           pathIndex: 0,
-          moveCooldown: (staggerBase + spawned) * 0.12,
+          moveCooldown: departCooldownForIndex(staggerBase + spawned),
           status: path.length <= 1 ? 'working' : 'moving',
         };
         state.staff.push(unit);
@@ -256,7 +256,7 @@ function spawnIdleLaborers(state: GameState, staggerBase: number): number {
           pos: { ...anchor },
           path: [anchor],
           pathIndex: 0,
-          moveCooldown: (staggerBase + spawned) * 0.12,
+          moveCooldown: departCooldownForIndex(staggerBase + spawned),
           status: 'idle',
         };
         state.staff.push(unit);
@@ -302,25 +302,6 @@ function isVerticalStep(from: Cell, to: Cell): boolean {
   return from.col === to.col && from.row !== to.row;
 }
 
-function isCellOccupiedByOtherStaff(
-  state: GameState,
-  cell: Cell,
-  exceptId: string,
-  moverKind: StaffKind,
-): boolean {
-  // Elevator landings allow stacking; waiters/riders never block cell locks.
-  if (hasInfraKind(state.tower, cell.col, cell.row, 'elevator')) return false;
-  return state.staff.some(
-    (s) =>
-      s.id !== exceptId &&
-      s.pos.col === cell.col &&
-      s.pos.row === cell.row &&
-      s.status !== 'waiting_elevator' &&
-      s.status !== 'riding_elevator' &&
-      !(moverKind === 'laborer' && s.kind === 'laborer'),
-  );
-}
-
 function arriveStatus(kind: StaffKind): 'stationed' | 'working' {
   return kind === 'laborer' ? 'working' : 'stationed';
 }
@@ -337,7 +318,7 @@ function beginElevatorWait(state: GameState, unit: StaffUnit): boolean {
   return true;
 }
 
-/** Advance staff movement during the attack phase. */
+/** Advance staff movement (day construction and night combat). */
 export function stepStaff(state: GameState, dt: number): void {
   for (const unit of state.staff) {
     if (
@@ -424,11 +405,6 @@ export function stepStaff(state: GameState, dt: number): void {
 
     const next = unit.path[unit.pathIndex + 1];
     const vertical = isVerticalStep(unit.pos, next);
-    const enteringWorkplace = workplaceRoom
-      ? isInRoomFootprint(workplaceRoom, next)
-      : workplaceStructure
-        ? isInFootprint(workplaceStructure.origin, workplaceStructure.size, next)
-        : next.col === goal.col && next.row === goal.row;
 
     // Vertical elevator progress requires riding the car — never free-step.
     if (vertical && isElevatorVerticalStep(state.tower, unit.pos, next)) {
@@ -436,11 +412,7 @@ export function stepStaff(state: GameState, dt: number): void {
       continue;
     }
 
-    // Soldiers/magi queue on shared corridor cells; laborers may pass each other.
-    if (!enteringWorkplace && isCellOccupiedByOtherStaff(state, next, unit.id, unit.kind)) {
-      continue;
-    }
-
+    // Staff may overlap in corridors; pacing comes from depart stagger, not cell locks.
     if (!canSoldierTraverse(state.tower, unit.pos, next, state.mine)) {
       continue;
     }

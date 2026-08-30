@@ -223,7 +223,7 @@ src/
   main.ts              # Shell bootstrap
   config/              # Balance knobs by domain (+ README index)
   model/
-    tick.ts            # Ordered attack-phase step list
+    tick.ts            # Day + night step order
     tower/             # Placement, stability, sell, query
     rooms/             # Behavioral room registry
     spells/            # Schools + registry (see spells/README)
@@ -257,21 +257,22 @@ flowchart TB
     S[structure - framing occupancy]
     R[rooms - functional overlay]
     I[infra - stair or pipe per cell]
-    W[workers - attack-phase staff]
+    W[workers - day and night staff glyphs]
   end
-  subgraph build [Build phase - untimed]
+  subgraph day [Day phase]
     P[Place framing rooms and infra]
     Rec[Recruit staff into housing]
     Alloc[Set slot and spring headcounts]
+    DayMove[Laborers haul and build]
   end
-  subgraph attack [Attack phase]
-    Pay[Wave-start staff upkeep]
+  subgraph night [Night phase]
+    Pay[Nightfall staff upkeep]
     Route[Auto-assign closest paths]
     Move[Move via interior graph]
     Work[Slots fire / magi staff springs / laborers repair]
   end
-  P --> Rec --> Alloc
-  Alloc --> Pay --> Route --> Move --> Work
+  P --> Rec --> Alloc --> DayMove
+  DayMove --> Pay --> Route --> Move --> Work
 ```
 
 | Concept | Behavior |
@@ -279,11 +280,11 @@ flowchart TB
 | **Layers** | `rooms`, `infra`, `workers` — toggled for display; tool selection drives editing |
 | **Infra granularity** | Same `(col, row)` as rooms; **one** of stair *or* pipe *or* elevator per cell (forces wider towers) |
 | **Housing** | Guardroom (soldiers 3→6), chamber (magi 1→2), quarters (laborers 6→12) |
-| **Slot** | Player sets headcount; auto-assign closest; fires during attack (2→4 via mod) |
+| **Slot** | Player sets headcount; auto-assign closest; fires during night (2→4 via mod) |
 | **Mana spring** | Water + stationed magi; regen falls off with more magi (cap 5) |
-| **Stairs** | Cheap ad-hoc infra; slow vertical; one staffer per cell en route |
+| **Stairs** | Auto-reconciled shafts; slow vertical; free passage with staggered departures |
 | **Elevators** | Expensive vertical shafts; one car (cap 6); call-to-idle; no free climb |
-| **Movement** | Staff spawn from housing each wave; **attack phase only** |
+| **Movement** | **Day:** laborers haul/build/repair. **Night:** full roster spawns from housing and paths to workplaces (depart stagger; free corridor overlap) |
 | **Pathfinding** | Interior/infra graph for staff; exterior graph for enemies (unchanged) |
 | **Logistics** | Warn-only before wave; hover/click shows broken routes |
 

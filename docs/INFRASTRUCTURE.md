@@ -10,7 +10,7 @@ Developer-facing architecture for the tower’s **infrastructure layer** — the
 
 1. **Infrastructure is first-class** — placement, routing, and upkeep matter as much as room HP.
 2. **Layered editing** — structure, infra, and workers are separate overlays on the same grid (Maps-style visibility).
-3. **Logistics during day and night** — staff spawn from housing at **nightfall** and move during the **night phase**; the **day phase** is timed planning with laborer construction/repair (no combat).
+3. **Logistics during day and night** — **day:** laborers haul/build (and day repair) on the interior graph; **night:** full staff roster spawns from housing, paths to workplaces, and fights. Combat units do not roam during day.
 4. **Separate graphs** — staff pathfind on an interior/infra graph; enemies keep the existing exterior surface graph. **Shell fortifications** reshape that exterior graph via routing costs and move slows on framing cells (never hard walkability denies) — see [`FORTIFICATIONS.md`](FORTIFICATIONS.md).
 5. **Fat towers by choice** — one infra occupancy per cell (stair *or* pipe *or* elevator) forces horizontal expansion.
 
@@ -24,7 +24,7 @@ Three tower layers (visibility toggles; workers use glyphs when the layer is on)
 |-------|----------|--------------|
 | **rooms** | Structure blueprints (spire, housing, slot, turret, …) | Select a structure blueprint |
 | **infra** | Auto-stairs (read-only), pipes, elevators | Select pipe/elevator; stairs are automatic |
-| **workers** | Staff positions during attack (build: allocation UI, not free movement) | Slot/spring headcount; auto-routing at wave start |
+| **workers** | Staff glyphs day and night (day: construction laborers; night: full roster) | Slot/spring headcount; auto-routing at nightfall |
 
 `TowerLayer = 'rooms' | 'infra' | 'workers'`.
 
@@ -109,7 +109,7 @@ Stairs are **not** a buildable blueprint. `reconcileAutoStairs` (`src/model/auto
 | Shaft column | Opening room anchor col when possible; pipe/elevator cells in the column are overwritten |
 | Vertical fill | Stair on every structure cell in the shaft column from row 0 through the highest room or framing row |
 | Movement | Stair on floor **N** connects **N ↔ N+1** (landing need not have a stair) |
-| Throughput | **One staffer per cell** en route (shafts can hold a queue down the column) |
+| Throughput | Staff may overlap; batch departures stagger by `STAFF_DEPART_STAGGER_SEC` (capped) |
 | Speed | **0.2×** horizontal (`STAFF_STAIR_SPEED` / `STAFF_HORIZONTAL_SPEED` = 0.4 / 2) |
 | Rejection | Layout edits that cannot connect all rooms to ground are blocked (`no_shaft` / `disconnected`) |
 
@@ -149,7 +149,7 @@ Stairs are **not** a buildable blueprint. `reconcileAutoStairs` (`src/model/auto
 
 **Dispatch defaults:** among calls, serve the **nearest** floor (tie-break longest wait). Trip direction is set by the **first boarded** passenger’s exit. Only same-direction waiters board; opposite-direction waiters stay queued.
 
-**Occupancy:** riders share the car cell; waiters **stack** on landing cells (exceptions to one-staffer-per-cell).
+**Occupancy:** riders share the car cell; waiters **stack** on landing cells. Corridor cells elsewhere also allow staff overlap (pacing is depart stagger, not cell locks); elevators keep **car capacity 6**.
 
 ### Passability flag
 
@@ -179,20 +179,20 @@ interface StaffUnit {
 
 ```mermaid
 stateDiagram-v2
-  [*] --> Housing: beginWave upkeep
-  Housing --> Moving: attack step routing
+  [*] --> Housing: nightfall upkeep
+  Housing --> Moving: night assign and path
   Moving --> Workplace: arrived
   Workplace --> Working: stationed or repairing
-  Working --> Housing: endWave clear entities
+  Working --> Housing: dawn clear entities
   Housing --> [*]: unpaid desert at wave start
 ```
 
 | Rule | Behavior |
 |------|----------|
-| Wave start | Charge upkeep for all rostered; unpaid desert; assign + spawn survivors |
-| Build phase | Recruit / unrecruit, allocate slots & springs, paint infra — **no movement** |
-| Attack phase | Path, station/work, slots fire, springs tick (if magi), laborers repair |
-| Wave end | Clear `staff` entities; **keep** `housingRecruited` and allocations |
+| Wave start (nightfall) | Charge upkeep for all rostered; unpaid desert; assign + spawn survivors |
+| Day phase | Recruit / unrecruit, allocate slots & springs, paint rooms/infra; **laborers** haul, build, and repair on the interior graph |
+| Night phase | Soldiers/magi/laborers path and work; slots fire; springs tick; mine/pump harvest |
+| Wave end (dawn) | Clear `staff` entities; **keep** `housingRecruited` and allocations |
 | Death | Deferred — no soldier targeting yet |
 
 ### Player workflow (build phase)
@@ -212,7 +212,7 @@ At wave start (after upkeep):
 2. **Magi** — for each spring allocation, pull from closest chamber pools.
 3. **Laborers** — spawn all rostered at quarters idle, then assign to damaged rooms (singleton preference).
 
-Assignment distance uses **Manhattan on room anchors**; each unit then pathfinds on the interior graph. En route, staff wait for a free **cell** (destination workplaces may stack).
+Assignment distance uses **Manhattan on room anchors**; each unit then pathfinds on the interior graph. Staff may **overlap** in corridors; batch departures use `STAFF_DEPART_STAGGER_SEC`. Destination workplaces may stack.
 
 ---
 
@@ -243,20 +243,22 @@ Vertical movement: a **stair** on the lower floor of the step, **or** both cells
 
 ---
 
-## Attack-phase simulation
+## Night-phase simulation (staff)
 
-Relevant order inside `game.step(dt)` (attack only):
+Relevant staff order inside `game.step(dt)` during **night** (combat):
 
 ```
 1. Spawn / tick enemies, wizard, spells (existing)
 2. stepElevators — car call / empty travel / board / multi-stop
-3. stepStaff — cell-exclusive movement; stairs; elevator wait/ride handoff
+3. stepStaff — free corridor passage + depart stagger; stairs; elevator wait/ride handoff
 4. tickLaborerRepairs — repair + retarget
 5. runRoomEffects — slots, turrets, mods
 6. tickManaSprings — water + stationed magi
 7. tickBoilers → tickSteamTurrets → tickFlameTurrets (via `tickRoomBehaviors`)
 8. Reap enemies, wave clear
 ```
+
+**Day** staff motion runs via `tickDayConstruction` (haul/build/teardown + `stepStaff`), not the combat list above. See [`DAY_NIGHT.md`](DAY_NIGHT.md).
 
 ---
 
@@ -304,7 +306,7 @@ Picking a structure blueprint edits structure; picking pipes/elevators edits inf
 |-------|----------------|
 | rooms | Room glyphs |
 | infra | Stair/pipe overlays |
-| workers | Staff glyphs by kind during attack |
+| workers | Staff glyphs by kind (day laborers + night full roster) |
 
 Affordances via **selectors**; view dispatches intents only.
 
@@ -360,7 +362,7 @@ interface GameState {
 |------|-------|
 | Infra placement | One kind per cell; exclusion; paint over structure |
 | Interior path | Horizontal through passable room; vertical when lower cell has a stair |
-| Stair throughput | Second climber waits only for the next occupied cell |
+| Stair throughput | Depart stagger spreads climbers; units may share corridor cells |
 | Elevator shafts | Contiguous column = one shaft; gap = two; adjacent columns separate |
 | Elevator dispatch | Call/empty travel; capacity 6; mid-pickup; no free vertical walk |
 | Auto-assign | Closest housing preferred; unconnected workplaces flagged |

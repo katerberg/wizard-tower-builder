@@ -6,6 +6,8 @@ import {
   MANA_SPRING_PER_SEC,
   SOLDIER_RECRUIT_COST,
   SOLDIER_UPKEEP_COST,
+  STAFF_DEPART_STAGGER_MAX_SEC,
+  STAFF_DEPART_STAGGER_SEC,
 } from '@/config/constants';
 import { createInitialState } from '@/model/game';
 import { getBlueprint } from '@/model/blueprints';
@@ -15,6 +17,7 @@ import { placeInfra } from '@/model/infra';
 import { tickManaSprings } from '@/model/rooms/manaSpring';
 import {
   deployStaffForWave,
+  departCooldownForIndex,
   housingCapacity,
   seedSpecialtyRoomDefaults,
   stepStaff,
@@ -75,7 +78,30 @@ describe('soldier deployment', () => {
   });
 });
 
-describe('staff stair queuing', () => {
+describe('staff corridor passage + depart stagger', () => {
+  it('lets soldiers pass through each other on shared stairs', () => {
+    const state = towerWithStairShaft();
+    state.housingRecruited.b1 = 2;
+    state.slotAllocations.s1 = 2;
+    state.pendingRecruitSpend = SOLDIER_RECRUIT_COST * 2;
+
+    deployStaffForWave(state);
+    const soldiers = state.staff.filter((s) => s.kind === 'soldier');
+    expect(soldiers).toHaveLength(2);
+
+    const [first, second] = soldiers;
+    expect(first.pos).toEqual({ col: 3, row: 0 });
+    expect(second.pos).toEqual({ col: 3, row: 0 });
+
+    first.moveCooldown = 0;
+    second.moveCooldown = 0;
+
+    stepStaff(state, 1);
+    // Both advance — corridor occupancy no longer blocks.
+    expect(first.pos).toEqual({ col: 3, row: 1 });
+    expect(second.pos).toEqual({ col: 3, row: 1 });
+  });
+
   it('allows laborers to pass each other in stair shafts', () => {
     const state = towerWithStairShaft();
     const path = [
@@ -113,40 +139,32 @@ describe('staff stair queuing', () => {
     expect(state.staff[1].pos).toEqual({ col: 3, row: 1 });
   });
 
-  it('queues only on shared cells, not the whole stair column', () => {
+  it('staggers night deploy cooldowns so units do not leave as a blob', () => {
     const state = towerWithStairShaft();
     state.housingRecruited.b1 = 2;
     state.slotAllocations.s1 = 2;
     state.pendingRecruitSpend = SOLDIER_RECRUIT_COST * 2;
+    state.player.resources.gold = 100;
 
     deployStaffForWave(state);
     const soldiers = state.staff.filter((s) => s.kind === 'soldier');
     expect(soldiers).toHaveLength(2);
 
-    const [first, second] = soldiers;
-    expect(first.pos).toEqual({ col: 3, row: 0 });
-    expect(second.pos).toEqual({ col: 3, row: 0 });
+    const cooldowns = soldiers.map((s) => s.moveCooldown);
+    expect(cooldowns[0]).toBe(0);
+    expect(cooldowns[1]).toBe(STAFF_DEPART_STAGGER_SEC);
 
-    first.moveCooldown = 0;
-    second.moveCooldown = 0;
+    // Only the first unit is ready; after a short tick the second is still waiting.
+    stepStaff(state, STAFF_DEPART_STAGGER_SEC * 0.5);
+    const moved = soldiers.filter((s) => s.pos.row > 0);
+    expect(moved.length).toBe(1);
+    expect(moved[0].pos).toEqual({ col: 3, row: 1 });
+  });
 
-    stepStaff(state, 1);
-    expect(first.pos).toEqual({ col: 3, row: 1 });
-    // Next cell occupied — follower stays put.
-    expect(second.pos).toEqual({ col: 3, row: 0 });
-
-    second.moveCooldown = 99;
-    first.moveCooldown = 0;
-    stepStaff(state, 1);
-    expect(first.status).toBe('stationed');
-    expect(first.pos).toEqual({ col: 3, row: 2 });
-    expect(second.pos).toEqual({ col: 3, row: 0 });
-
-    // Lead is already off the mid stair; follower may climb while lead stays stationed.
-    second.moveCooldown = 0;
-    stepStaff(state, 1);
-    expect(second.pos).toEqual({ col: 3, row: 1 });
-    expect(first.pos).toEqual({ col: 3, row: 2 });
+  it('caps depart stagger so large batches are not absurdly late', () => {
+    expect(departCooldownForIndex(0)).toBe(0);
+    expect(departCooldownForIndex(1)).toBe(STAFF_DEPART_STAGGER_SEC);
+    expect(departCooldownForIndex(100)).toBe(STAFF_DEPART_STAGGER_MAX_SEC);
   });
 
   it('allows multiple stationed soldiers to share the destination slot', () => {
