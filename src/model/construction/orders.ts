@@ -292,7 +292,7 @@ export function completeConstructionOrder(state: GameState, order: ConstructionO
   if (!bp) return;
 
   removeScaffoldForOrder(state, order);
-  consumeReservation(state, order.id);
+  consumeReservation(state, order.id, order.deliverRemaining);
 
   if (isStructureBlueprint(bp)) {
     const structure = createStructure(nextRoomId(), bp, order.origin);
