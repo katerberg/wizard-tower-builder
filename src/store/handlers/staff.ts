@@ -17,6 +17,7 @@ import { enqueueSideJob } from '@/model/sideJobs';
 import {
   HOUSING_MIN_RECRUITED,
   canRecruitInHousing,
+  effectiveHousingRecruited,
   housingKindOf,
   isHousingRoom,
   isSlotRoom,
@@ -84,7 +85,7 @@ function recruitStaff(ctx: HandlerContext, housingRoomId: string): void {
   const housing = housingKindOf(room)!;
   const kind = staffKindForHousing(housing);
 
-  const recruited = game.housingRecruited[housingRoomId] ?? 0;
+  const recruited = effectiveHousingRecruited(game, housingRoomId);
   if (!canRecruitInHousing(room, recruited)) {
     const name = getBlueprint(room.blueprintId)?.name ?? 'Housing';
     addMessage(game, `${name} is at capacity.`, 'info');
@@ -97,14 +98,14 @@ function recruitStaff(ctx: HandlerContext, housingRoomId: string): void {
     return;
   }
 
+  game.pendingRecruitSpend += cost;
+
   enqueueSideJob(game, 'recruit', `Recruiting ${staffLabel(kind)}`, RECRUIT_SIDE_JOB_SEC, {
     housingRoomId,
     kind,
     cost,
     onComplete: (state: GameState, payload: Record<string, unknown>) => {
       const id = payload.housingRoomId as string;
-      const c = payload.cost as number;
-      state.pendingRecruitSpend += c;
       state.housingRecruited[id] = (state.housingRecruited[id] ?? 0) + 1;
       addMessage(state, `Recruited ${staffLabel(payload.kind as StaffKind)}.`, 'info');
     },
@@ -118,7 +119,7 @@ function unrecruitStaff(ctx: HandlerContext, housingRoomId: string): void {
   const room = game.tower.rooms.find((r) => r.id === housingRoomId);
   if (!room || !isHousingRoom(room)) return;
 
-  const recruited = game.housingRecruited[housingRoomId] ?? 0;
+  const recruited = effectiveHousingRecruited(game, housingRoomId);
   if (recruited <= HOUSING_MIN_RECRUITED) {
     addMessage(game, 'Cannot unrecruit below the housing minimum.', 'info');
     return;

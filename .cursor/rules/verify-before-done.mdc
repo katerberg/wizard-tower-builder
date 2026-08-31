@@ -12,10 +12,24 @@ No code change is complete until **lint and tests pass**. This matches CI (`.git
 After any change to source, config, or tests, run from the repo root:
 
 ```bash
-npm run lint && npm test
+nvm use && npm run lint && npm test
 ```
 
-Do not tell the user the task is done until both commands exit 0.
+Do not tell the user the task is done until all three exit 0.
+
+## Before push / PR update
+
+Rebase feature branches onto latest `origin/main` before pushing or updating a PR:
+
+```bash
+git fetch origin main && git rebase origin/main
+nvm use && npm run lint && npm test
+npm run test:balance
+```
+
+If the branch was already pushed, update the remote with `git push --force-with-lease`.
+
+Fix any rebase conflicts or test failures before pushing. Do not skip rebasing because the local branch "looks up to date" — fetch first.
 
 ## When to run
 
@@ -23,6 +37,7 @@ Do not tell the user the task is done until both commands exit 0.
 - After updating or adding tests
 - After fixing review or CI feedback
 - Before suggesting a commit or PR
+- After rebasing onto `origin/main` (re-run full verification)
 
 Skip only when the task is **read-only** (questions, explanations, reviews with no edits).
 
@@ -30,7 +45,7 @@ Skip only when the task is **read-only** (questions, explanations, reviews with 
 
 1. Read the full error output — do not guess.
 2. Fix the root cause in the changed files.
-3. Re-run `npm run lint && npm test`.
+3. Re-run `nvm use && npm run lint && npm test`.
 4. Repeat until both pass.
 
 Never leave the repo in a broken state. Never claim success without running the commands.
@@ -45,6 +60,6 @@ Never leave the repo in a broken state. Never claim success without running the 
 
 Before ending your turn on a code task:
 
-- [ ] `npm run lint` — exit 0
-- [ ] `npm test` — exit 0
+- [ ] `nvm use && npm run lint && npm test` — all exit 0
+- [ ] If pushing/updating a PR: rebased onto `origin/main`, `npm run test:balance` exit 0
 - [ ] Any new failures from your edits are fixed
