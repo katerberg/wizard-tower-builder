@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { STARTING_RESOURCES, FIXED_DT } from '@/config/constants';
-import { STARTER_SUPPLY_STONE } from '@/config/storage';
+import { STARTER_QUARTERS_ROOM_ID, STARTER_SUPPLY_ROOM_ID, STARTER_SUPPLY_STONE } from '@/config/storage';
 import { availableInStorage } from '@/model/storage';
 import type { Cell } from '@/model/types';
 import { selectBuildUndoState, selectGhostPlacement } from '@/store/selectors';
@@ -11,7 +11,7 @@ function placeStem(store: Store, cell: Cell): void {
   store.dispatch({ type: 'placeSelectedAt', cell });
 }
 
-const EXT_COL = 9;
+const EXT_COL = 10;
 
 describe('day-phase construction orders', () => {
   it('reserves storage when queuing placement', () => {
@@ -122,5 +122,12 @@ describe('starter supply', () => {
     const supply = store.getSnapshot().game.storageSites['starter-supply'];
     expect(supply?.stockpile.stone).toBe(STARTER_SUPPLY_STONE);
     expect(store.getSnapshot().game.player.resources.stone).toBe(0);
+  });
+
+  it('cannot queue teardown of starter supply or quarters', () => {
+    const store = new Store('supply-lock');
+    store.dispatch({ type: 'sellRoom', roomId: STARTER_SUPPLY_ROOM_ID });
+    store.dispatch({ type: 'sellRoom', roomId: STARTER_QUARTERS_ROOM_ID });
+    expect(store.getSnapshot().game.constructionOrders.length).toBe(0);
   });
 });

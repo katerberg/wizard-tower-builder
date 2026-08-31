@@ -12,3 +12,8 @@ export const STARTER_SUPPLY_METAL = 32;
 export const STORAGE_ROOM_BLUEPRINT_ID = 'storageRoom';
 export const STARTER_SUPPLY_ROOM_ID = 'starter-supply';
 export const STARTER_QUARTERS_ROOM_ID = 'starter-quarters';
+
+/** Starter facilities that must never be torn down or replaced. */
+export function isPermanentStarterRoom(roomId: string): boolean {
+  return roomId === STARTER_SUPPLY_ROOM_ID || roomId === STARTER_QUARTERS_ROOM_ID;
+}

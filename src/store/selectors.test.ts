@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { STARTER_QUARTERS_ROOM_ID, STARTER_SUPPLY_ROOM_ID } from '@/config/storage';
 import { getBlueprint } from '@/model/blueprints';
 import { createRoom, createStructure, placeRoom, placeStructure } from '@/model/tower';
 import { Store } from '@/store/store';
@@ -166,6 +167,14 @@ describe('selectRoomInspector', () => {
     expect(inspector?.isBuildPhase).toBe(false);
     expect(inspector?.modifications.every((m) => m.action === 'none')).toBe(true);
     expect(inspector?.canRemove).toBe(false);
+  });
+
+  it('disables remove for permanent starter facilities', () => {
+    const store = new Store('insp-starter');
+    expect(selectRoomInspector(store.getSnapshot(), STARTER_SUPPLY_ROOM_ID)?.canRemove).toBe(false);
+    expect(selectRoomInspector(store.getSnapshot(), STARTER_QUARTERS_ROOM_ID)?.canRemove).toBe(
+      false,
+    );
   });
 });
 

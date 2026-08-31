@@ -33,7 +33,7 @@ import {
 import { reconcileAutoStairs } from '../autoStairs';
 import { seedSpecialtyRoomDefaults } from '../staff';
 import { registerStorageSite } from '../storage';
-import { STORAGE_ROOM_CAPACITY } from '@/config/storage';
+import { isPermanentStarterRoom, STORAGE_ROOM_CAPACITY } from '@/config/storage';
 import type { Cell, ConstructionOrder, GameState, ResourceCost } from '../types';
 
 let orderCounter = 0;
@@ -225,7 +225,7 @@ export function createTeardownOrder(
 ): ConstructionOrder | null {
   const room = state.tower.rooms.find((r) => r.id === targetRoomId);
   if (!room) return null;
-  if (state.storageSites[targetRoomId]?.locked) {
+  if (isLockedRoom(state, targetRoomId)) {
     addMessage(state, 'This room cannot be removed.', 'info');
     return null;
   }
@@ -368,5 +368,5 @@ export function isScaffoldStructure(blueprintId: string): boolean {
 }
 
 export function isLockedRoom(state: GameState, roomId: string): boolean {
-  return state.storageSites[roomId]?.locked === true || roomId === 'starter-quarters';
+  return isPermanentStarterRoom(roomId) || state.storageSites[roomId]?.locked === true;
 }

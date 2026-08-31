@@ -1,5 +1,6 @@
 import { getBlueprint, isStructureBlueprint } from '../blueprints';
 import { MAX_OVERHANG_STEP } from '@/config/constants';
+import { isPermanentStarterRoom } from '@/config/storage';
 import { cellKey, inBounds, parseKey, roomCells } from '../../calculations/grid';
 import type { Blueprint, Cell, PlacementReason, PlacementResult, Room, Structure, Tower } from '../types';
 import { reconcileAutoStairs } from '../autoStairs';
@@ -55,6 +56,13 @@ export function clearReplaceableStructureFootprint(
   }
 
   const footKeys = new Set(footprint.map((c) => cellKey(c.col, c.row)));
+  for (const c of footprint) {
+    const room = roomAt(tower, c.col, c.row);
+    if (room && isPermanentStarterRoom(room.id)) {
+      return { ok: false, reason: 'room_locked' };
+    }
+  }
+
   const structureIds = new Set<string>();
   for (const c of footprint) {
     const piece = structureAt(tower, c.col, c.row);
@@ -99,6 +107,9 @@ export function clearReplaceableRoomFootprint(
   }
 
   for (const roomId of roomIds) {
+    if (isPermanentStarterRoom(roomId)) {
+      return { ok: false, reason: 'room_locked' };
+    }
     const room = tower.rooms.find((r) => r.id === roomId);
     if (!room) continue;
     for (const c of roomCells(room.origin, room.size)) {

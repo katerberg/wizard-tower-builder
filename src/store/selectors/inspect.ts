@@ -15,6 +15,7 @@ import {
   listModifications,
   modificationCost,
 } from '@/model/modifications';
+import { isLockedRoom } from '@/model/construction';
 import { isManaSpringRoom } from '@/model/pipes';
 import { isResearchRoom, isOverhangUnlocked } from '@/model/research';
 import {
@@ -292,7 +293,7 @@ export function selectRoomInspector(snapshot: Snapshot, roomId: string): RoomIns
     stats,
     isBuildPhase,
     modifications,
-    canRemove: isBuildPhase,
+    canRemove: isBuildPhase && !isLockedRoom(game, room.id),
     underStructure,
     housingRecruited: isHousingRoom(room) ? effectiveHousingRecruited(game, room.id) : undefined,
     housingCapacity: isHousingRoom(room) ? housingCapacity(room) : undefined,
