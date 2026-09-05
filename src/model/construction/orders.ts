@@ -440,10 +440,14 @@ export function completeTeardownOrder(state: GameState, order: ConstructionOrder
   refreshInvalidOrders(state);
 }
 
-/** Dusk scaffold freeze. Speculative plans whose support is still missing stay ghosts. */
+/**
+ * Dusk scaffold freeze, bottom-up so a frozen scaffold can carry the piece above it.
+ * Speculative plans whose support is still missing stay plans.
+ */
 export function freezeIncompleteOrdersAtDusk(state: GameState): void {
   const options = placementOptionsFor(state);
-  for (const order of state.constructionOrders) {
+  const bottomUp = [...state.constructionOrders].sort((a, b) => a.origin.row - b.origin.row);
+  for (const order of bottomUp) {
     if (order.kind !== 'build' || order.status === 'planned' || order.invalid) continue;
     const alreadyFrozen = order.status === 'scaffold' || order.status === 'building';
     if (!alreadyFrozen && !isOrderLiveLegal(state, order, options)) continue;
