@@ -7,6 +7,7 @@ import {
   type LeylineBandRow,
   type LeylineTier,
 } from '@/config/spellProgression';
+import { getBlueprint } from '@/model/blueprints';
 import { addMessage } from '@/model/messages';
 import type { Cell, GameState, PlacementResult, Room, SpellSchool } from '@/model/types';
 import { getSpell, hotbarSpellIdsForSchool } from './registry';
@@ -50,8 +51,49 @@ export function bandRowForRoom(room: Room): LeylineBandRow | null {
   return null;
 }
 
+/** Live leyline room holding a band (spell tiers only count finished rooms). */
 export function leylineRoomInBand(state: GameState, bandRow: LeylineBandRow): Room | undefined {
   return listLeylineResearchRooms(state).find((room) => bandRowForRoom(room) === bandRow);
+}
+
+interface LeylineFootprint {
+  origin: Cell;
+  size: { w: number; h: number };
+}
+
+function bandRowForFootprint(footprint: LeylineFootprint): LeylineBandRow | null {
+  for (const cell of roomCells(footprint.origin, footprint.size)) {
+    const tier = tierForBandRow(cell.row);
+    if (tier !== null) return bandRowForTier(tier);
+  }
+  return null;
+}
+
+/** Finished rooms and pending leyline plans both hold a band against new paints. */
+function leylineFootprintsInBand(
+  state: GameState,
+  bandRow: LeylineBandRow,
+  ignoreOrderIds: readonly string[],
+): LeylineFootprint[] {
+  const live: LeylineFootprint[] = listLeylineResearchRooms(state)
+    .filter((room) => bandRowForRoom(room) === bandRow)
+    .map((room) => ({ origin: room.origin, size: room.size }));
+
+  const blueprint = getBlueprint(LEYLINE_RESEARCH_BLUEPRINT_ID);
+  if (!blueprint) return live;
+
+  const planned: LeylineFootprint[] = state.constructionOrders
+    .filter(
+      (order) =>
+        order.kind === 'build' &&
+        order.blueprintId === LEYLINE_RESEARCH_BLUEPRINT_ID &&
+        !order.invalid &&
+        !ignoreOrderIds.includes(order.id),
+    )
+    .map((order) => ({ origin: order.origin, size: blueprint.size }))
+    .filter((footprint) => bandRowForFootprint(footprint) === bandRow);
+
+  return [...live, ...planned];
 }
 
 export function isLeylineTierCompleted(state: GameState, tier: LeylineTier): boolean {
@@ -113,6 +155,11 @@ export function isSpellUnlocked(state: GameState, spellId: string): boolean {
   return activeHotbarSpellIds(state).includes(spellId);
 }
 
+export interface LeylinePlacementOptions {
+  /** Pending orders this paint replaces, so they stop holding their band. */
+  ignoreOrderIds?: readonly string[];
+}
+
 /**
  * Placement rules for Leyline Research rooms.
  * Returns null when the blueprint is not a leyline room (caller uses normal canPlace).
@@ -122,6 +169,7 @@ export function validateLeylineRoomPlacement(
   blueprintId: string,
   origin: Cell,
   size: { w: number; h: number },
+  options: LeylinePlacementOptions = {},
 ): PlacementResult | null {
   if (blueprintId !== LEYLINE_RESEARCH_BLUEPRINT_ID) return null;
 
@@ -146,10 +194,9 @@ export function validateLeylineRoomPlacement(
     return { ok: false, reason: 'leyline_tier_locked' };
   }
 
-  const existing = leylineRoomInBand(state, band);
-  if (existing) {
-    // Allow rebuild when the new footprint fully covers the existing room.
-    const footKeys = new Set(cells.map((c) => `${c.col},${c.row}`));
+  const footKeys = new Set(cells.map((c) => `${c.col},${c.row}`));
+  for (const existing of leylineFootprintsInBand(state, band, options.ignoreOrderIds ?? [])) {
+    // Allow rebuild when the new footprint fully covers the existing room or plan.
     const fullyCovered = roomCells(existing.origin, existing.size).every((c) =>
       footKeys.has(`${c.col},${c.row}`),
     );

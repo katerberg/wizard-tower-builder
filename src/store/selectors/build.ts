@@ -7,20 +7,22 @@ import {
 } from '@/calculations/resources';
 import { roomCells } from '@/calculations/grid';
 import { BLUEPRINTS, getBlueprint, isStructureBlueprint } from '@/model/blueprints';
-import { INFRA_BLUEPRINTS, getInfraBlueprint, isInfraBlueprint } from '@/model/infraBlueprints';
+import { INFRA_BLUEPRINTS, getInfraBlueprint } from '@/model/infraBlueprints';
 import {
   FORTIFICATION_BLUEPRINTS,
   getFortificationBlueprint,
-  isFortificationBlueprint,
 } from '@/model/fortificationBlueprints';
-import { totalOrderCost } from '@/model/construction';
-import { planFortificationPlacement } from '@/model/fortificationPlacement';
-import { planInfraPlacement } from '@/model/infraPlacement';
+import {
+  ordersOverlapFootprint,
+  planPlacementOnTower,
+  totalOrderCost,
+  towerWithPendingOrders,
+} from '@/model/construction';
 import { selectPipeConnectivityReport } from '@/model/pipes';
 import { selectLogisticsReport } from '@/model/staff/connectivity';
 import { housingKindOf, staffKindForHousing } from '@/model/staff/capacity';
 import { isOverhangUnlocked } from '@/model/research';
-import { canPlace, getUnstableStructureIds, planRoomPlacement, type StructurePlacementOptions } from '@/model/tower';
+import { getUnstableStructureIds, type StructurePlacementOptions } from '@/model/tower';
 import { validateLeylineRoomPlacement } from '@/model/spells/progression';
 import {
   LIBRARY_SECTIONS,
@@ -33,6 +35,7 @@ import type {
   InfraKind,
   PlacementReason,
   Resources,
+  Tower,
 } from '@/model/types';
 import type { Snapshot } from '../store';
 
@@ -121,71 +124,65 @@ export interface GhostPlacement {
   infraKind?: InfraKind;
   needsStem?: boolean;
   stemCells?: Cell[];
+  /** Illegal on the live tower, legal once pending plans are built. */
+  needsPlannedSupport?: boolean;
+}
+
+/** Plan the hovered paint sees: live tower plus pending orders it would not replace. */
+function plannedTower(snapshot: Snapshot, cells: Cell[], options: StructurePlacementOptions): Tower {
+  const { game } = snapshot;
+  const kept = game.constructionOrders.filter((o) => !ordersOverlapFootprint(o, cells));
+  return towerWithPendingOrders(game.tower, kept, options);
 }
 
 export function selectGhostPlacement(snapshot: Snapshot): GhostPlacement | null {
   const { game, view } = snapshot;
   if (game.scene !== 'run' || game.phase !== 'day') return null;
   const id = view.selectedBlueprintId;
-  if (!id || !view.hoveredCell) return null;
-
-  if (isInfraBlueprint(id)) {
-    const blueprint = getInfraBlueprint(id);
-    if (!blueprint?.infraKind) return null;
-    const placementOptions = structurePlacementOptions(snapshot);
-    const plan = planInfraPlacement(game.tower, blueprint, view.hoveredCell, placementOptions);
-    return {
-      cells: [view.hoveredCell],
-      valid: plan.ok && canAffordOrder(snapshot, id, view.hoveredCell),
-      reason: plan.reason,
-      infraKind: blueprint.infraKind,
-      needsStem: plan.needsStem,
-      stemCells: plan.needsStem ? [view.hoveredCell] : [],
-    };
-  }
-
-  if (isFortificationBlueprint(id)) {
-    const blueprint = getFortificationBlueprint(id);
-    if (!blueprint?.id) return null;
-    const kind = blueprint.id as import('@/model/types').FortificationId;
-    const plan = planFortificationPlacement(game.tower, kind, view.hoveredCell);
-    return {
-      cells: [view.hoveredCell],
-      valid: (plan.ok || plan.isToggleOff) && canAffordOrder(snapshot, id, view.hoveredCell),
-      reason: plan.isToggleOff ? 'ok' : plan.reason,
-      needsStem: plan.needsStem,
-      stemCells: plan.needsStem ? [view.hoveredCell] : [],
-    };
-  }
+  const hovered = view.hoveredCell;
+  if (!id || !hovered) return null;
 
   const blueprint = selectSelectedBlueprint(snapshot);
   if (!blueprint) return null;
 
-  if (isStructureBlueprint(blueprint)) {
-    const result = canPlace(game.tower, blueprint, view.hoveredCell, structurePlacementOptions(snapshot));
-    return {
-      cells: roomCells(view.hoveredCell, blueprint.size),
-      valid: result.ok && canAffordOrder(snapshot, id, view.hoveredCell),
-      reason: result.reason,
-    };
+  const options = structurePlacementOptions(snapshot);
+  const cells = roomCells(hovered, blueprint.size);
+  const live = planPlacementOnTower(game.tower, blueprint, hovered, options);
+
+  let plan = live;
+  let needsPlannedSupport = false;
+  if (!live.ok && !live.isToggleOff) {
+    const speculative = planPlacementOnTower(
+      plannedTower(snapshot, cells, options),
+      blueprint,
+      hovered,
+      options,
+    );
+    if (speculative.ok) {
+      plan = speculative;
+      needsPlannedSupport = true;
+    }
   }
 
-  const plan = planRoomPlacement(game.tower, blueprint, view.hoveredCell, structurePlacementOptions(snapshot));
-  let reason = plan.reason;
-  let valid = plan.ok;
-  if (plan.ok) {
-    const leyline = validateLeylineRoomPlacement(game, blueprint.id, view.hoveredCell, blueprint.size);
+  let valid = plan.ok || plan.isToggleOff;
+  let reason: PlacementReason = plan.isToggleOff ? 'ok' : plan.reason;
+  if (valid && !plan.isToggleOff) {
+    const leyline = validateLeylineRoomPlacement(game, blueprint.id, hovered, blueprint.size);
     if (leyline && !leyline.ok) {
       valid = false;
       reason = leyline.reason;
+      needsPlannedSupport = false;
     }
   }
+
   return {
-    cells: roomCells(view.hoveredCell, blueprint.size),
-    valid: valid && canAffordOrder(snapshot, id, view.hoveredCell),
+    cells,
+    valid: valid && canAffordOrder(snapshot, id, hovered),
     reason,
+    infraKind: blueprint.infraKind,
     needsStem: plan.stemCells.length > 0,
     stemCells: plan.stemCells,
+    needsPlannedSupport,
   };
 }
 

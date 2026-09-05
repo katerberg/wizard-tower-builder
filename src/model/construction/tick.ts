@@ -22,9 +22,10 @@ import { getStorageSite, withdrawFromStorage } from '../storage';
 import {
   completeConstructionOrder,
   completeTeardownOrder,
-  orderFootprintCells,
   placeScaffoldForOrder,
 } from './orders';
+import { orderFootprintCells } from './footprint';
+import { liveLegalBuildOrderIds } from './pendingTower';
 import type { Cell, ConstructionOrder, GameState, StaffUnit, Stockpile } from '../types';
 import { addMessageOnceInRow } from '../messages';
 
@@ -80,11 +81,14 @@ function isProspectorBusy(state: GameState, lab: StaffUnit): boolean {
   return prospectors.some((p) => p.id === lab.id);
 }
 
-function assignConstructionLaborers(state: GameState): void {
+/** Buildable plans only, bottom rows first — upper pieces wait for their support. */
+function assignConstructionLaborers(state: GameState, buildable: Set<string>): void {
   const laborers = state.staff.filter((s) => s.kind === 'laborer');
   const orders = [
     ...state.constructionOrders.filter((o) => o.kind === 'teardown'),
-    ...state.constructionOrders.filter((o) => o.kind === 'build' && o.status !== 'building'),
+    ...state.constructionOrders
+      .filter((o) => o.kind === 'build' && o.status !== 'building' && buildable.has(o.id))
+      .sort((a, b) => a.origin.row - b.origin.row),
   ];
 
   let laborerIdx = 0;
@@ -148,9 +152,17 @@ function assignPathToIfNeeded(
   return true;
 }
 
-function tickConstructionLabor(state: GameState, dt: number, nextRoomId: () => string): void {
+function tickConstructionLabor(
+  state: GameState,
+  dt: number,
+  nextRoomId: () => string,
+  buildable: Set<string>,
+): void {
   const buildingOrders = state.constructionOrders.filter(
-    (o) => o.kind === 'build' && (o.status === 'building' || o.status === 'scaffold'),
+    (o) =>
+      o.kind === 'build' &&
+      (o.status === 'building' || o.status === 'scaffold') &&
+      buildable.has(o.id),
   );
 
   for (const order of buildingOrders) {
@@ -209,7 +221,7 @@ function setWorkingAtSite(
   return assignPathToIfNeeded(lab, state, dropCell, staggerIndex);
 }
 
-function tickHauling(state: GameState): void {
+function tickHauling(state: GameState, buildable: Set<string>): void {
   let departIdx = 0;
   for (const lab of state.staff) {
     if (lab.kind !== 'laborer') continue;
@@ -219,6 +231,7 @@ function tickHauling(state: GameState): void {
     const orderId = target.slice('construction:'.length);
     const order = state.constructionOrders.find((o) => o.id === orderId);
     if (order?.kind !== 'build') continue;
+    if (!buildable.has(order.id)) continue;
 
     if (order.status === 'planned' || order.status === 'delivering') {
       departIdx += tickHaulLaborer(state, lab, order, departIdx);
@@ -380,10 +393,11 @@ function syncDayLaborers(state: GameState): void {
 export function tickDayConstruction(state: GameState, dt: number): void {
   syncDayLaborers(state);
   clearStaleConstructionTargets(state);
-  assignConstructionLaborers(state);
-  tickHauling(state);
+  const buildable = liveLegalBuildOrderIds(state);
+  assignConstructionLaborers(state, buildable);
+  tickHauling(state, buildable);
   stepStaff(state, dt);
-  tickConstructionLabor(state, dt, nextRoomIdLocal);
+  tickConstructionLabor(state, dt, nextRoomIdLocal, buildable);
   tickDayRepair(state, dt);
   repathIdleLaborers(state);
 }
