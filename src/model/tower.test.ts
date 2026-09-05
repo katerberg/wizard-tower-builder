@@ -45,16 +45,27 @@ describe('canPlace - basic support', () => {
     expect(canPlace(createTower(), stem, { col: -1, row: 0 }).reason).toBe('out_of_bounds');
   });
 
-  it('allows replacing a room when the footprint fully covers it', () => {
+  it('rejects placing the same spire blueprint on itself', () => {
     let tower = createTower();
     tower = place(tower, 'stem', { col: 5, row: 0 });
-    expect(canPlace(tower, stem, { col: 5, row: 0 })).toEqual({ ok: true, reason: 'ok' });
+    expect(canPlace(tower, stem, { col: 5, row: 0 }).reason).toBe('already_in_place');
   });
 
-  it('rejects overlapping replacement on the same cell', () => {
+  it('rejects placing the same room blueprint on itself', () => {
     let tower = createTower();
-    tower = place(tower, 'stem', { col: 5, row: 0 }, noOverhang);
-    expect(canPlace(tower, stem, { col: 5, row: 0 }, noOverhang)).toEqual({ ok: true, reason: 'ok' });
+    tower = place(tower, 'stem', { col: 5, row: 0 });
+    const turret = getBlueprint('turretRoom')!;
+    tower = placeRoom(tower, createRoom('t1', turret, { col: 5, row: 0 }));
+    expect(canPlace(tower, turret, { col: 5, row: 0 }).reason).toBe('already_in_place');
+  });
+
+  it('allows replacing a room with a different room blueprint', () => {
+    let tower = createTower();
+    tower = place(tower, 'stem', { col: 5, row: 0 });
+    const turret = getBlueprint('turretRoom')!;
+    const forge = getBlueprint('forgeRoom')!;
+    tower = placeRoom(tower, createRoom('t1', turret, { col: 5, row: 0 }));
+    expect(canPlace(tower, forge, { col: 5, row: 0 })).toEqual({ ok: true, reason: 'ok' });
   });
 
   it('allows spires stacked directly on each other', () => {

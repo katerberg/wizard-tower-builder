@@ -41,6 +41,34 @@ export interface StructurePlacementOptions {
 
 const PLACEMENT_PROBE_ID = '__placement_probe__';
 
+/** True when the exact same blueprint already occupies this origin and size. */
+function isSameBlueprintAlreadyAt(
+  tower: Tower,
+  blueprint: Blueprint,
+  origin: Cell,
+): boolean {
+  if (isStructureBlueprint(blueprint)) {
+    const piece = structureAt(tower, origin.col, origin.row);
+    return (
+      !!piece &&
+      piece.blueprintId === blueprint.id &&
+      piece.origin.col === origin.col &&
+      piece.origin.row === origin.row &&
+      piece.size.w === blueprint.size.w &&
+      piece.size.h === blueprint.size.h
+    );
+  }
+  const room = roomAt(tower, origin.col, origin.row);
+  return (
+    !!room &&
+    room.blueprintId === blueprint.id &&
+    room.origin.col === origin.col &&
+    room.origin.row === origin.row &&
+    room.size.w === blueprint.size.w &&
+    room.size.h === blueprint.size.h
+  );
+}
+
 /**
  * Strip structures fully contained in the footprint. Partial overlap is rejected.
  * Also strips rooms and infra on those cells (structure replace rebuilds framing).
@@ -213,6 +241,9 @@ export function canPlaceStructure(
   if (!isStructureBlueprint(blueprint)) {
     return fail('overlap');
   }
+  if (isSameBlueprintAlreadyAt(tower, blueprint, origin)) {
+    return fail('already_in_place');
+  }
   const cells = roomCells(origin, blueprint.size);
   const cleared = clearReplaceableStructureFootprint(tower, cells);
   if (!cleared.ok) {
@@ -253,6 +284,9 @@ export function planRoomPlacement(
 ): RoomPlacementPlan {
   if (isStructureBlueprint(blueprint) || blueprint.category === 'infra') {
     return { ok: false, reason: 'overlap', stemCells: [] };
+  }
+  if (isSameBlueprintAlreadyAt(tower, blueprint, origin)) {
+    return { ok: false, reason: 'already_in_place', stemCells: [] };
   }
   const cells = roomCells(origin, blueprint.size);
   const cleared = clearReplaceableRoomFootprint(tower, cells);

@@ -667,6 +667,7 @@ export type PlacementReason =
   | 'ok'
   | 'out_of_bounds'
   | 'overlap'
+  | 'already_in_place'
   | 'no_support'
   | 'overhang_too_far'
   | 'disconnected'

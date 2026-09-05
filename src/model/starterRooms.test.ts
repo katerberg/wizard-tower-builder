@@ -32,9 +32,10 @@ describe('permanent starter rooms', () => {
     expect(roomAt(state.tower, 9, 0)?.id).toBe(STARTER_QUARTERS_ROOM_ID);
     expect(roomAt(state.tower, 5, 0)?.id).toBe(STARTER_SUPPLY_ROOM_ID);
 
+    // Same framing blueprint is a no-op; locked rooms stay protected.
     const stemPlacement = canPlace(state.tower, stem!, { col: 9, row: 0 });
     expect(stemPlacement.ok).toBe(false);
-    expect(stemPlacement.reason).toBe('room_locked');
+    expect(stemPlacement.reason).toBe('already_in_place');
 
     const roomPlacement = canPlace(state.tower, turret!, { col: 5, row: 0 });
     expect(roomPlacement.ok).toBe(false);
