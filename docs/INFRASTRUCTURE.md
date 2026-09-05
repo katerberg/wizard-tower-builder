@@ -50,6 +50,8 @@ interface InfraCell {
 
 **Mutual exclusion:** a cell may hold **one** of staircase, pipe, or elevator — never two. Infra may be painted on cells that already have a structure room (“drawn over” the room on the infra layer). This intentionally prevents cramming multiple infra kinds through a single spire block.
 
+**Infra paints are construction orders.** Painting a pipe or elevator queues a `ConstructionOrder` (reserving metal/stone, including the auto Spire Block when the cell is empty); laborers haul and build it like any room. Legality is checked against the **plan** — live tower plus pending orders — so a pipe may be painted on framing that is still planned. Clicking the same kind on a **finished** cell removes it immediately. See [`DAY_NIGHT.md`](DAY_NIGHT.md).
+
 **Future damage model:** pipes inside a room footprint are logically protected when external bombs hit the room shell first (not implemented yet).
 
 ---
@@ -190,7 +192,7 @@ stateDiagram-v2
 | Rule | Behavior |
 |------|----------|
 | Wave start (nightfall) | Charge upkeep for all rostered; unpaid desert; assign + spawn survivors |
-| Day phase | Recruit / unrecruit, allocate slots & springs, paint rooms/infra; **laborers** haul, build, and repair on the interior graph |
+| Day phase | Recruit / unrecruit, allocate slots & springs, paint rooms/infra/forts (all queued as orders); **laborers** haul, build, and repair on the interior graph |
 | Night phase | Soldiers/magi/laborers path and work; slots fire; springs tick; mine/pump harvest |
 | Wave end (dawn) | Clear `staff` entities; **keep** `housingRecruited` and allocations |
 | Death | Deferred — no soldier targeting yet |
@@ -270,7 +272,7 @@ Relevant staff order inside `game.step(dt)` during **night** (combat):
 | Housing expansion mods | Modification cost (guardroom / chamber / quarters) |
 | Slot capacity mod | `slotExpansion` (2 → 4) |
 | Wave start upkeep | Per rostered occupant by kind; failure deserts |
-| Stair / pipe / elevator placement | Stairs free (auto); pipe / elevator infra blueprint cost |
+| Stair / pipe / elevator placement | Stairs free (auto); pipe / elevator infra blueprint cost reserved at paint, spent when laborers finish |
 
 **Mana** — shared pool; magic turret **5** reserved from pool cap per wave; flame turret **1**/blast; springs staffed by magi; boilers drain while producing. See [`PIPES.md`](PIPES.md).
 
@@ -360,7 +362,7 @@ interface GameState {
 
 | Area | Tests |
 |------|-------|
-| Infra placement | One kind per cell; exclusion; paint over structure |
+| Infra placement | One kind per cell; exclusion; paint over structure; paint queues an order instead of mutating the tower |
 | Interior path | Horizontal through passable room; vertical when lower cell has a stair |
 | Stair throughput | Depart stagger spreads climbers; units may share corridor cells |
 | Elevator shafts | Contiguous column = one shaft; gap = two; adjacent columns separate |

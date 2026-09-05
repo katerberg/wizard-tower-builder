@@ -77,6 +77,7 @@ See [`src/store/README.md`](../src/store/README.md).
 
 - [`src/model/tower/`](../src/model/tower/) — `placement.ts`, `stability.ts`
 - [`src/model/tower.test.ts`](../src/model/tower.test.ts)
+- Paint-time (speculative) legality: [`src/model/construction/pendingTower.ts`](../src/model/construction/pendingTower.ts) — `planPlacementOnTower` dispatches all four layers, `towerWithPendingOrders` builds the plan the paint is judged against, and `isOrderLiveLegal` gates laborers. Add rules there rather than in handlers so paint, ghost, labor, and dusk freeze stay in sync ([`docs/DAY_NIGHT.md`](DAY_NIGHT.md)).
 
 ### Change combat / attack loop
 

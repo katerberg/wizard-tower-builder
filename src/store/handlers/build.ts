@@ -9,8 +9,7 @@ import {
   createTeardownOrder,
   isLockedRoom,
 } from '@/model/construction';
-import { canPlace, roomAt, structureAt } from '@/model/tower';
-import { validateLeylineRoomPlacement } from '@/model/spells/progression';
+import { roomAt, structureAt } from '@/model/tower';
 import { SCAFFOLD_BLUEPRINT_ID } from '@/config/construction';
 import type { HandlerContext } from '../context';
 import type { Intent } from '../intents';
@@ -50,19 +49,9 @@ function placeSelected(ctx: HandlerContext, cell: { col: number; row: number }):
   const blueprint = getBlueprint(id);
   if (!blueprint) return;
 
-  const result = canPlace(game.tower, blueprint, cell, { overhangUnlocked: isOverhangUnlocked(game) });
-  if (!result.ok) {
-    addMessage(game, `Cannot build here: ${result.reason.replace(/_/g, ' ')}.`, 'info');
-    return;
-  }
-
-  const leyline = validateLeylineRoomPlacement(game, blueprint.id, cell, blueprint.size);
-  if (leyline && !leyline.ok) {
-    addMessage(game, `Cannot build here: ${leyline.reason.replace(/_/g, ' ')}.`, 'info');
-    return;
-  }
-
-  createBuildOrder(game, id, cell, () => ctx.nextRoomId());
+  createBuildOrder(game, id, cell, () => ctx.nextRoomId(), {
+    overhangUnlocked: isOverhangUnlocked(game),
+  });
 }
 
 function removeAt(ctx: HandlerContext, cell: { col: number; row: number }): void {

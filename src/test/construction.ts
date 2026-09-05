@@ -13,11 +13,11 @@ export function resetTestBuiltRoomCounter(): void {
   testBuiltRoomCounter = 0;
 }
 
-/** Force-complete all pending construction orders (unit tests). */
+/** Force-complete all pending construction orders bottom-up (unit tests). */
 export function instantCompleteConstruction(store: Store): void {
   const game = store.getSnapshot().game;
   const nextRoomId = () => `test-built-${testBuiltRoomCounter++}`;
-  const orders = [...game.constructionOrders];
+  const orders = [...game.constructionOrders].sort((a, b) => a.origin.row - b.origin.row);
   for (const order of orders) {
     if (order.kind === 'build') {
       const cost = stockpileFromCost(totalOrderCost(order.blueprintId, game.tower, order.origin));

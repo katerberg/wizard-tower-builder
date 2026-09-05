@@ -1,4 +1,20 @@
 export {
+  blueprintFootprintCells,
+  orderFootprintCells,
+  ordersOverlapFootprint,
+  resolveOrderBlueprint,
+} from './footprint';
+export {
+  applyOrderAsCompleted,
+  isOrderLiveLegal,
+  liveLegalBuildOrderIds,
+  placementOptionsFor,
+  planPlacementOnTower,
+  refreshInvalidOrders,
+  towerWithPendingOrders,
+  type PlanPlacement,
+} from './pendingTower';
+export {
   cancelConstructionOrder,
   completeConstructionOrder,
   completeTeardownOrder,
@@ -8,7 +24,6 @@ export {
   isLockedRoom,
   isScaffoldStructure,
   nextOrderId,
-  orderFootprintCells,
   placeScaffoldForOrder,
   resetConstructionCounter,
   totalOrderCost,

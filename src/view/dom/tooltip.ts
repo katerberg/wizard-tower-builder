@@ -151,8 +151,9 @@ export function createTooltip(
         getFortificationBlueprint(view.selectedBlueprintId);
       if (ghost && blueprint) {
         const action = room ? 'Replace with' : 'Place';
+        const planned = ghost.needsPlannedSupport ? ' · OK (needs planned support)' : '';
         text = ghost.valid
-          ? `${action} ${blueprint.name} · ${formatResourceCost(blueprint.cost)}`
+          ? `${action} ${blueprint.name} · ${formatResourceCost(blueprint.cost)}${planned}`
           : `Cannot build: ${ghost.reason.replace(/_/g, ' ')}`;
       }
     } else if (game.phase === 'day' && room) {

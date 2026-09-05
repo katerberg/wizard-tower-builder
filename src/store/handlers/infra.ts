@@ -1,9 +1,6 @@
-import { canAffordPhysical, stockpileFromCost, findStorageForReservation, reserveStorage, consumeReservation } from '@/model/storage';
-import { spend } from '@/calculations/economy';
-import { formatResourceCost } from '@/calculations/resources';
+import { createBuildOrder } from '@/model/construction';
 import { getInfraBlueprint, isInfraBlueprint } from '@/model/infraBlueprints';
 import { getInfraAt, removeInfraAt } from '@/model/infra';
-import { applyInfraPlacement, planInfraPlacement } from '@/model/infraPlacement';
 import { reconcileAutoStairs } from '@/model/autoStairs';
 import { addMessage } from '@/model/messages';
 import { isOverhangUnlocked } from '@/model/research';
@@ -25,24 +22,6 @@ export function handleInfraIntent(ctx: HandlerContext, intent: Intent): void {
   }
 }
 
-function spendPhysicalCost(ctx: HandlerContext, cell: { col: number; row: number }, cost: import('@/model/types').ResourceCost): boolean {
-  const { game } = ctx;
-  const physical = stockpileFromCost(cost);
-  if (!canAffordPhysical(game, cost)) {
-    return false;
-  }
-  const storageId = findStorageForReservation(game, physical, cell);
-  if (!storageId && (physical.stone > 0 || physical.metal > 0)) return false;
-  const orderId = `infra-spend-${Date.now()}`;
-  if (storageId) {
-    reserveStorage(game, orderId, storageId, physical);
-    consumeReservation(game, orderId);
-  }
-  if (cost.souls) spend(game, { souls: cost.souls });
-  if (cost.gold) spend(game, { gold: cost.gold });
-  return true;
-}
-
 function placeInfraSelected(ctx: HandlerContext, cell: { col: number; row: number }): void {
   const { game, view } = ctx;
   if (game.phase !== 'day') return;
@@ -56,9 +35,8 @@ function placeInfraSelected(ctx: HandlerContext, cell: { col: number; row: numbe
     return;
   }
 
-  const placementOptions = { overhangUnlocked: isOverhangUnlocked(game) };
-  const plan = planInfraPlacement(game.tower, blueprint, cell, placementOptions);
-  if (plan.isToggleOff) {
+  // Same-kind click on live infra still removes it immediately; new paints queue.
+  if (getInfraAt(game.tower, cell.col, cell.row)?.kind === blueprint.infraKind) {
     let next = removeInfraAt(game.tower, cell.col, cell.row);
     if ((next.rooms?.length ?? 0) > 0) {
       const stairs = reconcileAutoStairs(next);
@@ -73,37 +51,9 @@ function placeInfraSelected(ctx: HandlerContext, cell: { col: number; row: numbe
     return;
   }
 
-  if (!plan.ok) {
-    if (plan.reason === 'fluid_mix') {
-      addMessage(game, 'Would mix pipe fluids.', 'info');
-    } else if (plan.reason === 'boiler_footprint') {
-      addMessage(game, 'Cannot place pipes on a boiler.', 'info');
-    } else {
-      addMessage(game, `Cannot build here: ${plan.reason.replace(/_/g, ' ')}.`, 'info');
-    }
-    return;
-  }
-
-  if (!spendPhysicalCost(ctx, cell, blueprint.cost)) {
-    addMessage(game, `Not enough resources for ${blueprint.name} (${formatResourceCost(blueprint.cost)}).`, 'economy');
-    return;
-  }
-
-  let next = applyInfraPlacement(game.tower, blueprint, cell, ctx.nextRoomId(), plan);
-  if ((next.rooms?.length ?? 0) > 0) {
-    const stairs = reconcileAutoStairs(next);
-    if (!stairs.ok) {
-      addMessage(game, 'Cannot change layout: would disconnect rooms from ground.', 'info');
-      return;
-    }
-    next = stairs.tower;
-  }
-  game.tower = next;
-  if (plan.needsStem) {
-    addMessage(game, `Placed Spire Block and ${blueprint.name}.`, 'info');
-  } else {
-    addMessage(game, `Placed ${blueprint.name}.`, 'info');
-  }
+  createBuildOrder(game, id, cell, () => ctx.nextRoomId(), {
+    overhangUnlocked: isOverhangUnlocked(game),
+  });
 }
 
 function removeInfraAtCell(ctx: HandlerContext, cell: { col: number; row: number }): void {

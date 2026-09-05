@@ -1,8 +1,8 @@
 import { BUILD_WORK_PER_CELL, SCAFFOLD_BLUEPRINT_ID, SOUL_REFUND_RATE, TEARDOWN_REFUND_RATE } from '@/config/construction';
 import { getBlueprint, isStructureBlueprint } from '../blueprints';
-import { isInfraBlueprint } from '../infraBlueprints';
-import { isFortificationBlueprint } from '../fortificationBlueprints';
-import { roomCells } from '../../calculations/grid';
+import { isFortificationId } from '../fortificationBlueprints';
+import { applyFortificationPlacement, planFortificationPlacement } from '../fortificationPlacement';
+import { applyInfraPlacement, planInfraPlacement } from '../infraPlacement';
 import { spend } from '../../calculations/economy';
 import { addMessage } from '../messages';
 import {
@@ -17,13 +17,12 @@ import {
   subStockpiles,
 } from '../storage';
 import {
-  canPlace,
   createRoom,
   createStructure,
-  planRoomPlacement,
   placeRoomReplacing,
   placeStructureReplacing,
   removeRoom,
+  type StructurePlacementOptions,
 } from '../tower';
 import {
   activeHotbarSpellIds,
@@ -34,7 +33,20 @@ import { reconcileAutoStairs } from '../autoStairs';
 import { seedSpecialtyRoomDefaults } from '../staff';
 import { registerStorageSite } from '../storage';
 import { isPermanentStarterRoom, STORAGE_ROOM_CAPACITY } from '@/config/storage';
-import type { Cell, ConstructionOrder, GameState, ResourceCost } from '../types';
+import {
+  blueprintFootprintCells,
+  orderFootprintCells,
+  ordersOverlapFootprint,
+  resolveOrderBlueprint,
+} from './footprint';
+import {
+  isOrderLiveLegal,
+  placementOptionsFor,
+  planPlacementOnTower,
+  refreshInvalidOrders,
+  towerWithPendingOrders,
+} from './pendingTower';
+import type { Cell, ConstructionOrder, GameState, PlacementReason, ResourceCost } from '../types';
 
 let orderCounter = 0;
 
@@ -47,60 +59,97 @@ export function nextOrderId(): string {
   return `order-${orderCounter}`;
 }
 
-export function orderFootprintCells(order: ConstructionOrder): Cell[] {
-  const bp = getBlueprint(order.blueprintId);
-  if (!bp) return [order.origin];
-  return roomCells(order.origin, bp.size);
-}
-
 export function computeBuildWorkRequired(blueprintId: string, extraStemCells = 0): number {
-  const bp = getBlueprint(blueprintId);
+  const bp = resolveOrderBlueprint(blueprintId);
   if (!bp) return BUILD_WORK_PER_CELL;
   const cells = bp.size.w * bp.size.h + extraStemCells;
   return cells * BUILD_WORK_PER_CELL;
 }
 
-export function totalOrderCost(blueprintId: string, tower: GameState['tower'], origin: Cell): ResourceCost {
-  const bp = getBlueprint(blueprintId);
-  if (!bp) return {};
-  let cost = { ...bp.cost };
-  if (!isStructureBlueprint(bp) && !isInfraBlueprint(blueprintId) && !isFortificationBlueprint(blueprintId)) {
-    const plan = planRoomPlacement(tower, bp, origin);
-    if (plan.ok) {
-      const stemCost = { stone: plan.stemCells.length * 3 };
-      cost = {
-        stone: (cost.stone ?? 0) + (stemCost.stone ?? 0),
-        metal: cost.metal,
-        souls: cost.souls,
-        gold: cost.gold,
-      };
-    }
-  }
-  return cost;
+function stemStoneCost(stemCells: number): number {
+  return stemCells * (getBlueprint('stem')?.cost.stone ?? 0);
 }
 
+/**
+ * Blueprint cost plus the auto Spire Blocks the placement adds.
+ * `tower` may be the live tower or a plan (see {@link towerWithPendingOrders}).
+ */
+export function totalOrderCost(
+  blueprintId: string,
+  tower: GameState['tower'],
+  origin: Cell,
+  options: StructurePlacementOptions = {},
+): ResourceCost {
+  const bp = resolveOrderBlueprint(blueprintId);
+  if (!bp) return {};
+  const cost = { ...bp.cost };
+  if (isStructureBlueprint(bp)) return cost;
+
+  const plan = planPlacementOnTower(tower, bp, origin, options);
+  if (!plan.ok || plan.stemCells.length === 0) return cost;
+  return { ...cost, stone: (cost.stone ?? 0) + stemStoneCost(plan.stemCells.length) };
+}
+
+function placementRejectMessage(reason: PlacementReason): string {
+  if (reason === 'fluid_mix') return 'Would mix pipe fluids.';
+  if (reason === 'boiler_footprint') return 'Cannot place pipes on a boiler.';
+  return `Cannot build here: ${reason.replace(/_/g, ' ')}.`;
+}
+
+/**
+ * Queue a paint on any layer (framing, room, infra, fortification).
+ * Legality is judged on the plan — the live tower plus every pending build order
+ * applied bottom-up — so players may sketch pieces whose support is still planned.
+ * Painting over existing plans replaces them (Cosmoteer-style).
+ */
 export function createBuildOrder(
   state: GameState,
   blueprintId: string,
   origin: Cell,
   nextRoomId: () => string,
+  options: StructurePlacementOptions = placementOptionsFor(state),
 ): ConstructionOrder | null {
-  const bp = getBlueprint(blueprintId);
+  const bp = resolveOrderBlueprint(blueprintId);
   if (!bp) return null;
 
-  const placement = canPlace(state.tower, bp, origin);
-  if (!placement.ok) {
-    addMessage(state, `Cannot build here: ${placement.reason.replace(/_/g, ' ')}.`, 'info');
+  const cells = blueprintFootprintCells(blueprintId, origin);
+  const replaced = state.constructionOrders.filter(
+    (o) => o.kind === 'build' && ordersOverlapFootprint(o, cells),
+  );
+  if (
+    replaced.some(
+      (o) =>
+        o.blueprintId === blueprintId &&
+        o.origin.col === origin.col &&
+        o.origin.row === origin.row,
+    )
+  ) {
+    addMessage(state, placementRejectMessage('already_in_place'), 'info');
     return null;
   }
 
-  const leyline = validateLeylineRoomPlacement(state, bp.id, origin, bp.size);
+  const kept = state.constructionOrders.filter((o) => !replaced.includes(o));
+  const planned = towerWithPendingOrders(state.tower, kept, options);
+
+  const placement = planPlacementOnTower(planned, bp, origin, options);
+  if (!placement.ok || placement.isToggleOff) {
+    addMessage(
+      state,
+      placementRejectMessage(placement.isToggleOff ? 'already_in_place' : placement.reason),
+      'info',
+    );
+    return null;
+  }
+
+  const leyline = validateLeylineRoomPlacement(state, bp.id, origin, bp.size, {
+    ignoreOrderIds: replaced.map((o) => o.id),
+  });
   if (leyline && !leyline.ok) {
     addMessage(state, `Cannot build here: ${leyline.reason.replace(/_/g, ' ')}.`, 'info');
     return null;
   }
 
-  const cost = totalOrderCost(blueprintId, state.tower, origin);
+  const cost = totalOrderCost(blueprintId, planned, origin, options);
   const physical = stockpileFromCost(cost);
   const soulsNeed = cost.souls ?? 0;
   const goldNeed = cost.gold ?? 0;
@@ -124,16 +173,16 @@ export function createBuildOrder(
     return null;
   }
 
+  for (const previous of replaced) {
+    removeOrderWithRefund(state, previous.id);
+  }
+
   const id = nextOrderId();
   if (storageId && (physical.stone > 0 || physical.metal > 0)) {
     reserveStorage(state, id, storageId, physical);
   }
   if (soulsNeed > 0) spend(state, { souls: soulsNeed });
   if (goldNeed > 0) spend(state, { gold: goldNeed });
-
-  const plan = !isStructureBlueprint(bp)
-    ? planRoomPlacement(state.tower, bp, origin)
-    : { ok: true, stemCells: [] as Cell[] };
 
   const order: ConstructionOrder = {
     id,
@@ -144,11 +193,9 @@ export function createBuildOrder(
     deliverRemaining: { ...physical },
     onSiteMaterials: emptyStockpile(),
     buildProgress: 0,
-    buildWorkRequired: computeBuildWorkRequired(
-      blueprintId,
-      plan.ok ? plan.stemCells.length : 0,
-    ),
+    buildWorkRequired: computeBuildWorkRequired(blueprintId, placement.stemCells.length),
     soulsReserved: soulsNeed,
+    invalid: false,
   };
 
   // Pre-assign room id for storage rooms
@@ -158,12 +205,14 @@ export function createBuildOrder(
 
   state.constructionOrders.push(order);
   addMessage(state, `Queued ${bp.name} for construction.`, 'info');
+  refreshInvalidOrders(state, options);
   return order;
 }
 
-export function cancelConstructionOrder(state: GameState, orderId: string): void {
+/** Drop an order, releasing its reservation and refunding delivered materials. */
+function removeOrderWithRefund(state: GameState, orderId: string): boolean {
   const idx = state.constructionOrders.findIndex((o) => o.id === orderId);
-  if (idx < 0) return;
+  if (idx < 0) return false;
   const order = state.constructionOrders[idx];
 
   releaseReservation(state, orderId);
@@ -178,7 +227,13 @@ export function cancelConstructionOrder(state: GameState, orderId: string): void
 
   removeScaffoldForOrder(state, order);
   state.constructionOrders.splice(idx, 1);
+  return true;
+}
+
+export function cancelConstructionOrder(state: GameState, orderId: string): void {
+  if (!removeOrderWithRefund(state, orderId)) return;
   addMessage(state, 'Construction order cancelled.', 'info');
+  refreshInvalidOrders(state);
 }
 
 function addPartialRefund(amount: { stone: number; metal: number }, rate: number) {
@@ -274,34 +329,54 @@ export function placeScaffoldForOrder(state: GameState, order: ConstructionOrder
   order.status = 'scaffold';
 }
 
+/** Towers stay immutable so placement results can be memoized per tower object. */
 function removeScaffoldForOrder(state: GameState, order: ConstructionOrder): void {
   const prefix = `scaffold-${order.id}-`;
-  state.tower.structures = (state.tower.structures ?? []).filter((s) => !s.id.startsWith(prefix));
-  const occ = { ...state.tower.structureOccupancy };
-  for (const key of Object.keys(occ)) {
-    if (occ[key].startsWith('scaffold-')) {
-      const id = occ[key];
-      if (id.startsWith(prefix)) delete occ[key];
-    }
+  const structures = (state.tower.structures ?? []).filter((s) => !s.id.startsWith(prefix));
+  if (structures.length === (state.tower.structures ?? []).length) return;
+
+  const structureOccupancy = { ...state.tower.structureOccupancy };
+  for (const key of Object.keys(structureOccupancy)) {
+    if (structureOccupancy[key].startsWith(prefix)) delete structureOccupancy[key];
   }
-  state.tower.structureOccupancy = occ;
+  state.tower = { ...state.tower, structures, structureOccupancy };
 }
 
 export function completeConstructionOrder(state: GameState, order: ConstructionOrder, nextRoomId: () => string): void {
-  const bp = getBlueprint(order.blueprintId);
+  const bp = resolveOrderBlueprint(order.blueprintId);
   if (!bp) return;
+
+  const options = placementOptionsFor(state);
+  if (!isOrderLiveLegal(state, order, options)) {
+    // Support vanished mid-build: park the plan instead of forcing an illegal piece.
+    order.invalid = true;
+    return;
+  }
 
   removeScaffoldForOrder(state, order);
   consumeReservation(state, order.id, order.deliverRemaining);
 
-  if (isStructureBlueprint(bp)) {
+  if (bp.category === 'infra') {
+    const plan = planInfraPlacement(state.tower, bp, order.origin, options);
+    if (plan.ok && !plan.isToggleOff) {
+      applyToTower(state, applyInfraPlacement(state.tower, bp, order.origin, nextRoomId(), plan));
+    }
+  } else if (bp.category === 'fortification' && isFortificationId(bp.id)) {
+    const plan = planFortificationPlacement(state.tower, bp.id, order.origin);
+    if (plan.ok && !plan.isToggleOff) {
+      applyToTower(
+        state,
+        applyFortificationPlacement(state.tower, bp.id, order.origin, nextRoomId(), plan),
+      );
+    }
+  } else if (isStructureBlueprint(bp)) {
     const structure = createStructure(nextRoomId(), bp, order.origin);
-    const placed = placeStructureReplacing(state.tower, structure, bp);
+    const placed = placeStructureReplacing(state.tower, structure, bp, options);
     if (placed.ok && placed.tower) state.tower = placed.tower;
   } else if (bp.category === 'room') {
     const roomId = order.targetId ?? nextRoomId();
     const room = createRoom(roomId, bp, order.origin);
-    const placed = placeRoomReplacing(state.tower, room, bp);
+    const placed = placeRoomReplacing(state.tower, room, bp, nextRoomId, options);
     if (placed.ok && placed.tower) {
       state.tower = placed.tower;
       const placedRoom = state.tower.rooms.find((r) => r.id === roomId);
@@ -319,6 +394,18 @@ export function completeConstructionOrder(state: GameState, order: ConstructionO
 
   addMessage(state, `Completed ${bp.name}.`, 'info');
   state.constructionOrders = state.constructionOrders.filter((o) => o.id !== order.id);
+  refreshInvalidOrders(state, options);
+}
+
+/** Commit an infra/fortification edit, keeping auto stairs valid. */
+function applyToTower(state: GameState, next: GameState['tower']): void {
+  if ((next.rooms?.length ?? 0) > 0) {
+    const stairs = reconcileAutoStairs(next);
+    if (!stairs.ok) return;
+    state.tower = stairs.tower;
+    return;
+  }
+  state.tower = next;
 }
 
 export function completeTeardownOrder(state: GameState, order: ConstructionOrder): void {
@@ -350,16 +437,24 @@ export function completeTeardownOrder(state: GameState, order: ConstructionOrder
 
   addMessage(state, `Removed ${bp?.name ?? 'room'}.`, 'info');
   state.constructionOrders = state.constructionOrders.filter((o) => o.id !== order.id);
+  refreshInvalidOrders(state);
 }
 
+/**
+ * Dusk scaffold freeze, bottom-up so a frozen scaffold can carry the piece above it.
+ * Speculative plans whose support is still missing stay plans.
+ */
 export function freezeIncompleteOrdersAtDusk(state: GameState): void {
-  for (const order of state.constructionOrders) {
-    if (order.kind === 'build' && order.status !== 'planned') {
-      if (order.onSiteMaterials.stone > 0 || order.onSiteMaterials.metal > 0) {
-        placeScaffoldForOrder(state, order);
-      }
-      if (order.status === 'delivering') order.status = 'scaffold';
+  const options = placementOptionsFor(state);
+  const bottomUp = [...state.constructionOrders].sort((a, b) => a.origin.row - b.origin.row);
+  for (const order of bottomUp) {
+    if (order.kind !== 'build' || order.status === 'planned' || order.invalid) continue;
+    const alreadyFrozen = order.status === 'scaffold' || order.status === 'building';
+    if (!alreadyFrozen && !isOrderLiveLegal(state, order, options)) continue;
+    if (order.onSiteMaterials.stone > 0 || order.onSiteMaterials.metal > 0) {
+      placeScaffoldForOrder(state, order);
     }
+    if (order.status === 'delivering') order.status = 'scaffold';
   }
 }
 

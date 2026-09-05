@@ -72,6 +72,7 @@ Spells spend mana but are **not** part of this logistics slice.
 - **One** of stair or pipe per cell (unchanged).
 - Orthogonal segments only; may run through room footprints (except boiler cells).
 - **No edits** during attack phase; fluid labels frozen for the wave.
+- Painting a pipe **queues a construction order** (metal reserved at paint, plus stone for an auto Spire Block on empty cells); the pipe appears when laborers finish. Legality is checked against the plan, so a run may be painted along framing that is still planned. Clicking a **finished** pipe cell removes it immediately. See [`DAY_NIGHT.md`](DAY_NIGHT.md).
 
 ### Fluid typing
 
@@ -90,7 +91,7 @@ Spells spend mana but are **not** part of this logistics slice.
 
 Row-0 pipes are always water, so fire and steam runs must be **elevated** (off the ground row).
 
-Re-preview **immediately** on pipe/room edits during build.
+Re-preview **immediately** when a pipe or room **completes** during build (painted plans are not part of the network until laborers finish them).
 
 **Wave start:** resolve all components → write `InfraCell.fluid` → **lock** for attack rendering. Attack-phase boilers / springs / turrets / forges re-read live topology; with static networks this matches the lock.
 
@@ -98,7 +99,7 @@ Re-preview **immediately** on pipe/room edits during build.
 
 If placing a pipe would connect two different assigned fluids (water / steam / fire):
 
-- **Block placement**
+- **Block placement** (checked on the plan, so pending pipe orders count too)
 - Message: *"Would mix pipe fluids."*
 - **Drag-paint:** invalid cells are skipped (message shown); the stroke does **not** abort — the player can continue over later valid cells
 

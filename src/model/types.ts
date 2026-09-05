@@ -212,6 +212,11 @@ export interface ConstructionOrder {
   buildWorkRequired: number;
   /** Reserved souls (deducted from wallet at paint time). */
   soulsReserved: number;
+  /**
+   * Orphaned plan: its support was cancelled or torn down, so laborers skip it.
+   * Resources stay reserved until the player cancels the order.
+   */
+  invalid?: boolean;
 }
 
 export type SideJobKind = 'recruit' | 'unrecruit' | 'applyMod' | 'researchEnqueue';
