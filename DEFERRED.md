@@ -19,7 +19,7 @@ Still not done:
 - Structures such as crenels / murderholes beyond existing turrets (populated shell — separate from fortifications)
 - Further non-elemental spell kits / spell shop
 - Additional turret / economy room types beyond Boiler, Mana Spring, Turret, Steam Turret, Forge, Flame Turret, and Water Pump
-- Infra/mod repair and mid-wave building (laborers repair room HP only today)
+- Infra/mod repair and mid-wave building (laborers repair room HP only today). Infra and fortification **construction** now goes through the laborer queue like rooms and framing, and speculative plans (paint against live + pending orders) shipped — see [`docs/DAY_NIGHT.md`](docs/DAY_NIGHT.md); dependency-edge graphs and free rearrangement of **completed** geometry remain deferred.
 - Exact harvest/wear balance curves; weather events on the weathering channel
 - **Validate expected-build economy** — affordability envelopes (slack leftover, not exact gold snapshots) for named fixtures; depends on the balance harness ([`docs/BALANCE.md`](docs/BALANCE.md))
 - **Possible-towers visualization** — catalog → spatial heatmap → layout search; harness emits an in-memory sim report only ([`docs/BALANCE.md`](docs/BALANCE.md))

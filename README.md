@@ -8,7 +8,7 @@ Stack: **TypeScript**, **Vite**, **HTML5 Canvas** (board), **DOM** (UI chrome). 
 
 The run alternates between two phases (see [`docs/DAY_NIGHT.md`](docs/DAY_NIGHT.md)):
 
-1. **Day (60s)** — Paint **construction orders** for framing, rooms, and infra. **Stone** and **metal** come from **storage rooms** (starter Storage Room on the ground floor); **souls** and **gold** from the wallet. Laborers haul materials and build over time. Recruit staff, allocate slots, paint stairs/pipes. Inspect with **Select**; right-click queues teardown. Timer auto-starts the wave at dusk (dev: **Skip to night**).
+1. **Day (60s)** — Paint **construction orders** for framing, rooms, infra, and fortifications — nothing is placed instantly, and a paint may rely on other plans for support. **Stone** and **metal** come from **storage rooms** (starter Storage Room on the ground floor); **souls** and **gold** from the wallet. Laborers haul materials and build over time. Recruit staff, allocate slots, paint stairs/pipes. Inspect with **Select**; right-click queues teardown. Timer auto-starts the wave at dusk (dev: **Skip to night**).
 2. **Night (90s)** — Enemies path toward the **solar collector** on the crown. Wizard pathing + spells; staff deploy from housing; surplus laborers **hand-pump** and **harvest stone into storage**. Defenses include turrets, slots, spikes, and spells. Survive to earn **gold** (clear) and **souls** (kills); dawn shows the haul modal. Lose if the **solar collector's HP** reaches zero. See [`docs/PLAYER_MOVEMENT.md`](docs/PLAYER_MOVEMENT.md).
 
 **Win** by clearing a wave while **completed** framing height is still **≥ 100**. Difficulty scales with height at dusk (plateaus + permanent enemy unlocks); see [`docs/HEIGHT_PROGRESSION.md`](docs/HEIGHT_PROGRESSION.md).
@@ -27,6 +27,7 @@ The tower has three layers on each cell: **structure** (framing), **room** (opti
 - **Rooms** — Functional overlays (housing, generators, damagers). Every footprint cell needs framing; missing cells auto-place Spire Blocks when legal.
 - **Infra** — Same rule: must sit on framing; empty cells auto-place a Spire Block when legal.
 - **Single tower** — All framing must form **one connected mass** (4-way adjacency).
+- **Speculative plans** — Paints are checked against the **plan** (live tower plus every pending construction order, applied bottom-up), so you may sketch a room on framing you painted a moment ago. Such cells look valid and the tooltip reads `OK (needs planned support)`. Laborers still build strictly bottom-up and only finish pieces that are legal on the live tower — see [`docs/DAY_NIGHT.md`](docs/DAY_NIGHT.md).
 
 Unstable towers (floating framing or illegal cantilevers) are highlighted and block starting a wave.
 
@@ -212,6 +213,7 @@ Mount points: `#board`, `#stage`, `#hud`, `#library`, `#message-log`, `#modal-ro
 | Change the attack tick order | [`src/model/tick.ts`](src/model/tick.ts) |
 | Change day/night phases | [`src/model/phases.ts`](src/model/phases.ts) + [`docs/DAY_NIGHT.md`](docs/DAY_NIGHT.md) |
 | Change placement / stability | [`src/model/tower/`](src/model/tower/) |
+| Change speculative paint legality | [`src/model/construction/pendingTower.ts`](src/model/construction/pendingTower.ts) + [`docs/DAY_NIGHT.md`](docs/DAY_NIGHT.md) |
 | Add an intent / UI control | [`src/store/README.md`](src/store/README.md) |
 | Change canvas drawing | [`src/view/README.md`](src/view/README.md) → `canvas/layers/` |
 | Full task recipes | [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md) |

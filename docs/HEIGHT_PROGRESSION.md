@@ -24,6 +24,8 @@ Design notes for replacing wave-index campaign length with **tower height** as t
 
 **Height** = highest occupied **framing** macro row (`towerExtents` / `maxOccupiedRow`). Ground is row 0. Rooms and infra do not define height unless they sit on framing that extends the structure.
 
+Only **completed** framing counts. Painted construction orders — including speculative plans that rely on other plans for support — contribute nothing to wave difficulty or the height ≥ 100 win check until laborers finish them; frozen scaffold does not count either ([`DAY_NIGHT.md`](DAY_NIGHT.md)).
+
 ### World danger tracks the crown
 
 > As the tower grows taller, the world gets more dangerous.

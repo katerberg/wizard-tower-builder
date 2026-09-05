@@ -71,6 +71,7 @@ Rules:
 
 - Placement requires `hasStructure(col, row)` and **exterior exposure** (below).
 - Empty cells **auto-place a Spire Block** when that stem would be legal and the fortification would then pass face rules (same pattern as rooms / infra). Cost includes the stem via the planning wallet.
+- Painting a fortification **queues a `ConstructionOrder`**; laborers haul and build it like any room, and legality is checked against the plan (live tower plus pending orders), so forts may be painted onto framing that is still planned. Clicking the same kind on a **finished** cell removes it immediately. See [`DAY_NIGHT.md`](DAY_NIGHT.md).
 - A multi-cell room footprint may host **different** fortifications on different cells.
 - Selling / removing framing clears shell entries on those cells with the structure.
 - Build-phase undo / revert must cover shell place/remove and enclosure strips (same planning-wallet rules as other build edits).
@@ -246,7 +247,7 @@ Fortifications never seal topology. When **rooms/framing** leave climbers with n
 ## UI / library (implementation notes)
 
 - New build-library section **Fortifications**.
-- Place via BUILD tool on eligible exterior framing cells (not via room-inspector Add Mod). Empty legal cells auto-stem like rooms/infra; ghost preview shows the framing.
+- Place via BUILD tool on eligible exterior framing cells (not via room-inspector Add Mod). Empty legal cells auto-stem like rooms/infra; ghost preview shows the framing. Paints enqueue construction orders — laborers build them.
 - Library hover matches rooms: flavor `description`, plus **Place** (face/row rules), **Effect** (routing), and **Cost**.
 - Inspector on a fortified framing cell shows kind + remove/sell.
 - Canvas: distinct glyph on the shell face (not room-mod bottom badges).
