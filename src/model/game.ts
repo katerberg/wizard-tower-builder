@@ -103,6 +103,9 @@ export function createInitialState(seed: string | number = 'wizard'): GameState 
       maxHp: SOLAR_COLLECTOR_DEFAULTS.maxHp,
       glyph: SOLAR_COLLECTOR_DEFAULTS.glyph,
     },
+    collectorBrokeThisNight: false,
+    collectorBrokeThisWave: false,
+    harvestRepairTaxActive: false,
     wizardAvatar: {
       pos: { col: 0, row: 0, face: 'top' },
       path: [],

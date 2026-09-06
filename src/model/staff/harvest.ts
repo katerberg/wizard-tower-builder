@@ -6,6 +6,7 @@ import {
   PASSIVE_IRON_FRACTION,
   PUMP_WATER_ROW_EXTENSION,
   RARE_PATCH_FALLOFF,
+  applyHarvestRepairTax,
 } from '@/config/constants';
 import { reward } from '@/calculations/economy';
 import { depositToStorage, stockpileFromCost } from '@/model/storage';
@@ -26,6 +27,14 @@ const PUMP_TARGET = 'pump:hand';
 
 /** Credit harvest to storage rooms; track wave haul for modal. */
 function rewardHarvest(state: GameState, haul: Partial<Resources>, from?: Cell): void {
+  const taxed = applyHarvestRepairTax(
+    haul.stone ?? 0,
+    haul.metal ?? 0,
+    haul.gold ?? 0,
+    state.harvestRepairTaxActive,
+  );
+  haul = { ...haul, stone: taxed.stone || undefined, metal: taxed.metal || undefined, gold: taxed.gold || undefined };
+
   const physical = stockpileFromCost(haul);
   if (physical.stone > 0 || physical.metal > 0) {
     const overflow = depositToStorage(state, physical, from);

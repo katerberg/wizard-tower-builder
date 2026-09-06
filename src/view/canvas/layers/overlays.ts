@@ -135,6 +135,7 @@ export function drawSolarCollector(ctx: CanvasRenderingContext2D, snapshot: Snap
   const { x, y } = exteriorNodeDrawCenter(pos, scrollY, viewportHeight, CELL_SIZE * 0.32);
   if (y + CELL_SIZE * 0.32 < 0 || y - CELL_SIZE * 0.32 > viewportHeight) return;
   const collector = snapshot.game.solarCollector;
+  if (collector.hp <= 0) return;
   ctx.beginPath();
   ctx.arc(x, y, CELL_SIZE * 0.32, 0, Math.PI * 2);
   ctx.fillStyle = '#f6e05e';

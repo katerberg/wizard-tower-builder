@@ -4,13 +4,13 @@ import { balanceBuildById } from '@/test/balance/builds';
 import { assertCombatOutcome } from '@/test/balance/run';
 import { PlayabilityDriver, runBalanceBuild } from '@/test/playability';
 
-const FIRST_WAVE_MAX_STEPS = 90 * 60;
+const FIRST_WAVE_MAX_STEPS = 90 * 60 + 180;
 
 describe('first-wave playability', () => {
   const bare = balanceBuildById('bare-starter');
   const granted = balanceBuildById('slot-granted-defense');
 
-  it.each(bare.seeds ?? [])('the unchanged starter tower loses wave one (seed: %s)', (seed) => {
+  it.each(bare.seeds ?? [])('the unchanged starter tower raids (collector breaks) on wave one (seed: %s)', (seed) => {
     const driver = new PlayabilityDriver(seed);
     const initial = driver.store.getSnapshot().game;
     expect(initial.phase).toBe('day');

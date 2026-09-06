@@ -1,3 +1,4 @@
+import { noteEnemyDamagedByRoom } from '../enemies/raid';
 import {
   FLAME_TURRET_BLAST_DEPTH,
   FLAME_TURRET_CHARGE_SEC,
@@ -19,7 +20,7 @@ export function flameTurretBlastCells(tower: Tower, origin: Cell): Cell[] {
   return exteriorSideBlastCells(tower, origin, FLAME_TURRET_BLAST_DEPTH);
 }
 
-function attackEnemy(state: GameState, enemy: Enemy): void {
+function attackEnemy(state: GameState, enemy: Enemy, roomId: string): void {
   const template = getEnemyTemplate(enemy.templateId);
   if (!template) return;
   const attacker: Combatant = { attack: FLAME_TURRET_DAMAGE, defense: 0, dexterity: 0 };
@@ -32,6 +33,8 @@ function attackEnemy(state: GameState, enemy: Enemy): void {
   }
   const hpBefore = enemy.currentHp;
   enemy.currentHp -= result.damage;
+  noteEnemyDamagedByRoom(enemy, roomId);
+  noteEnemyDamagedByRoom(enemy, roomId);
   addMessage(state, `Flame Turret hits ${enemy.name} the ${template.type} for ${result.damage}.`, 'combat');
   if (enemy.currentHp < hpBefore) applyKindled(state, enemy);
 }
@@ -55,7 +58,7 @@ export function tickFlameTurrets(state: GameState, dt: number): void {
       const hits = enemiesInBlastCells(state, flameTurretBlastCells(state.tower, turret.origin));
       if (hits.length > 0 && state.player.mana >= MAGIC_TURRET_MANA_COST) {
         state.player.mana -= MAGIC_TURRET_MANA_COST;
-        for (const enemy of hits) attackEnemy(state, enemy);
+        for (const enemy of hits) attackEnemy(state, enemy, turret.id);
         charge = 0;
       }
     }

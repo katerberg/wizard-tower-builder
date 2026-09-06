@@ -68,7 +68,7 @@ If the tower loses height between waves, the next wave should feel like the worl
 | Run after win        | **Over** for now (victory scene). No endless continue in v1.                                                                                                                          |
 | Minimum wave count   | **None** — wave 1 at height 100 is a valid win if the tower holds.                                                                                                                    |
 | Stability            | Tower must be **stable** to Start Wave (unchanged).                                                                                                                                   |
-| Defeat               | Solar collector HP ≤ 0.                                                                                                                                                               |
+| Defeat               | Every Storage Room destroyed (collector break starts RAID, not loss).                                                                                                                  |
 | Mid-wave height drop | Spawn difficulty stays **locked** from Start Wave. Dropping below 100 during the fight **voids that wave’s win** even if you clear it; you must clear a later wave while still ≥ 100. |
 
 ---
