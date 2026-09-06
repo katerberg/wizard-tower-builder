@@ -280,11 +280,7 @@ describe('selectUiTooltip', () => {
 
 function dagBoxes(dag: ResearchDagView): { id: string; x: number; y: number; w: number; h: number }[] {
   const { w, h } = RESEARCH_DAG_NODE_SIZE;
-  const boxes = dag.nodes.map((n) => ({ id: n.id, x: n.x, y: n.y, w, h }));
-  for (const g of dag.groups) {
-    if (g.collapsed) boxes.push({ id: g.id, x: g.x, y: g.y, w, h });
-  }
-  return boxes;
+  return dag.nodes.map((n) => ({ id: n.id, x: n.x, y: n.y, w, h }));
 }
 
 function expectNoOverlaps(dag: ResearchDagView): void {
@@ -301,35 +297,36 @@ function expectNoOverlaps(dag: ResearchDagView): void {
 }
 
 describe('selectResearchDag layout', () => {
-  it('does not overlap nodes or collapsed groups on the starting tree', () => {
+  it('does not overlap nodes on the starting tree', () => {
     const store = new Store('dag-start');
     const dag = selectResearchDag(store.getSnapshot());
     expectNoOverlaps(dag);
 
-    const housing = dag.groups.find((g) => g.id === 'exp-group:housing');
-    const barbican = dag.nodes.find((n) => n.id === 'bp-barbican');
-    const root = dag.nodes.find((n) => n.id === 'tech-overhang');
-    expect(housing).toBeDefined();
-    expect(housing?.collapsed).toBe(true);
-    expect(housing?.status).toBe('available');
-    expect(housing?.y).toBe(root?.y);
-    expect(housing?.x).toBeLessThan(root?.x ?? Infinity);
-    expect(barbican).toBeDefined();
-    expect(barbican!.y).toBeGreaterThan(root!.y);
-    expect(housing?.x === barbican?.x && housing?.y === barbican?.y).toBe(false);
+    const pipe = dag.nodes.find((n) => n.id === 'bp-pipe');
+    const slot = dag.nodes.find((n) => n.id === 'bp-slot');
+    const boiler = dag.nodes.find((n) => n.id === 'bp-boiler');
+    const overhang = dag.nodes.find((n) => n.id === 'tech-overhang');
+    expect(pipe).toBeDefined();
+    expect(slot).toBeDefined();
+    expect(boiler).toBeDefined();
+    expect(boiler!.y).toBeGreaterThan(pipe!.y);
+    expect(overhang).toBeUndefined();
+    expect(dag.nodes.some((n) => n.id === 'bp-hydrant')).toBe(false);
+    expect(dag.groups).toEqual([]);
   });
 
   it('places children near their parents instead of packing every layer from the left', () => {
     const store = new Store('dag-align');
     const dag = selectResearchDag(store.getSnapshot());
-    const forge = dag.nodes.find((n) => n.id === 'bp-forge')!;
-    const flame = dag.nodes.find((n) => n.id === 'bp-flame-turret')!;
     const pipe = dag.nodes.find((n) => n.id === 'bp-pipe')!;
     const boiler = dag.nodes.find((n) => n.id === 'bp-boiler')!;
-    expect(flame.y).toBeGreaterThan(forge.y);
+    const slot = dag.nodes.find((n) => n.id === 'bp-slot')!;
+    const moat = dag.nodes.find((n) => n.id === 'bp-moat')!;
     expect(boiler.y).toBeGreaterThan(pipe.y);
-    expect(Math.abs(flame.x - forge.x)).toBeLessThan(RESEARCH_DAG_NODE_SIZE.w + 40);
+    expect(moat.y).toBeGreaterThan(slot.y);
     expect(Math.abs(boiler.x - pipe.x)).toBeLessThan(RESEARCH_DAG_NODE_SIZE.w * 2 + 80);
+    // Slot fans into three children; allow a wider horizontal band than a single trunk.
+    expect(Math.abs(moat.x - slot.x)).toBeLessThan(RESEARCH_DAG_NODE_SIZE.w * 4 + 80);
   });
 
   it('does not overlap after unlocking the full tree', () => {
@@ -341,11 +338,13 @@ describe('selectResearchDag layout', () => {
     expectNoOverlaps(dag);
   });
 
-  it('keeps chips from overlapping when a housing group is expanded', () => {
+  it('shows expansion techs as normal chips without collapsing', () => {
     const store = new Store('dag-expand');
-    store.dispatch({ type: 'toggleResearchGroup', groupId: 'exp-group:housing' });
+    store.dispatch({ type: 'toggleDevMode' });
+    store.dispatch({ type: 'devUnlockResearch', nodeId: 'bp-pipe' });
+    store.dispatch({ type: 'devUnlockResearch', nodeId: 'bp-pump' });
     const dag = selectResearchDag(store.getSnapshot());
-    expect(dag.groups.find((g) => g.id === 'exp-group:housing')?.collapsed).toBe(false);
+    expect(dag.groups).toEqual([]);
     expect(dag.nodes.some((n) => n.id === 'exp-guardroom')).toBe(true);
     expectNoOverlaps(dag);
   });

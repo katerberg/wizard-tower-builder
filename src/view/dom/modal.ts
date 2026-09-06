@@ -7,7 +7,7 @@ import type { Store } from '@/store/store';
 import {
   bindResearchModalInteractions,
   researchModalBody,
-  scrollResearchDagToFrontier,
+  restoreResearchDagScroll,
 } from './researchModal';
 
 export function createModal(root: HTMLElement, store: Store): () => void {
@@ -168,12 +168,17 @@ export function createModal(root: HTMLElement, store: Store): () => void {
     }
 
     if (modal.kind === 'research') {
+      const prevScroll = root.querySelector('.research-dag-scroll');
+      const savedScroll =
+        prevScroll instanceof HTMLElement
+          ? { left: prevScroll.scrollLeft, top: prevScroll.scrollTop }
+          : null;
       root.innerHTML = `
         <div class="modal-backdrop"></div>
         <div class="modal-panel research-modal-panel">
           ${researchModalBody(store)}
         </div>`;
-      scrollResearchDagToFrontier(root);
+      restoreResearchDagScroll(root, savedScroll);
       return;
     }
 

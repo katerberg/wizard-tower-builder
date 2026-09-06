@@ -96,4 +96,6 @@ export interface ViewState {
   selectedResearchNodeId: string | null;
   /** Expanded expansion-group ids in the research DAG (collapsed by default). */
   researchExpandedGroupIds: string[];
+  /** Sim speed to restore when the research modal closes (null if not paused by it). */
+  researchResumeSimSpeed: SimSpeed | null;
 }

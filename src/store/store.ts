@@ -48,6 +48,7 @@ export class Store {
         waveBuilder: { open: false, counts: {} },
         selectedResearchNodeId: null,
         researchExpandedGroupIds: [],
+        researchResumeSimSpeed: null,
       },
       buildHistory: [],
     };
@@ -191,7 +192,7 @@ export class Store {
 
   private enforceAttackPhaseView(): void {
     const before = snapshotView(this.refs.view);
-    clearBuildUi(this.refs.view);
+    clearBuildUi(this.refs.view, this.refs.game);
     if (!viewStatesEqual(before, snapshotView(this.refs.view))) {
       this.dirty = true;
     }
@@ -206,7 +207,7 @@ export class Store {
 
     if (this.lastPhase === 'night' && phase === 'day') {
       this.clearBuildHistory();
-      resetToSelectMode(this.refs.view);
+      resetToSelectMode(this.refs.view, this.refs.game);
       const summary = this.refs.game.pendingWaveClear;
       if (summary) {
         this.refs.view.modal = {
@@ -218,7 +219,7 @@ export class Store {
       }
       this.dirty = true;
     } else if (this.lastPhase === 'day' && phase === 'night') {
-      resetToSelectMode(this.refs.view);
+      resetToSelectMode(this.refs.view, this.refs.game);
       this.dirty = true;
     }
 

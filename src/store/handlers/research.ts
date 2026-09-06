@@ -8,6 +8,7 @@ import {
 } from '@/model/research';
 import type { HandlerContext } from '../context';
 import type { Intent } from '../intents';
+import { openResearchModal } from '../viewState';
 
 export function handleResearchIntent(ctx: HandlerContext, intent: Intent): void {
   switch (intent.type) {
@@ -42,8 +43,7 @@ export function handleResearchIntent(ctx: HandlerContext, intent: Intent): void 
       break;
     }
     case 'openResearchModal':
-      if (ctx.game.scene !== 'run' || ctx.game.phase !== 'day') return;
-      ctx.view.modal = { kind: 'research' };
+      openResearchModal(ctx.view, ctx.game);
       break;
     case 'selectResearchNode':
       ctx.view.selectedResearchNodeId = intent.nodeId;

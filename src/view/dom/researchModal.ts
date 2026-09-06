@@ -43,12 +43,9 @@ function nodeClass(node: ResearchDagNodeView, selected: boolean): string {
   return parts.join(' ');
 }
 
-function renderGraph(dag: ResearchDagView, devMode: boolean): string {
+function renderGraph(dag: ResearchDagView): string {
   const { w, h } = RESEARCH_DAG_NODE_SIZE;
-  const pos = new Map<string, { x: number; y: number }>([
-    ...dag.nodes.map((n) => [n.id, n] as const),
-    ...dag.groups.filter((g) => g.collapsed).map((g) => [g.id, g] as const),
-  ]);
+  const pos = new Map<string, { x: number; y: number }>(dag.nodes.map((n) => [n.id, n]));
   const skipBend = dag.edges.reduce((max, e) => {
     const from = pos.get(e.from);
     const to = pos.get(e.to);
@@ -57,8 +54,8 @@ function renderGraph(dag: ResearchDagView, devMode: boolean): string {
     return Math.max(max, Math.max(from.x, to.x) + w + 24);
   }, 0);
   const maxX =
-    Math.max(200, skipBend, ...dag.nodes.map((n) => n.x), ...dag.groups.map((g) => g.x)) + w + 48;
-  const maxY = Math.max(120, ...dag.nodes.map((n) => n.y), ...dag.groups.map((g) => g.y)) + h + 40;
+    Math.max(200, skipBend, ...dag.nodes.map((n) => n.x)) + w + 48;
+  const maxY = Math.max(120, ...dag.nodes.map((n) => n.y)) + h + 40;
 
   const edges = dag.edges
     .map((e) => {
@@ -71,44 +68,14 @@ function renderGraph(dag: ResearchDagView, devMode: boolean): string {
 
   const nodes = dag.nodes
     .map((n) => {
-      const missing =
-        n.missingPrereqNames.length > 0
-          ? `<span class="research-dag-missing">Needs: ${escapeHtml(n.missingPrereqNames.join(', '))}</span>`
-          : '';
-      const cost = n.costLabel
-        ? `<span class="research-dag-cost">${escapeHtml(n.costLabel)}</span>`
-        : '';
-      const unlockBtn = devMode
-        ? `<button type="button" data-action="devUnlockResearch" data-node="${n.id}">Unlock</button>`
-        : '';
+      const title = escapeHtml(n.name);
       return `
         <div class="${nodeClass(n, n.id === dag.selectedId)}"
              style="left:${n.x}px;top:${n.y}px;width:${w}px;height:${h}px"
-             data-action="selectResearchNode" data-node="${n.id}">
-          <strong>${escapeHtml(n.name)}</strong>
-          <span class="research-dag-unlock">${escapeHtml(n.unlockSummary)}</span>
-          ${cost}
-          ${missing}
-          ${unlockBtn}
+             data-action="selectResearchNode" data-node="${n.id}"
+             title="${title}">
+          <strong>${title}</strong>
         </div>`;
-    })
-    .join('');
-
-  const groups = dag.groups
-    .map((g) => {
-      if (!g.collapsed) {
-        return `
-          <button type="button" class="research-dag-group-toggle"
-            style="left:${g.x}px;top:${Math.max(0, g.y - 28)}px;width:${w}px"
-            data-action="toggleResearchGroup" data-group="${g.id}">▾ ${escapeHtml(g.label)}</button>`;
-      }
-      return `
-        <button type="button" class="research-dag-node status-${g.status} group"
-          style="left:${g.x}px;top:${g.y}px;width:${w}px;height:${h}px"
-          data-action="toggleResearchGroup" data-group="${g.id}">
-          <strong>${escapeHtml(g.label)}</strong>
-          <span>${g.childIds.length} techs · expand</span>
-        </button>`;
     })
     .join('');
 
@@ -116,7 +83,6 @@ function renderGraph(dag: ResearchDagView, devMode: boolean): string {
     <div class="research-dag-scroll" data-frontier-y="${dag.frontierFocusY}">
       <div class="research-dag-canvas" style="width:${maxX}px;height:${maxY}px">
         <svg class="research-dag-svg" width="${maxX}" height="${maxY}">${edges}</svg>
-        ${groups}
         ${nodes}
       </div>
     </div>`;
@@ -207,7 +173,7 @@ export function researchModalBody(store: Store): string {
       <h3>Research tree</h3>
       ${queueStrip(dag)}
       <div class="research-modal-main">
-        ${renderGraph(dag, devMode)}
+        ${renderGraph(dag)}
         ${detailPane(dag, devMode)}
       </div>
       <div class="research-modal-footer">
@@ -232,7 +198,6 @@ export function bindResearchModalInteractions(root: HTMLElement, store: Store): 
 
     const action = target.dataset.action;
     const nodeId = target.dataset.node;
-    const groupId = target.dataset.group;
 
     // Handle closeModal on pointerdown so it survives innerHTML re-renders
     // that destroy the button element before pointerup (which would cancel click).
@@ -241,21 +206,9 @@ export function bindResearchModalInteractions(root: HTMLElement, store: Store): 
       return;
     }
 
-    // Don't let node-select steal clicks from nested Unlock buttons.
-    if (
-      action === 'selectResearchNode' &&
-      e.target instanceof HTMLElement &&
-      e.target.closest('[data-action="devUnlockResearch"]')
-    ) {
-      return;
-    }
-
     switch (action) {
       case 'selectResearchNode':
         if (nodeId) store.dispatch({ type: 'selectResearchNode', nodeId });
-        break;
-      case 'toggleResearchGroup':
-        if (groupId) store.dispatch({ type: 'toggleResearchGroup', groupId });
         break;
       case 'startResearch':
         if (nodeId) store.dispatch({ type: 'startResearch', nodeId });
@@ -302,4 +255,19 @@ export function scrollResearchDagToFrontier(root: HTMLElement): void {
   if (!(scroll instanceof HTMLElement)) return;
   const focusY = Number(scroll.dataset.frontierY ?? 0);
   scroll.scrollTop = Math.max(0, focusY - 40);
+}
+
+/** Restore scroll after a research-modal re-render, or focus frontier on first open. */
+export function restoreResearchDagScroll(
+  root: HTMLElement,
+  previous: { left: number; top: number } | null,
+): void {
+  const scroll = root.querySelector('.research-dag-scroll');
+  if (!(scroll instanceof HTMLElement)) return;
+  if (previous) {
+    scroll.scrollLeft = previous.left;
+    scroll.scrollTop = previous.top;
+    return;
+  }
+  scrollResearchDagToFrontier(root);
 }

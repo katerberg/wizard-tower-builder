@@ -57,7 +57,7 @@ function skipToNight(ctx: HandlerContext): void {
   } else {
     endDay(game);
   }
-  resetToSelectMode(ctx.view);
+  resetToSelectMode(ctx.view, ctx.game);
 }
 
 function restart(ctx: HandlerContext): void {
@@ -78,5 +78,6 @@ function restart(ctx: HandlerContext): void {
     waveBuilder: { open: false, counts: {} },
     selectedResearchNodeId: null,
     researchExpandedGroupIds: [],
+    researchResumeSimSpeed: null,
   };
 }

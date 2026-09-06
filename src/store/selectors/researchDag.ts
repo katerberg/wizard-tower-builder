@@ -34,7 +34,7 @@ export interface ResearchDagNodeView {
   progressRequired: number;
   missingPrereqNames: string[];
   affordable: boolean;
-  /** Parent group id when this is a collapsed expansion child. */
+  /** @deprecated Expansion chips are no longer collapsed into groups. */
   groupId: string | null;
   depth: number;
   x: number;
@@ -46,6 +46,7 @@ export interface ResearchDagEdgeView {
   to: string;
 }
 
+/** Kept for selector API stability; always empty (no collapsed expansion chips). */
 export interface ResearchDagGroupView {
   id: string;
   label: string;
@@ -71,34 +72,20 @@ export interface ResearchDagView {
   active: null | { id: string; name: string; progress: number; required: number; ratio: number };
 }
 
-const NODE_W = 160;
-const NODE_H = 56;
+const NODE_W = 120;
+const NODE_H = 28;
 /** Vertical gap between prereq-depth layers. */
-const LAYER_GAP = 48;
+const LAYER_GAP = 36;
 /** Horizontal gap between peers in the same layer. */
-const PEER_GAP = 32;
+const PEER_GAP = 24;
 const PAD_X = 20;
-const PAD_Y = 32;
+const PAD_Y = 24;
 
 function unlockSummary(node: ResearchNode): string {
   const parts: string[] = [];
   for (const id of node.unlocksBlueprints ?? []) parts.push(id);
   for (const id of node.unlocksModifications ?? []) parts.push(id);
   return parts.join(', ') || node.name;
-}
-
-function expansionGroupId(node: ResearchNode): string | null {
-  if (node.kind !== 'expansion') return null;
-  const parentBp = node.requires.find((id) => getResearchNode(id)?.kind === 'blueprint');
-  if (parentBp) return `exp-group:${parentBp}`;
-  return `exp-group:housing`;
-}
-
-function expansionGroupLabel(groupId: string): string {
-  if (groupId === 'exp-group:housing') return 'Housing expansions';
-  const parentId = groupId.replace(/^exp-group:/, '');
-  const parent = getResearchNode(parentId);
-  return parent ? `${parent.name} upgrades` : 'Upgrades';
 }
 
 function computeDepths(nodes: ResearchNode[]): Map<string, number> {
@@ -153,9 +140,6 @@ function assignDagPositions(
     ranked.sort((a, b) => {
       const dx = a.desiredX - b.desiredX;
       if (dx !== 0) return dx;
-      const aGroup = a.item.key.startsWith('exp-group:') ? 0 : 1;
-      const bGroup = b.item.key.startsWith('exp-group:') ? 0 : 1;
-      if (aGroup !== bGroup) return aGroup - bGroup;
       return a.item.key.localeCompare(b.item.key);
     });
     let nextX = PAD_X;
@@ -183,23 +167,6 @@ function nodeStatus(
   return 'preview';
 }
 
-function groupStatus(
-  childIds: string[],
-  completed: Set<string>,
-  activeId: string | null,
-  queued: Set<string>,
-  frontier: Set<string>,
-): ResearchDagStatus {
-  const statuses = childIds.map((id) =>
-    nodeStatus(id, completed, activeId, queued, frontier),
-  );
-  if (statuses.includes('active')) return 'active';
-  if (statuses.includes('queued')) return 'queued';
-  if (statuses.includes('available')) return 'available';
-  if (statuses.length > 0 && statuses.every((s) => s === 'completed')) return 'completed';
-  return 'preview';
-}
-
 export function selectResearchDag(snapshot: Snapshot): ResearchDagView {
   const { game, view } = snapshot;
   const research = game.player.research;
@@ -224,89 +191,17 @@ export function selectResearchDag(snapshot: Snapshot): ResearchDagView {
     }
   }
 
-  const expanded = new Set(view.researchExpandedGroupIds);
-  const groupChildren = new Map<string, string[]>();
-  for (const node of all) {
-    if (!visibleIds.has(node.id)) continue;
-    const gid = expansionGroupId(node);
-    if (!gid) continue;
-    const list = groupChildren.get(gid) ?? [];
-    list.push(node.id);
-    groupChildren.set(gid, list);
-  }
-
-  const hiddenByCollapse = new Set<string>();
-  for (const [gid, childIds] of groupChildren) {
-    if (expanded.has(gid)) continue;
-    for (const id of childIds) {
-      if (id === activeId || queued.has(id) || id === view.selectedResearchNodeId) continue;
-      hiddenByCollapse.add(id);
-    }
-  }
-
-  const layoutNodes = all.filter((n) => visibleIds.has(n.id) && !hiddenByCollapse.has(n.id));
+  const layoutNodes = all.filter((n) => visibleIds.has(n.id));
   const layoutIds = new Set(layoutNodes.map((n) => n.id));
-  const depths = computeDepths(all.filter((n) => visibleIds.has(n.id)));
+  const depths = computeDepths(layoutNodes);
 
   const occupants: DagOccupant[] = layoutNodes.map((n) => ({
     key: n.id,
     depth: depths.get(n.id) ?? 0,
     parentKeys: n.requires.filter((r) => layoutIds.has(r)),
   }));
-  for (const [gid, childIds] of groupChildren) {
-    if (expanded.has(gid)) continue;
-    const parentId = gid.replace(/^exp-group:/, '');
-    const parentDepth = parentId !== 'housing' ? depths.get(parentId) : undefined;
-    const childDepths = childIds.map((id) => depths.get(id) ?? 0);
-    const depth =
-      parentDepth !== undefined
-        ? parentDepth + 1
-        : childDepths.length > 0
-          ? Math.min(...childDepths)
-          : 1;
-    occupants.push({
-      key: gid,
-      depth,
-      parentKeys: parentId !== 'housing' && layoutIds.has(parentId) ? [parentId] : [],
-    });
-  }
 
   const positions = assignDagPositions(occupants);
-
-  const groups: ResearchDagGroupView[] = [];
-  for (const [gid, childIds] of groupChildren) {
-    const collapsed = !expanded.has(gid);
-    const parentId = gid.replace(/^exp-group:/, '');
-    const parentPos = parentId !== 'housing' ? positions.get(parentId) : undefined;
-    const groupPos = positions.get(gid);
-    const childPos = childIds
-      .map((id) => positions.get(id))
-      .filter((p): p is { x: number; y: number; depth: number } => p !== undefined);
-    let x: number;
-    let y: number;
-    if (collapsed && groupPos) {
-      x = groupPos.x;
-      y = groupPos.y;
-    } else if (childPos.length > 0) {
-      x = Math.min(...childPos.map((p) => p.x));
-      y = Math.min(...childPos.map((p) => p.y));
-    } else if (parentPos) {
-      x = parentPos.x;
-      y = parentPos.y + NODE_H + LAYER_GAP;
-    } else {
-      x = PAD_X;
-      y = PAD_Y + NODE_H + LAYER_GAP;
-    }
-    groups.push({
-      id: gid,
-      label: expansionGroupLabel(gid),
-      collapsed,
-      childIds,
-      status: groupStatus(childIds, completed, activeId, queued, frontier),
-      x,
-      y,
-    });
-  }
 
   const { remaining } = selectBuildEconomy(snapshot);
   const busy = Boolean(activeId);
@@ -337,7 +232,7 @@ export function selectResearchDag(snapshot: Snapshot): ResearchDagView {
       progressRequired: node.progressRequired,
       missingPrereqNames: status === 'preview' ? missing : [],
       affordable: status === 'available' && canPay,
-      groupId: expansionGroupId(node),
+      groupId: null,
       depth: pos.depth,
       x: pos.x,
       y: pos.y,
@@ -350,13 +245,6 @@ export function selectResearchDag(snapshot: Snapshot): ResearchDagView {
       if (layoutIds.has(req)) {
         edges.push({ from: req, to: node.id });
       }
-    }
-  }
-  for (const group of groups) {
-    if (!group.collapsed) continue;
-    const parentId = group.id.replace(/^exp-group:/, '');
-    if (parentId !== 'housing' && layoutIds.has(parentId)) {
-      edges.push({ from: parentId, to: group.id });
     }
   }
 
@@ -375,7 +263,7 @@ export function selectResearchDag(snapshot: Snapshot): ResearchDagView {
   return {
     nodes,
     edges,
-    groups,
+    groups: [],
     frontierFocusY,
     selectedId: selected,
     busy,

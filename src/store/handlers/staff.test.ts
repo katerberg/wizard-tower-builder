@@ -31,6 +31,7 @@ function recruitContext(state = createInitialState('recruit-cap')): {
       waveBuilder: { open: false, counts: {} },
       selectedResearchNodeId: null,
       researchExpandedGroupIds: [],
+      researchResumeSimSpeed: null,
     },
     buildHistory: [],
     nextRoomId: () => 'room-test',

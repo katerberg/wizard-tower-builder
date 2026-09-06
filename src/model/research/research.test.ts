@@ -9,6 +9,7 @@ import {
   getResearchNode,
   instantUnlockResearch,
   listFrontierNodes,
+  listResearchNodes,
   startResearch,
   unlockAllResearch,
 } from '@/model/research';
@@ -21,19 +22,29 @@ describe('research tech tree', () => {
       [...STARTING_BLUEPRINT_IDS, ...STARTING_INFRA_BLUEPRINT_IDS].sort(),
     );
     expect(state.player.unlockedBlueprints).not.toContain('pipe');
+    expect(state.player.unlockedBlueprints).not.toContain('hydrantRoom');
     expect(state.player.unlockedBlueprints).not.toContain('steamTurretRoom');
     expect(state.player.unlockedModifications).toEqual(['spikes']);
     expect(state.player.research.queue).toEqual([]);
   });
 
-  it('lists frontier nodes with met prerequisites', () => {
+  it('lists only plumbing and slots on the starting frontier', () => {
     const state = createInitialState();
-    const frontier = listFrontierNodes(state);
-    const ids = frontier.map((n) => n.id);
-    expect(ids).toContain('bp-pipe');
-    expect(ids).toContain('bp-slot');
-    expect(ids).not.toContain('bp-steam-turret');
-    expect(ids).not.toContain('bp-boiler');
+    const ids = listFrontierNodes(state).map((n) => n.id).sort();
+    expect(ids).toEqual(['bp-pipe', 'bp-slot']);
+  });
+
+  it('keeps authored out-degree at most 3', () => {
+    const childCounts = new Map<string, number>();
+    for (const node of listResearchNodes()) {
+      for (const req of node.requires) {
+        childCounts.set(req, (childCounts.get(req) ?? 0) + 1);
+      }
+    }
+    for (const [id, count] of childCounts) {
+      expect(count, `${id} has ${count} children`).toBeLessThanOrEqual(3);
+    }
+    expect(getResearchNode('bp-hydrant')).toBeUndefined();
   });
 
   it('starts research by spending from the build baseline', () => {
@@ -46,7 +57,7 @@ describe('research tech tree', () => {
     expect(state.player.resources.souls).toBe(beforeSouls - cost);
   });
 
-  it('completes research and unlocks blueprints', () => {
+  it('completes plumbing and unlocks pipe plus hydrant', () => {
     const state = createInitialState();
     startResearch(state, 'bp-pipe');
     const required = getResearchNode('bp-pipe')!.progressRequired;
@@ -54,8 +65,11 @@ describe('research tech tree', () => {
     expect(state.player.research.active).toBeNull();
     expect(state.player.research.completedNodeIds).toContain('bp-pipe');
     expect(state.player.unlockedBlueprints).toContain('pipe');
+    expect(state.player.unlockedBlueprints).toContain('hydrantRoom');
     const frontier = listFrontierNodes(state).map((n) => n.id);
     expect(frontier).toContain('bp-boiler');
+    expect(frontier).toContain('bp-pump');
+    expect(frontier).toContain('bp-mana-spring');
   });
 
   it('enforces sacred hard gates for steam turret', () => {
@@ -69,11 +83,23 @@ describe('research tech tree', () => {
     expect(frontier).toContain('bp-steam-turret');
   });
 
+  it('keeps elevator and overhang off the early frontier', () => {
+    const state = createInitialState();
+    const startIds = listFrontierNodes(state).map((n) => n.id);
+    expect(startIds).not.toContain('bp-elevator');
+    expect(startIds).not.toContain('tech-overhang');
+    instantUnlockResearch(state, 'bp-pipe');
+    const afterPipe = listFrontierNodes(state).map((n) => n.id);
+    expect(afterPipe).not.toContain('bp-elevator');
+    expect(afterPipe).not.toContain('tech-overhang');
+  });
+
   it('dev unlockAll grants every blueprint and expansion', () => {
     const state = createInitialState();
     unlockAllResearch(state);
     expect(state.player.unlockedBlueprints).toContain('steamTurretRoom');
     expect(state.player.unlockedBlueprints).toContain('elevator');
+    expect(state.player.unlockedBlueprints).toContain('hydrantRoom');
     expect(state.player.unlockedBlueprints).toContain('moat');
     expect(state.player.unlockedModifications).toContain('slotExpansion');
     expect(state.player.unlockedModifications).toContain('boilerExpansion');
@@ -86,6 +112,7 @@ describe('research tech tree', () => {
     const result = instantUnlockResearch(state, 'bp-pipe');
     expect(result.ok).toBe(true);
     expect(state.player.unlockedBlueprints).toContain('pipe');
+    expect(state.player.unlockedBlueprints).toContain('hydrantRoom');
     expect(state.player.research.completedNodeIds).toContain('bp-pipe');
     expect(state.player.resources.souls).toBe(beforeSouls);
     expect(state.player.research.active).toBeNull();
@@ -110,17 +137,23 @@ describe('research tech tree', () => {
     state.player.resources.souls = 500;
     state.player.resources.metal = 500;
     state.player.resources.stone = 500;
-    startResearch(state, 'bp-pipe');
-    const roots = ['bp-slot', 'bp-forge', 'bp-elevator', 'tech-overhang', 'bp-moat', 'bp-glacis'];
+    state.player.resources.gold = 500;
+    instantUnlockResearch(state, 'bp-pipe');
+    instantUnlockResearch(state, 'bp-slot');
+    startResearch(state, 'bp-boiler');
+    const enqueueable = ['bp-mana-spring', 'bp-pump', 'exp-slot', 'bp-moat', 'bp-parapet'];
     for (let i = 0; i < RESEARCH_QUEUE_CAP; i++) {
-      expect(enqueueResearch(state, roots[i]).ok).toBe(true);
+      expect(enqueueResearch(state, enqueueable[i]).ok).toBe(true);
     }
-    expect(enqueueResearch(state, roots[RESEARCH_QUEUE_CAP]).ok).toBe(false);
+    expect(enqueueResearch(state, 'bp-forge').ok).toBe(false); // not frontier yet
     expect(state.player.research.queue).toHaveLength(RESEARCH_QUEUE_CAP);
   });
 
   it('unlocks overhang placement when Cantilever Framing completes', () => {
     const state = createInitialState();
+    for (const id of ['bp-pipe', 'bp-mana-spring', 'bp-leyline-research', 'bp-elevator']) {
+      expect(instantUnlockResearch(state, id).ok).toBe(true);
+    }
     startResearch(state, 'tech-overhang');
     addResearchProgress(state, getResearchNode('tech-overhang')!.progressRequired);
     expect(state.player.research.completedNodeIds).toContain('tech-overhang');

@@ -11,6 +11,7 @@ import {
 import FIXTURES from '@/test/balance/fixtures';
 import type { HandlerContext } from '../context';
 import type { Intent } from '../intents';
+import { setModal } from '../viewState';
 import { applyFixtureToState, extractFixtureFromState } from './fixture';
 
 export function handleDevIntent(ctx: HandlerContext, intent: Intent): void {
@@ -105,25 +106,25 @@ export function handleDevIntent(ctx: HandlerContext, intent: Intent): void {
       if (!ctx.game.devMode) break;
       if (ctx.game.phase !== 'day' && ctx.game.scene !== 'gameOver') break;
       const fixture = extractFixtureFromState(ctx.game, ctx.game.sessionSeed);
-      ctx.view.modal = { kind: 'saveTower', fixture };
+      setModal(ctx.view, ctx.game, { kind: 'saveTower', fixture });
       break;
     }
     case 'devSaveTower': {
       if (!ctx.game.devMode) break;
       if (ctx.game.phase !== 'day' && ctx.game.scene !== 'gameOver') break;
       const fixture = extractFixtureFromState(ctx.game, ctx.game.sessionSeed);
-      ctx.view.modal = {
+      setModal(ctx.view, ctx.game, {
         kind: 'saveTower',
         fixture,
         name: intent.name,
         expect: intent.expect,
-      };
+      });
       break;
     }
     case 'devOpenLoadTower': {
       if (!ctx.game.devMode) break;
       if (ctx.game.phase !== 'day' && ctx.game.scene !== 'gameOver') break;
-      ctx.view.modal = { kind: 'fixtureList' };
+      setModal(ctx.view, ctx.game, { kind: 'fixtureList' });
       break;
     }
     case 'devLoadFixture': {
@@ -131,7 +132,7 @@ export function handleDevIntent(ctx: HandlerContext, intent: Intent): void {
       if (ctx.game.phase !== 'day' && ctx.game.scene !== 'gameOver') break;
       const fixture = FIXTURES.find((f) => f.id === intent.fixtureId);
       if (!fixture) break;
-      ctx.view.modal = { kind: 'fixtureConfirm', fixtureId: fixture.id };
+      setModal(ctx.view, ctx.game, { kind: 'fixtureConfirm', fixtureId: fixture.id });
       break;
     }
     case 'devConfirmLoad': {
@@ -143,7 +144,8 @@ export function handleDevIntent(ctx: HandlerContext, intent: Intent): void {
       ctx.game = newGame;
       ctx.view.waveBuilder.open = false;
       ctx.view.waveBuilder.counts = {};
-      ctx.view.modal = null;
+      setModal(ctx.view, ctx.game, null);
+      ctx.view.researchResumeSimSpeed = null;
       ctx.view.selectedBlueprintId = null;
       ctx.view.selectedSpellId = null;
       ctx.buildHistory = [];

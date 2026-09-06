@@ -2,6 +2,7 @@ import { isSlotRoom } from '@/model/staff/capacity';
 import { roomAt, structureAt } from '@/model/tower';
 import type { HandlerContext } from '../context';
 import type { Intent } from '../intents';
+import { setModal } from '../viewState';
 
 function inDayPhase(ctx: HandlerContext): boolean {
   return ctx.game.scene === 'run' && ctx.game.phase === 'day';
@@ -21,14 +22,14 @@ export function handleInspectIntent(ctx: HandlerContext, intent: Intent): void {
       const room = roomAt(ctx.game.tower, intent.cell.col, intent.cell.row);
       if (room) {
         ctx.view.selectedBlueprintId = null;
-        ctx.view.modal = { kind: 'room', roomId: room.id };
+        setModal(ctx.view, ctx.game, { kind: 'room', roomId: room.id });
         ctx.view.connectivityFocusSlotId = isSlotRoom(room) ? room.id : null;
         break;
       }
       const structure = structureAt(ctx.game.tower, intent.cell.col, intent.cell.row);
       if (structure) {
         ctx.view.selectedBlueprintId = null;
-        ctx.view.modal = { kind: 'structure', structureId: structure.id };
+        setModal(ctx.view, ctx.game, { kind: 'structure', structureId: structure.id });
         ctx.view.connectivityFocusSlotId = null;
       }
       break;
@@ -39,7 +40,7 @@ export function handleInspectIntent(ctx: HandlerContext, intent: Intent): void {
       break;
     }
     case 'closeModal':
-      ctx.view.modal = null;
+      setModal(ctx.view, ctx.game, null);
       ctx.game.pendingWaveClear = null;
       ctx.view.connectivityFocusSlotId = null;
       break;

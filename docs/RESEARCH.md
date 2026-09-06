@@ -42,13 +42,14 @@ Spell *identity* (fireball, wall of flame, …) comes from leyline progression. 
 | Spells on tech tree? | **No** new spell ids — only the **Leyline Research** blueprint (+ optional later spell **bonuses**) |
 | Spell progression | Leyline bands at 25 / 50 / 75; staffed mage clear unlocks next school spell while the room stands |
 | Spell offer shape | **Superseded** — no 1-of-3 height-clear offer modal |
-| Tree contents | Blueprints (+ optional bundled starter mods); each room blueprint opens a **small expansion/mod subtree** |
+| Tree contents | Blueprints (+ optional bundled unlocks); each room blueprint opens a **small expansion/mod subtree** |
 | Staff hard gate | Any workplace that needs a staff kind requires that housing unlocked first (e.g. **Chamber before Mana Spring**) |
 | Pace | Can bank and start when ready; research then runs via allocation (not instant unlock on spend) |
 | Queue | Up to **5** paid enqueued projects (excludes active); full refund if removed before start |
 | Cancel active | Half resource refund; all progress lost; inline warning |
 | Tree visibility (v1) | Sidebar = active/queue; modal DAG = completed + frontier + one preview layer |
-| v1 tree shape | **Static** authored DAG |
+| v1 tree shape | **Static** authored DAG; **≤3** roots and **≤3** children per node (caps, not fill targets) |
+| Starting frontier | **Plumbing** + **Arrow Slots** only |
 | Procedural trees | Deferred — hard gates below stay sacred for a later generator |
 
 ---
@@ -149,57 +150,56 @@ Always available at run start (no research):
 
 Source of truth: [`src/model/research/tree.ts`](../src/model/research/tree.ts).
 
+Caps: **≤3** empty-`requires` roots and **≤3** direct children per node (limits, not targets — many nodes have 0–1 children).
+
 | Node id | Unlocks | Requires |
 |---------|---------|----------|
-| `tech-overhang` | Cantilever Framing (one-step spire overhangs) | — |
-| `bp-pipe` | pipe | — |
-| `bp-elevator` | elevator | — |
+| `bp-pipe` | pipe, hydrantRoom | — |
 | `bp-slot` | slotRoom | — |
-| `bp-forge` | forgeRoom | — |
-| `bp-pump` | pumpRoom | bp-pipe |
 | `bp-boiler` | boilerRoom | bp-pipe |
 | `bp-mana-spring` | manaSpringRoom | bp-pipe |
-| `bp-hydrant` | hydrantRoom | bp-pipe |
-| `bp-steam-turret` | steamTurretRoom | bp-pipe, bp-boiler |
-| `bp-flame-turret` | flameTurretRoom | bp-forge |
-| `bp-moat` | moat | — |
-| `bp-glacis` | glacis | — |
-| `bp-parapet` | parapet | — |
-| `bp-cornice` | cornice | — |
-| `bp-stakes` | stakes | — |
-| `bp-barbican` | barbican | bp-parapet |
-| `exp-guardroom` | guardroomExpansion | — |
-| `exp-chamber` | chamberExpansion | — |
-| `exp-quarters` | quartersExpansion | — |
-| `exp-slot` | slotExpansion | bp-slot |
+| `bp-pump` | pumpRoom | bp-pipe |
+| `bp-steam-turret` | steamTurretRoom | bp-boiler (pipe via boiler) |
 | `exp-boiler` | boilerExpansion | bp-boiler |
+| `bp-forge` | forgeRoom | bp-boiler |
+| `bp-flame-turret` | flameTurretRoom | bp-forge |
+| `bp-leyline-research` | leylineResearchRoom | bp-mana-spring |
+| `bp-elevator` | elevator | bp-leyline-research |
+| `tech-overhang` | Cantilever Framing (one-step spire overhangs) | bp-elevator |
+| `exp-guardroom` | guardroomExpansion | bp-pump |
+| `exp-chamber` | chamberExpansion | exp-guardroom |
+| `exp-quarters` | quartersExpansion | exp-chamber |
+| `exp-slot` | slotExpansion | bp-slot |
+| `bp-moat` | moat | bp-slot |
+| `bp-glacis` | glacis | bp-moat |
+| `bp-stakes` | stakes | bp-glacis |
+| `bp-parapet` | parapet | bp-slot |
+| `bp-cornice` | cornice | bp-parapet |
+| `bp-barbican` | barbican | bp-parapet |
 
 ```mermaid
 flowchart TB
-  subgraph roots [Root frontier]
-    pipe[bp-pipe]
-    forge[bp-forge]
-    slot[bp-slot]
-    elev[bp-elevator]
-    overhang[tech-overhang]
-    moat[bp-moat]
-    glacis[bp-glacis]
-    parapet[bp-parapet]
-    cornice[bp-cornice]
-    stakes[bp-stakes]
-    expG[exp-guardroom]
-    expC[exp-chamber]
-    expQ[exp-quarters]
-  end
-  pipe --> pump[bp-pump]
+  pipe["bp-pipe: pipe + hydrantRoom"]
+  slot["bp-slot: slotRoom"]
   pipe --> boiler[bp-boiler]
   pipe --> spring[bp-mana-spring]
-  pipe --> hydrant[bp-hydrant]
+  pipe --> pump[bp-pump]
   boiler --> steam[bp-steam-turret]
-  pipe --> steam
-  forge --> flame[bp-flame-turret]
-  slot --> expSlot[exp-slot]
   boiler --> expBoiler[exp-boiler]
+  boiler --> forge[bp-forge]
+  forge --> flame[bp-flame-turret]
+  spring --> leyline[bp-leyline-research]
+  leyline --> elev[bp-elevator]
+  elev --> overhang[tech-overhang]
+  pump --> expG[exp-guardroom]
+  expG --> expC[exp-chamber]
+  expC --> expQ[exp-quarters]
+  slot --> expSlot[exp-slot]
+  slot --> moat[bp-moat]
+  slot --> parapet[bp-parapet]
+  moat --> glacis[bp-glacis]
+  glacis --> stakes[bp-stakes]
+  parapet --> cornice[bp-cornice]
   parapet --> barbican[bp-barbican]
 ```
 
@@ -209,13 +209,13 @@ Must never break (static tree now; procedural generator later):
 
 | Prerequisite | Before |
 |--------------|--------|
-| Pipe | Boiler, Water Pump, Mana Spring, Hydrant, Steam Turret |
-| Pipe + Boiler | Steam Turret |
+| Plumbing (`bp-pipe`) | Boiler, Water Pump, Mana Spring; hydrant unlocks **with** Plumbing |
+| Boiler (implies Pipe) | Steam Turret |
 | Forge | Flame Turret |
 | Guardroom | Slot (and soldier workplaces) — Guardroom is starter, so Slot is a root node |
 | Chamber | Mana Spring staffing — Chamber is starter; spring still pipe-gated |
-| Stairs | Elevator — Stairs is starter, so Elevator is a root node |
-| Room blueprint | That room’s expansion/mod subtree |
+| Leyline Research | Elevator (late logistics); overhang after elevator |
+| Room blueprint | That room’s expansion/mod subtree (`exp-slot`, `exp-boiler`); housing expansions sit under pump |
 | School base spell | That school’s spell **bonuses** (bonuses still do not grant new spells) |
 
 ### Room → expansion subtree
@@ -283,9 +283,9 @@ Run identity comes from:
 ## UI (v1)
 
 - **Sidebar:** active project + progress; queue summary; **Choose research…** (idle) or **Edit** (active/queued). No full frontier list in the sidebar.
-- **DAG modal:** layered graph (**top to bottom** by prereq depth) of **completed + available + preview** (direct children of those, including unmet multi-prereq children greyed with missing-prereq labels). Expansion nodes collapse into their own chips — housing expansions sit with the roots; per-blueprint upgrades sit in the next row under the parent. Edges follow parent→child downward; skip-layer edges arc around intervening rows.
-- On open, scroll so the **frontier band** is in view.
-- Click a node → detail pane (name, unlocks, cost, labor, missing prereqs). Primary action **Start** (idle) or **Enqueue** (busy). Dev **Unlock** on the node chip; **Unlock all** in modal footer.
+- **DAG modal:** full-width panel; layered graph (**top to bottom** by prereq depth) of **completed + available + preview**. Graph chips show **titles only** (cost / unlocks / missing prereqs live in the detail pane). Expansion techs appear as normal chips (no collapse groups). Edges follow parent→child downward; skip-layer edges arc around intervening rows.
+- On open, scroll so the **frontier band** is in view; later re-renders keep the current scroll position. Opening the modal **pauses** sim speed (restored on close) so the DAG DOM is not rewritten mid-interaction.
+- Click a node → detail pane (name, unlocks, cost, labor, missing prereqs). Primary action **Start** (idle) or **Enqueue** (busy). Dev **Unlock** in the detail pane; **Unlock all** in modal footer.
 - Cancel active: inline confirm with half-refund warning. Dequeue: full refund, no confirm beyond the remove control.
 - Research room inspector: assigned magi.
 - Spell offer modal on eligible wave clear (pick 1 of 3) — **superseded** by leyline rooms.
