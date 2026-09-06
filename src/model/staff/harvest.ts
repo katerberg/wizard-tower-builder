@@ -1,4 +1,3 @@
-import { applyHarvestRepairTax } from '../enemies/raid';
 import {
   GROUND_WATER_MAX_ROW,
   HAND_PUMP_LABORER_RESERVE,
@@ -7,6 +6,7 @@ import {
   PASSIVE_IRON_FRACTION,
   PUMP_WATER_ROW_EXTENSION,
   RARE_PATCH_FALLOFF,
+  applyHarvestRepairTax,
 } from '@/config/constants';
 import { reward } from '@/calculations/economy';
 import { depositToStorage, stockpileFromCost } from '@/model/storage';

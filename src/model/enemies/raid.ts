@@ -1,17 +1,20 @@
-import {
-  HARVEST_REPAIR_TAX,
-  RAID_VERTICAL_BAND,
-  isRaidEconomyBlueprint,
-} from '@/config/raid';
+import { RAID_VERTICAL_BAND, isRaidEconomyBlueprint } from '@/config/raid';
 import { roomCells } from '@/calculations/grid';
 import { randomInt } from '@/calculations/rng';
 import { macroCellOfNode } from '@/calculations/subGrid';
 import { isExteriorFramingCell } from '@/model/fortifications/shell';
 import { addMessage } from '@/model/messages';
-import { clearFortify, isFortified } from '@/model/spells/earth/fortify';
 import { getStorageSite, withdrawFromStorage } from '@/model/storage';
 import { structureAt } from '@/model/tower/query';
 import type { Cell, Enemy, GameState, RaidGoal, Room } from '@/model/types';
+
+/** Inline Fortify clear — avoid importing spell modules (breaks destruction↔registry cycles). */
+function dropFortifyOnCollectorBreak(state: GameState): void {
+  if (!state.fortified) return;
+  state.fortified = false;
+  state.fortifyChargeAccum = 0;
+  addMessage(state, 'Fortify fades — the solar collector is gone.', 'combat');
+}
 
 export function collectorIsBroken(state: GameState): boolean {
   return state.solarCollector.hp <= 0;
@@ -32,9 +35,7 @@ export function breakSolarCollector(state: GameState): void {
   if (state.collectorBrokeThisNight) return;
   state.collectorBrokeThisNight = true;
   state.collectorBrokeThisWave = true;
-  if (isFortified(state)) {
-    clearFortify(state, 'Fortify fades — the solar collector is gone.');
-  }
+  dropFortifyOnCollectorBreak(state);
   clearEnemyPathsForRaid(state);
   addMessage(state, 'The solar collector shatters — the tower is under RAID.', 'combat');
 }
@@ -62,20 +63,6 @@ export function resolveCollectorDawn(state: GameState): void {
       'economy',
     );
   }
-}
-
-export function applyHarvestRepairTax(
-  stone: number,
-  metal: number,
-  gold: number,
-  taxActive: boolean,
-): { stone: number; metal: number; gold: number } {
-  if (!taxActive) return { stone, metal, gold };
-  return {
-    stone: stone * HARVEST_REPAIR_TAX,
-    metal: metal * HARVEST_REPAIR_TAX,
-    gold: gold * HARVEST_REPAIR_TAX,
-  };
 }
 
 export function noteEnemyDamagedByRoom(enemy: Enemy, roomId: string): void {

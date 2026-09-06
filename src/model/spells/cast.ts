@@ -13,7 +13,6 @@ import { applyFireDamage } from './fire/fireDamage';
 import { gridLine, validWallOfFlameSegment } from './fire/wall';
 import { getCharge } from './earth/charge';
 import { clearFortify, isFortified, mitigateWizardDamage } from './earth/fortify';
-import { roomIdAtCell } from './earth/earthquake';
 import { getSpell, listAutoSpells } from './registry';
 import { isSpellUnlocked } from './progression';
 import type { CastCheckResult, SpellCastContext, SpellDef, SpellTarget } from './types';
@@ -171,7 +170,7 @@ export function canCastSpell(state: GameState, spellId: string, target?: SpellTa
     if (gridDistance(state, getWizardPosition(state.tower), target.cell) > spell.range) {
       return { ok: false, reason: 'out_of_range' };
     }
-    if (!roomIdAtCell(state.tower, target.cell)) {
+    if (!structureAt(state.tower, target.cell.col, target.cell.row)) {
       return { ok: false, reason: 'invalid_placement' };
     }
   }

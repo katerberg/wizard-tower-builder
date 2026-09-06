@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
+import { applyHarvestRepairTax } from '@/config/raid';
 import { createInitialState } from '@/model/game';
 import { beginDay, beginWave } from '@/model/phases';
 import { step } from '@/model/tick';
 import {
   applyCollectorDamage,
-  applyHarvestRepairTax,
   afterRoomRemovedCheckStorageLose,
   breakSolarCollector,
   collectorIsBroken,
