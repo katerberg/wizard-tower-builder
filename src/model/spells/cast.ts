@@ -2,7 +2,9 @@ import { computeDamage, type Combatant } from '../../calculations/combat';
 import { macroCellOfNode, macroGridDistance } from '../../calculations/subGrid';
 import { getEnemyTemplate } from '../enemies';
 import { addMessage } from '../messages';
-import { loseGame } from '../phases';
+import { applyCollectorDamage, collectorIsBroken } from '../enemies/raid';
+import { structureAt } from '../tower/query';
+import { getSolarCollectorPosition } from '../wizard';
 import { getWizardPosition } from '../tower';
 import { getEffectiveWizardPosition } from './air/flight';
 import { applyWindDamage } from './air/windDamage';
@@ -52,12 +54,19 @@ export function enemyAtCell(state: GameState, cell: Cell): Enemy | undefined {
 
 export function buildSpellContext(state: GameState, spellName: string): SpellCastContext {
   const damageCollector = (damage: number) => {
-    const dealt = mitigateWizardDamage(state, damage);
-    state.solarCollector.hp = Math.max(0, state.solarCollector.hp - dealt);
-    addMessage(state, `${spellName} batters the solar collector for ${dealt}!`, 'combat');
-    if (state.solarCollector.hp <= 0) {
-      loseGame(state);
+    if (collectorIsBroken(state)) {
+      const perch = macroCellOfNode(getSolarCollectorPosition(state));
+      const structure = structureAt(state.tower, perch.col, perch.row);
+      if (!structure) return;
+      const live = state.tower.structures.find((s) => s.id === structure.id);
+      if (!live) return;
+      live.hp = Math.max(0, live.hp - damage);
+      addMessage(state, `${spellName} batters framing at the perch for ${damage}!`, 'combat');
+      return;
     }
+    const dealt = mitigateWizardDamage(state, damage);
+    applyCollectorDamage(state, dealt);
+    addMessage(state, `${spellName} batters the solar collector for ${dealt}!`, 'combat');
   };
   const ctx: SpellCastContext = {
     state,
@@ -109,6 +118,10 @@ export function canCastSpell(state: GameState, spellId: string, target?: SpellTa
 
   if (!state.devMode && !isSpellUnlocked(state, spellId) && spellId !== 'wandStrike') {
     return { ok: false, reason: 'locked' };
+  }
+
+  if (spellId === 'fortify' && collectorIsBroken(state)) {
+    return { ok: false, reason: 'collector_broken' };
   }
 
   if (isFortified(state) && !spell.allowedWhileConcentrating) {

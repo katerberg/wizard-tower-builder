@@ -1,3 +1,4 @@
+import { applyHarvestRepairTax } from '../enemies/raid';
 import {
   GROUND_WATER_MAX_ROW,
   HAND_PUMP_LABORER_RESERVE,
@@ -26,6 +27,14 @@ const PUMP_TARGET = 'pump:hand';
 
 /** Credit harvest to storage rooms; track wave haul for modal. */
 function rewardHarvest(state: GameState, haul: Partial<Resources>, from?: Cell): void {
+  const taxed = applyHarvestRepairTax(
+    haul.stone ?? 0,
+    haul.metal ?? 0,
+    haul.gold ?? 0,
+    state.harvestRepairTaxActive,
+  );
+  haul = { ...haul, stone: taxed.stone || undefined, metal: taxed.metal || undefined, gold: taxed.gold || undefined };
+
   const physical = stockpileFromCost(haul);
   if (physical.stone > 0 || physical.metal > 0) {
     const overflow = depositToStorage(state, physical, from);

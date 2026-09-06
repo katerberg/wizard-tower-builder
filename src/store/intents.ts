@@ -46,7 +46,7 @@ export type Intent =
   | { type: 'devClearWaveBuilder' }
   | { type: 'devLoadCurrentWave' }
   | { type: 'devOpenSaveTower' }
-  | { type: 'devSaveTower'; name: string; expect: 'clear' | 'lose' }
+  | { type: 'devSaveTower'; name: string; expect: 'clear' | 'lose' | 'raid' }
   | { type: 'devOpenLoadTower' }
   | { type: 'devLoadFixture'; fixtureId: string }
   | { type: 'devConfirmLoad'; fixtureId: string }
@@ -66,7 +66,7 @@ export type ModalData =
   | { kind: 'research' }
   | { kind: 'help' }
   | { kind: 'waveClear'; gold: number; haul: Resources; prospectNote: string | null }
-  | { kind: 'saveTower'; fixture: Omit<BalanceBuild, 'id' | 'title' | 'expect'>; name?: string; expect?: 'clear' | 'lose' }
+  | { kind: 'saveTower'; fixture: Omit<BalanceBuild, 'id' | 'title' | 'expect'>; name?: string; expect?: 'clear' | 'lose' | 'raid' }
   | { kind: 'fixtureList' }
   | { kind: 'fixtureConfirm'; fixtureId: string };
 

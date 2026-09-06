@@ -2,6 +2,7 @@ import { DAY_DURATION, NIGHT_DURATION } from '@/config/dayNight';
 import { clearElevators, initElevators } from './elevators';
 import { prepareWaveNames } from './game';
 import { addMessage } from './messages';
+import { resolveCollectorDawn } from './enemies/raid';
 import { lockPipeFluids } from './pipes';
 import { resetRoomBehaviors } from './rooms';
 import { restoreTurretMana } from './rooms/turret';
@@ -79,6 +80,7 @@ export function endDay(state: GameState, override?: WaveDef): void {
 
 function beginNight(state: GameState, wave: WaveDef): void {
   state.phase = 'night';
+  state.collectorBrokeThisWave = false;
   state.phaseTimer = NIGHT_DURATION;
   state.enemies = [];
   state.spawnQueue = buildSpawnQueue(wave);
@@ -156,6 +158,7 @@ export function endWave(state: GameState): void {
 
 export function beginDay(state: GameState): void {
   if (state.scene !== 'run') return;
+  resolveCollectorDawn(state);
   state.phase = 'day';
   state.dayIndex += 1;
   state.phaseTimer = DAY_DURATION;
@@ -172,9 +175,13 @@ export function beginDay(state: GameState): void {
   addMessage(state, `Dawn day ${state.dayIndex} — height ${endHeight} / ${WIN_HEIGHT}.`, 'info');
 }
 
-export function loseGame(state: GameState): void {
+export function loseGame(state: GameState, message?: string): void {
   state.scene = 'gameOver';
-  addMessage(state, 'The solar collector is destroyed. The tower is overrun.', 'combat');
+  addMessage(
+    state,
+    message ?? 'Every storage room is destroyed. The tower is overrun.',
+    'combat',
+  );
 }
 
 export function winGame(state: GameState): void {

@@ -15,7 +15,7 @@ The run alternates **60s day** / **90s night** phases with automatic transitions
 
 - **Pause / 1× / 2× / 5×** sim speed apply in **both** phases (sidebar).
 - **Start Wave** removed — night begins automatically at timer zero. Dev mode retains **Skip to night**.
-- **Win / lose** unchanged: collector HP → 0 loses; clear at framing height ≥ 100 wins.
+- **Win / lose**: clear at framing height ≥ 100 wins; collector HP → 0 starts RAID (dawn restores it with a 50% harvest tax); lose if every Storage Room is destroyed.
 
 Config: [`src/config/dayNight.ts`](../src/config/dayNight.ts).
 

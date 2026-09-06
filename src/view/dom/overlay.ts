@@ -28,7 +28,7 @@ export function createOverlay(root: HTMLElement, store: Store): () => void {
     } else if (game.scene === 'gameOver') {
       body = `
         <h2>Defeated</h2>
-        <p>The wizard fell while defending the tower.</p>
+        <p>Every storage room was destroyed. The tower is overrun.</p>
         <button class="primary" data-action="restart">Try Again</button>`;
     } else if (game.scene === 'victory') {
       body = `
