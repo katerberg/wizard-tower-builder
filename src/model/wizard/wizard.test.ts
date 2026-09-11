@@ -42,12 +42,13 @@ function tallTower(): GameState {
 }
 
 describe('solar collector combat', () => {
-  it('loses when collector HP reaches 0', () => {
-    const state = createInitialState('lose');
+  it('enters RAID when collector HP reaches 0 (no instant lose)', () => {
+    const state = createInitialState('raid');
     beginWave(state);
     state.solarCollector.hp = 0;
     step(state, 0.1);
-    expect(state.scene).toBe('gameOver');
+    expect(state.scene).toBe('run');
+    expect(state.collectorBrokeThisNight).toBe(true);
   });
 
   it('Fortify mitigates collector damage', () => {

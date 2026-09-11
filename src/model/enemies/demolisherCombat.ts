@@ -1,3 +1,4 @@
+import { afterRoomRemovedCheckStorageLose } from './raid';
 import { ENEMY_ATTACK_COOLDOWN, SUB_CELLS_PER_MACRO } from '@/config/constants';
 import { computeDamage, computeRoomStats, type Combatant } from '@/calculations/combat';
 import { roomCells } from '@/calculations/grid';
@@ -52,6 +53,12 @@ function applyDelta(state: GameState, delta: RemovalDelta): void {
   ) {
     clearEnemyPaths(state);
     return;
+  }
+  for (const roomId of delta.removedRoomIds) {
+    const wasStorage = Boolean(state.storageSites[roomId]);
+    if (wasStorage) {
+      afterRoomRemovedCheckStorageLose(state, roomId, 'storageRoom');
+    }
   }
   applyDestructionAftermath(state, delta);
 }

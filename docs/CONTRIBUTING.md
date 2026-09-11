@@ -119,5 +119,5 @@ Design: [`PLAYER_MOVEMENT.md`](PLAYER_MOVEMENT.md).
 
 1. Walk graph: `src/calculations/wizardGraph.ts` + `wizardPathfinding.ts`.
 2. Runtime: `src/model/wizard/` (`stepWizard`, `setWizardDestination`).
-3. Enemy goal / lose: `src/model/tick.ts`, `flierCombat.ts` (`attackCollector`).
+3. Enemy goal / RAID / lose: `src/model/tick.ts`, `enemies/raid.ts`, `enemies/raidCombat.ts`, `flierCombat.ts` (`attackCollector`). Lose = last storage room destroyed.
 4. Intent: `moveWizard` in `src/store/intents.ts` + `handlers/wizard.ts`.

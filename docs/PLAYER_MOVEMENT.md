@@ -9,7 +9,7 @@ The wizard is a mobile **firefighter** (Factorio-style repair bot): they click-t
 ## Fantasy
 
 - Wizard: rush stairs/elevators, reposition for spell range, help control local fights.
-- Collector: crown objective with the old wizard HP pool; lose when it reaches 0.
+- Collector: crown aggro magnet (old wizard HP pool). When it breaks, enemies RAID; lose only if every Storage Room falls.
 - Flight: temporary open-air mobility; fall back to standable interior/ground with no fall damage.
 
 ---
@@ -43,9 +43,23 @@ The wizard is a mobile **firefighter** (Factorio-style repair bot): they click-t
 | Enemy goal    | Crawlers and fliers A\* to collector; repath when perch macro key changes |
 | Contact       | Melee damages collector (Fortify mitigates)                               |
 | Friendly fire | Spells that hit the perch damage the **collector**, not the wizard        |
-| Lose          | `solarCollector.hp <= 0`                                                  |
+| Break         | `solarCollector.hp <= 0` despawns collector and starts **RAID** (no instant lose) |
+| Dawn restore  | Collector returns to max HP; next night harvest deposits at 50% (repair tax) |
+| Lose          | Every `storageRoom` destroyed                                             |
 
 ---
+
+## RAID mode
+
+When the collector breaks mid-night:
+
+1. Combat log announces RAID; HUD shows a pulsing **RAID** banner instead of Collector HP.
+2. Enemies immediately clear paths and retarget:
+   - Last room that damaged them within 4 macro rows, else
+   - Nearest economy room (`storageRoom`, `manaSpringRoom`, `boilerRoom`, `forgeRoom`, `pumpRoom`) within 4 rows, else
+   - Random exterior framing cell (fliers may smash framing in this phase).
+3. Storage melee also steals stone then metal from that site.
+4. Fortify is disabled until the collector is restored at dawn.
 
 ## Flight
 

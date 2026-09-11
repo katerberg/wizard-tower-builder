@@ -14,7 +14,7 @@ export const BALANCE_BUILDS: readonly BalanceBuild[] = [
   {
     id: 'bare-starter',
     title: 'Unchanged starter tower (includes starter turret)',
-    expect: 'lose',
+    expect: 'raid',
     height: 4,
     seeds: BALANCE_SEEDS,
   },
@@ -31,27 +31,27 @@ export const BALANCE_BUILDS: readonly BalanceBuild[] = [
   },
   {
     id: 'one-turret',
-    title: 'Starter turret only — must lose wave 1',
-    expect: 'lose',
+    title: 'Starter turret only — collector breaks into RAID on wave 1',
+    expect: 'raid',
     height: 4,
     seeds: BALANCE_SEEDS,
   },
   /**
    * Legal new-run kit (starter library, no Slot). Guardroom does not shoot
-   * without Slot, so this is still one turret of idle DPS — must lose.
+   * without Slot, so this is still one turret of idle DPS — collector breaks into RAID.
    * Two turrets (`double-turret`) are the modest wave-1 clear.
    */
   {
     id: 'starter-kit-legal',
-    title: 'Legal starter kit (starter turret + guardroom, no Slot)',
-    expect: 'lose',
+    title: 'Legal starter kit (starter turret + guardroom, no Slot) — RAID on wave 1',
+    expect: 'raid',
     height: 4,
     placements: [{ blueprintId: 'guardroomRoom', cell: { col: 6, row: 0 } }],
     seeds: BALANCE_SEEDS,
   },
   /**
    * INTENDED modest early clear (idle, starter library, no Slot).
-   * One turret loses; two turrets hold. Knobs: TURRET_DAMAGE / TURRET_COOLDOWN.
+   * One turret RAIDs; two turrets hold. Knobs: TURRET_DAMAGE / TURRET_COOLDOWN.
    */
   {
     id: 'double-turret',

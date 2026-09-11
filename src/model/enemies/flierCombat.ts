@@ -4,6 +4,7 @@ import { macroCellOfNode } from '@/calculations/subGrid';
 import { computeDamage, type Combatant } from '@/calculations/combat';
 import { getBlueprint } from '../blueprints';
 import { addMessage } from '../messages';
+import { applyCollectorDamage, afterRoomRemovedCheckStorageLose } from './raid';
 import { applyDestructionAftermath, roomRemovalDelta } from '../staff/destruction';
 import { removeRoom, roomAt } from '../tower';
 import type { Enemy, EnemyTemplate, ExteriorNode, GameState, Room } from '../types';
@@ -60,7 +61,7 @@ export function attackCollector(
     addMessage(state, `The solar collector shrugs off ${enemy.name} the ${template.type}.`, 'combat');
   } else {
     const dealt = mitigate(state, result.damage);
-    state.solarCollector.hp = Math.max(0, state.solarCollector.hp - dealt);
+    applyCollectorDamage(state, dealt);
     addMessage(
       state,
       `${enemy.name} the ${template.type} hits the solar collector for ${dealt}.`,
@@ -118,6 +119,7 @@ export function attackBlockingRoom(
     state.tower = removeRoom(state.tower, live.id);
     addMessage(state, `${bp?.name ?? 'Room'} collapses under air assault!`, 'combat');
     applyDestructionAftermath(state, delta);
+    afterRoomRemovedCheckStorageLose(state, live.id, live.blueprintId);
   }
 
   if (template.kamikaze) {

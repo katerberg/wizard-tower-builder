@@ -48,7 +48,7 @@ Flier spawn altitude tracks the **tower crown** (framing height snapshotted at S
 
 ### Pathfinding
 
-- **A\*** through open air toward the solar collector (crown perch).
+- **A\*** through open air toward the solar collector (crown perch) while it stands; after collector break, follow RAID retargeting (may smash framing when the goal is framing).
 - Solids block; path **around** the footprint.
 - **Always repath** when the wizard moves (e.g. Flight). “Committed” means they do **not** retreat or circle — they keep pressing the goal.
 - If **no path** exists (air fully boxed): move to / stay at the nearest approach and **attack the closest blocking room** with normal melee attack rules (same strength/cooldown as collector contact). This is the first intentional **enemy → room HP** damage path; laborers already repair room HP.

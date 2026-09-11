@@ -18,6 +18,8 @@ import {
   handleStuckClimberSmash,
 } from './enemies/demolisherCombat';
 import { attackBlockingRoom, attackCollector, closestRoomToEnemy, enemyTouchesRoom, greedyStepTowardRoom } from './enemies/flierCombat';
+import { breakSolarCollector, collectorIsBroken } from './enemies/raid';
+import { tickEnemyRaid } from './enemies/raidCombat';
 import { addMessage } from './messages';
 import { findPath } from '../calculations/pathfinding';
 import { fortificationSlowMultiplier } from './fortifications/effects';
@@ -29,7 +31,7 @@ import {
   shouldStubDiscombobulatedStep, soakSlowMultiplier, tickAirEffects, tickEarthEffects,
   tickFireEffects, tickSpellCooldowns, tickWaterEffects,
 } from './spells';
-import { endWave, loseGame, tickPhaseTimer } from './phases';
+import { endWave, tickPhaseTimer } from './phases';
 import { tickDayConstruction } from './construction';
 import { tickSideJobs } from './sideJobs';
 import { tickProspectWork } from './staff/prospect';
@@ -182,6 +184,18 @@ function tickNight(state: GameState, dt: number): void {
     if (enemy.currentHp <= 0) continue;
     const template = getEnemyTemplate(enemy.templateId);
     if (!template || enemy.airborne) continue;
+    if (collectorIsBroken(state)) {
+      tickEnemyRaid(
+        state,
+        enemy,
+        template,
+        dt,
+        (col, row) => isWalkable(state.tower, col, row, template.movement),
+        () => trackMacroMovement(enemy, state, template.movement.canFly === true),
+        () => (1 / template.speed) * moveSlowMultiplier(state, enemy),
+      );
+      continue;
+    }
     const needsRepath = enemy.path.length === 0 || enemy.pathGoalKey !== goalKey ||
       (enemy.path.length > 0 && enemy.pathIndex >= enemy.path.length - 1 && !reached(enemy.pos, collectorPos));
     if (needsRepath) {
@@ -267,7 +281,9 @@ function tickNight(state: GameState, dt: number): void {
     } else survivors.push(enemy);
   }
   state.enemies = survivors;
-  if (state.solarCollector.hp <= 0) { loseGame(state); return; }
+  if (state.solarCollector.hp <= 0 && !state.collectorBrokeThisNight) {
+    breakSolarCollector(state);
+  }
   if (state.spawnQueue.length === 0 && state.enemies.length === 0 && !waveEndedThisNight) {
     endWave(state);
     waveEndedThisNight = true;

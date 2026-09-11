@@ -11,3 +11,4 @@ export * from './mines';
 export * from './dayNight';
 export * from './storage';
 export * from './construction';
+export * from './raid';

@@ -1,3 +1,4 @@
+import { noteEnemyDamagedByRoom } from '../enemies/raid';
 import { STEAM_TURRET_BLAST_DEPTH, STEAM_TURRET_CHARGE_SEC, STEAM_TURRET_DAMAGE } from '@/config/constants';
 import { parseKey } from '@/calculations/grid';
 import { computeDamage, type Combatant } from '@/calculations/combat';
@@ -19,7 +20,7 @@ export function steamTurretBlastCells(tower: Tower, origin: Cell): Cell[] {
   return exteriorSideBlastCells(tower, origin, STEAM_TURRET_BLAST_DEPTH);
 }
 
-function attackEnemy(state: GameState, enemy: Enemy): void {
+function attackEnemy(state: GameState, enemy: Enemy, roomId: string): void {
   const template = getEnemyTemplate(enemy.templateId);
   if (!template) return;
   const attacker: Combatant = { attack: STEAM_TURRET_DAMAGE, defense: 0, dexterity: 0 };
@@ -30,6 +31,7 @@ function attackEnemy(state: GameState, enemy: Enemy): void {
     addMessage(state, `${enemy.name} the ${template.type} dodges the Steam Turret.`, 'combat');
   } else {
     enemy.currentHp -= result.damage;
+  noteEnemyDamagedByRoom(enemy, roomId);
     addMessage(state, `Steam Turret hits ${enemy.name} the ${template.type} for ${result.damage}.`, 'combat');
   }
 }
@@ -85,7 +87,7 @@ export function tickSteamTurrets(state: GameState, dt: number): void {
     if (charge >= 1) {
       const hits = enemiesInBlastCells(state, steamTurretBlastCells(state.tower, turret.origin));
       if (hits.length > 0) {
-        for (const enemy of hits) attackEnemy(state, enemy);
+        for (const enemy of hits) attackEnemy(state, enemy, turret.id);
         charge = 0;
       }
     }

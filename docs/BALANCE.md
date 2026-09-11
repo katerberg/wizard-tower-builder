@@ -13,7 +13,7 @@ Difficulty is **framing height at Start Wave**, not wave index. See [`HEIGHT_PRO
 1. Add a `BalanceBuild` row in [`src/test/balance/builds.ts`](../src/test/balance/builds.ts).
 2. Set `height` (the driver grows stems to that crown). Place rooms at any row.
 3. List `research` node ids only when the kit is **granted** (e.g. `bp-slot`). Empty = starter library.
-4. `expect: 'clear' | 'lose'`. If the **intended** outcome is not true yet, set `knownFailing: true` (Vitest `it.fails`). CI stays green; when a later pass actually matches `expect`, the suite **fails** until you remove the flag.
+4. `expect: 'clear' | 'lose' | 'raid'`. If the **intended** outcome is not true yet, set `knownFailing: true` (Vitest `it.fails`). CI stays green; when a later pass actually matches `expect`, the suite **fails** until you remove the flag.
 5. Run `npm run test:balance`.
 
 Do not snapshot exact gold/stone/souls in these tests. Combat outcome is the lock.
@@ -43,7 +43,7 @@ The same `applyBuild` path works at height 5, 15, or 80. A later plateau is anot
 
 ## In-memory sim report
 
-`runBalanceBuild` returns a `SimReport`: `id`, height, seed, `clear`/`lose`, wizard HP, sim time, net cost, leftover wallet, rooms used, spawn queue. Tests assert on that object. Nothing is written to disk. A later catalog / heatmap can dump the same type.
+`runBalanceBuild` returns a `SimReport`: `id`, height, seed, `clear`/`lose`/`raid`, wizard HP / collectorBroke, sim time, net cost, leftover wallet, rooms used, spawn queue. Tests assert on that object. Nothing is written to disk. A later catalog / heatmap can dump the same type.
 
 ## Wave-1 turret lock
 
@@ -90,3 +90,8 @@ npm run test:balance      # this suite
 npm run test:playability  # original first-wave pair (uses the same fixtures)
 npm test                  # all Vitest files, including both
 ```
+
+
+### Raid outcome
+
+`expect: 'raid'` means the wave was cleared (or otherwise survived) **and** the solar collector broke during that wave. Instant collector loss is gone; bare-starter fixtures that used to `lose` on collector death should use `raid` when the collector falls but storage holds.

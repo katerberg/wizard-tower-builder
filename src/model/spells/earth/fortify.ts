@@ -47,7 +47,7 @@ export const fortify: SpellDef = {
   id: 'fortify',
   name: 'Fortify',
   glyph: 'O',
-  description: 'Concentrate: collector takes 25% damage, gain Charge, cannot cast until you go.',
+  description: 'Concentrate: collector takes 25% damage, gain Charge, cannot cast until you go. Disabled while the solar collector is broken.',
   manaCost: 1,
   cooldown: 2,
   targeting: 'self',

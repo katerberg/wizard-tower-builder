@@ -150,7 +150,11 @@ export function createHud(root: HTMLElement, store: Store): () => void {
       <div class="stat"><span>Metal</span><strong>${metalLabel}</strong></div>
       <div class="stat"><span>Stone</span><strong>${stoneLabel}</strong></div>
       <div class="stat"><span>Souls</span><strong>${soulsLabel}</strong></div>
-      <div class="stat"><span>Collector HP</span><strong>${game.solarCollector.hp} / ${game.solarCollector.maxHp}</strong></div>
+      ${
+        game.solarCollector.hp <= 0
+          ? `<div class="stat raid-banner" aria-live="polite"><span class="raid-label">RAID</span></div>`
+          : `<div class="stat"><span>Collector HP</span><strong>${game.solarCollector.hp} / ${game.solarCollector.maxHp}</strong></div>`
+      }
       ${attackInfo}
       ${prospectHtml}
       ${buildModeHint}

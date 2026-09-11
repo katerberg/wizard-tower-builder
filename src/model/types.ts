@@ -256,7 +256,7 @@ export interface BuildDraftSnapshot {
 
 export interface Wizard {
   glyph: string;
-  // Wand Strike / combat stats. Lose-condition HP is on SolarCollector.
+  // Wand Strike / combat stats. Collector HP is an aggro magnet (raid on break).
   attack: number;
   defense: number;
   dexterity: number;
@@ -264,7 +264,7 @@ export interface Wizard {
   attackCooldown: number;
 }
 
-/** Crown objective — enemies path here; Fortify mitigates its damage. */
+/** Crown aggro magnet — enemies path here while HP > 0; Fortify mitigates. */
 export interface SolarCollector {
   hp: number;
   maxHp: number;
@@ -332,6 +332,12 @@ export interface EnemyTemplate {
   dropItemId?: string;
 }
 
+
+/** Post-collector-break smash objective for an enemy. */
+export type RaidGoal =
+  | { kind: 'room'; roomId: string }
+  | { kind: 'framing'; cell: Cell };
+
 export interface Enemy {
   id: string;
   templateId: string;
@@ -374,6 +380,13 @@ export interface Enemy {
   carrierLaunchTimer?: number;
   /** Last solar-collector perch macro key used for repath (`col,row`). */
   pathGoalKey?: string;
+  /**
+   * Last room that damaged this enemy (turrets / slots / spikes / side blasts).
+   * Wizard spells never set this. Used for raid-mode priority (1).
+   */
+  lastDamageSource?: { roomId: string } | null;
+  /** Active raid smash goal while the solar collector is broken. */
+  raidGoal?: RaidGoal | null;
   /** Water school: Soak stacks (0–100). Slow only — no inherent damage. */
   soak?: number;
   /** Seconds until next Soak half-life tick. */
@@ -575,8 +588,14 @@ export interface GameState {
   wizardFlight?: WizardFlight;
   /** Mobile wizard avatar (firefighter). */
   wizardAvatar: WizardAvatar;
-  /** Crown lose-condition objective. */
+  /** Crown aggro-magnet objective (broken HP does not end the run). */
   solarCollector: SolarCollector;
+  /** Set when collector HP hits 0 this night; consumed at dawn for restore + tax. */
+  collectorBrokeThisNight: boolean;
+  /** Sticky for the wave: true if the collector broke at any point this night (survives dawn). */
+  collectorBrokeThisWave: boolean;
+  /** After a break, next night's laborer harvest deposits/haul are halved. */
+  harvestRepairTaxActive: boolean;
   /** Earth school — Charge meter (0…max). */
   earthCharge: number;
   /** Earth school — Fault patches. */

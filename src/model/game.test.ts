@@ -44,13 +44,14 @@ describe('attack-phase simulation', () => {
       steps += 1;
       if (state.enemies.length > 0) sawEnemy = true;
       if (state.scene !== 'run') break;
-      if (state.phase === 'day' && state.levelIndex > 0) break;
+      if (state.phase === 'day') break;
     }
 
     expect(sawEnemy).toBe(true);
-    const cleared = state.levelIndex > 0 && state.scene === 'run';
+    const cleared = (state.levelIndex > 0 || state.phase === 'day') && state.scene === 'run';
     const lost = state.scene === 'gameOver';
-    expect(cleared || lost).toBe(true);
+    const raided = state.collectorBrokeThisWave && state.scene === 'run';
+    expect(cleared || lost || raided).toBe(true);
     expect(steps).toBeLessThan(maxSteps);
   });
 

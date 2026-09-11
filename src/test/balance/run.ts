@@ -2,16 +2,23 @@ import { expect } from 'vitest';
 import type { BalanceBuild, SimReport } from '@/test/balance/types';
 
 export function assertCombatOutcome(build: BalanceBuild, report: SimReport): void {
-  const label = `id=${report.id} seed=${report.seed} outcome=${report.outcome} hp=${report.wizardHp} enemies=${report.enemiesRemaining} queue=${report.spawnQueueRemaining}`;
+  const label = `id=${report.id} seed=${report.seed} outcome=${report.outcome} hp=${report.wizardHp} enemies=${report.enemiesRemaining} queue=${report.spawnQueueRemaining} broke=${report.collectorBroke}`;
 
   if (build.expect === 'lose') {
     expect(report.outcome, label).toBe('lose');
-    expect(report.wizardHp, label).toBeLessThanOrEqual(0);
+    return;
+  }
+
+  if (build.expect === 'raid') {
+    expect(report.outcome, label).toBe('raid');
+    expect(report.collectorBroke, label).toBe(true);
+    expect(report.enemiesRemaining, label).toBe(0);
+    expect(report.spawnQueueRemaining, label).toBe(0);
     return;
   }
 
   expect(report.outcome, label).toBe('clear');
-  expect(report.wizardHp, label).toBeGreaterThan(0);
+  expect(report.collectorBroke, label).toBe(false);
   expect(report.enemiesRemaining, label).toBe(0);
   expect(report.spawnQueueRemaining, label).toBe(0);
 }

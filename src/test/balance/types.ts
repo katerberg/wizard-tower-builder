@@ -25,7 +25,7 @@ export interface SlotAllocationSpec {
 export interface BalanceBuild {
   id: string;
   title: string;
-  expect: 'clear' | 'lose';
+  expect: 'clear' | 'lose' | 'raid';
   /**
    * When true, combat asserts the *intended* outcome via `it.fails`.
    * CI stays green while the imbalance is visible; remove this flag after a
@@ -54,7 +54,7 @@ export interface SimReport {
   seed: string | number;
   height: number;
   waveStartHeight: number;
-  outcome: 'clear' | 'lose';
+  outcome: 'clear' | 'lose' | 'raid';
   wizardHp: number;
   steps: number;
   simTimeSec: number;
@@ -64,4 +64,6 @@ export interface SimReport {
   spawnQueue: string[];
   enemiesRemaining: number;
   spawnQueueRemaining: number;
+  /** True if the collector broke during the simulated wave. */
+  collectorBroke: boolean;
 }

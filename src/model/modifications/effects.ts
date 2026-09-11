@@ -1,3 +1,4 @@
+import { noteEnemyDamagedByRoom } from '../enemies/raid';
 import { computeDamage, type Combatant } from '../../calculations/combat';
 import { macroCellOfNode } from '../../calculations/subGrid';
 import { reward as rewardCurrency } from '../../calculations/economy';
@@ -44,6 +45,7 @@ function attackEnemy(
   enemy: Enemy,
   attack: number,
   dexterity = 0,
+  roomId?: string,
 ): void {
   const template = getEnemyTemplate(enemy.templateId);
   if (!template) return;
@@ -55,6 +57,7 @@ function attackEnemy(
     addMessage(state, `${enemy.name} the ${template.type} dodges the ${def.name}.`, 'combat');
   } else {
     enemy.currentHp -= result.damage;
+    if (roomId) noteEnemyDamagedByRoom(enemy, roomId);
     addMessage(state, `${def.name} hits ${enemy.name} the ${template.type} for ${result.damage}.`, 'combat');
   }
 }
@@ -80,7 +83,7 @@ function buildModContext(
         .sort((a, b) => a.dist - b.dist)
         .map(({ enemy }) => enemy),
     enemiesTouching: () => livingEnemies(state).filter((enemy) => minManhattanToFootprint(enemy, cells) <= 1),
-    attackEnemy: (enemy, atk, dexterity = 0) => attackEnemy(state, def, enemy, atk, dexterity),
+    attackEnemy: (enemy, atk, dexterity = 0) => attackEnemy(state, def, enemy, atk, dexterity, room.id),
     reward: (amount) => rewardCurrency(state, amount),
     log: (text, kind) => addMessage(state, text, kind),
   };
@@ -106,7 +109,7 @@ function buildRoomContext(
         .map(({ enemy }) => enemy),
     enemiesTouching: () => livingEnemies(state).filter((enemy) => minManhattanToFootprint(enemy, cells) <= 1),
     attackEnemy: (enemy, atk, dexterity = 0, name = label) =>
-      attackEnemy(state, { name }, enemy, atk, dexterity),
+      attackEnemy(state, { name }, enemy, atk, dexterity, room.id),
     reward: (amount) => rewardCurrency(state, amount),
     log: (text, kind) => addMessage(state, text, kind),
   };

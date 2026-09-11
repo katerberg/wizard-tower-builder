@@ -177,12 +177,10 @@ export class PlayabilityDriver {
       if (game.scene !== 'run') {
         return this.metrics(steps + 1);
       }
-      if (
-        game.enemies.length === 0 &&
-        game.spawnQueue.length === 0 &&
-        game.solarCollector.hp > 0 &&
-        steps > 100
-      ) {
+      if (game.phase === 'day' && steps > 100) {
+        return this.metrics(steps + 1);
+      }
+      if (game.enemies.length === 0 && game.spawnQueue.length === 0 && steps > 100) {
         return this.metrics(steps + 1);
       }
     }
@@ -208,6 +206,7 @@ export class PlayabilityDriver {
       spawnQueue,
       enemiesRemaining: metrics.enemiesRemaining,
       spawnQueueRemaining: metrics.spawnQueueRemaining,
+      collectorBroke: game.collectorBrokeThisWave,
     };
   }
 
@@ -253,11 +252,14 @@ export class PlayabilityDriver {
     ].join(', ');
   }
 
-  private outcome(game: GameState): 'clear' | 'lose' {
+  private outcome(game: GameState): 'clear' | 'lose' | 'raid' {
     if (game.scene === 'gameOver') return 'lose';
-    if (game.scene === 'victory') return 'clear';
+    if (game.scene === 'victory') {
+      return game.collectorBrokeThisWave ? 'raid' : 'clear';
+    }
     if (game.scene === 'run' && game.enemies.length === 0 && game.spawnQueue.length === 0) {
-      return game.solarCollector.hp > 0 ? 'clear' : 'lose';
+      if (game.collectorBrokeThisWave) return 'raid';
+      return 'clear';
     }
     throw new Error(`Could not classify outcome: scene=${game.scene} phase=${game.phase} (seed ${this.seed}).`);
   }
@@ -287,7 +289,7 @@ export class PlayabilityDriver {
 }
 
 export function defaultMaxSteps(height: number): number {
-  return (height <= 5 ? 90 : 180) * 60;
+  return (height <= 5 ? 90 : 180) * 60 + 180; // float buffer so night timer can elapse
 }
 
 /** Place, start the wave, simulate until terminal, return an in-memory sim report. */
